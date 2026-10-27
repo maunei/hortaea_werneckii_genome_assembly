@@ -1,0 +1,8 @@
+program	version	environment	purpose
+minimap2	2.31-r1302	$SCREEN_BIN	alignment of reads (preset map-pb) and contigs (preset asm20) to the screen database
+seqkit	v2.14.0	$SCREEN_BIN	read lengths, removal of excluded reads, counts
+pigz	2.8	$SCREEN_BIN	compression of the filtered alignments
+python	3.12.15	$SCREEN_BIN	classification of reads and contigs (scripts/screen_classify.py), selection of reference genomes, test reads
+numpy	2.5.4	$SCREEN_BIN	simulation of test reads
+pandas	3.0.6	$SCREEN_BIN	selection of reference genomes from the RefSeq assembly summary
+curl	8.4.0	system	download of the screen databases

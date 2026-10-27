@@ -1,0 +1,152 @@
+item	group	expected	low	high	rule
+pacbio_hq_reads	counts	718442.0	718442.0	718442.0	exact
+pacbio_filtered_reads	counts	470231.0	470231.0	470231.0	exact
+adjud_for_new:procedure	procedure	0.9592875318066157	0.9544910941475827	0.9640839694656488	inside the range of the runs widened by the range or by 0.5 percent of the mean (the larger)
+adjud_for_new:ctrl_canu	control	0.15384615384615385	0.14615384615384616	0.16153846153846155	agree to 5 percent
+adjud_for_new:ctrl_flye	control	0.22329545454545455	0.21213068181818182	0.23446022727272728	agree to 5 percent
+adjud_for_new:ctrl_canu_quiver	control	0.15590551181102363	0.14811023622047245	0.16370078740157482	agree to 5 percent
+adjud_for_new:ctrl_flye_quiver	control	0.22678671918964546	0.2154473832301632	0.23812605514912774	agree to 5 percent
+aun:procedure	procedure	589091.4115290145	586145.9544713694	592036.8685866595	inside the range of the runs widened by the range or by 0.5 percent of the mean (the larger)
+aun:hw2	hw2	188567.5005081794	188190.36550716302	188944.63550919577	agree to 0.2 percent
+aun:ctrl_canu	control	87671.23799917614	83287.67609921734	92054.79989913495	agree to 5 percent
+aun:ctrl_flye	control	81610.69169702352	77530.15711217234	85691.2262818747	agree to 5 percent
+aun:ctrl_canu_quiver	control	87755.51518111845	83367.73942206253	92143.29094017437	agree to 5 percent
+aun:ctrl_flye_quiver	control	81693.2897693587	77608.62528089076	85777.95425782664	agree to 5 percent
+busco_complete:procedure	procedure	100.0	99.5	100.5	inside the range of the runs widened by the range or by 0.5 percent of the mean (the larger)
+busco_complete:hw2	hw2	100.0	99.8	100.2	agree to 0.2 percent
+busco_complete:ctrl_canu	control	100.0	95.0	105.0	agree to 5 percent
+busco_complete:ctrl_flye	control	99.47229551451187	94.49868073878628	104.44591029023746	agree to 5 percent
+busco_complete:ctrl_canu_quiver	control	100.0	95.0	105.0	agree to 5 percent
+busco_complete:ctrl_flye_quiver	control	99.47229551451187	94.49868073878628	104.44591029023746	agree to 5 percent
+busco_dup:procedure	procedure	76.51715039577836	76.13456464379946	76.89973614775725	inside the range of the runs widened by the range or by 0.5 percent of the mean (the larger)
+busco_dup:hw2	hw2	72.29551451187335	72.1509234828496	72.4401055408971	agree to 0.2 percent
+busco_dup:ctrl_canu	control	65.8311345646438	62.53957783641162	69.122691292876	agree to 5 percent
+busco_dup:ctrl_flye	control	51.45118733509235	48.87862796833773	54.02374670184697	agree to 5 percent
+busco_dup:ctrl_canu_quiver	control	70.31662269129288	66.80079155672823	73.83245382585753	agree to 5 percent
+busco_dup:ctrl_flye_quiver	control	51.45118733509235	48.87862796833773	54.02374670184697	agree to 5 percent
+contigs:procedure	procedure	169.0	168.155	169.845	inside the range of the runs widened by the range or by 0.5 percent of the mean (the larger)
+contigs:hw2	hw2	651.0	649.698	652.302	agree to 0.2 percent
+contigs:ctrl_canu	control	1036.0	984.2	1087.8	agree to 5 percent
+contigs:ctrl_flye	control	2263.0	2149.85	2376.15	agree to 5 percent
+contigs:ctrl_canu_quiver	control	1035.0	983.25	1086.75	agree to 5 percent
+contigs:ctrl_flye_quiver	control	2263.0	2149.85	2376.15	agree to 5 percent
+depth_ok:procedure	procedure	0.9789196599626481	0.9740183975357338	0.9838275865166636	inside the range of the runs widened by the range or by 0.5 percent of the mean (the larger)
+depth_ok:hw2	hw2	0.9751979216623625	0.9732475258190378	0.9771483175056872	agree to 0.2 percent
+depth_ok:ctrl_canu	control	0.9751522987327391	0.9263946837961021	1.0239099136693761	agree to 5 percent
+depth_ok:ctrl_flye	control	0.7126625329829672	0.6770294063338189	0.7482956596321155	agree to 5 percent
+depth_ok:ctrl_canu_quiver	control	0.9740313323278801	0.9253297657114861	1.022732898944274	agree to 5 percent
+depth_ok:ctrl_flye_quiver	control	0.7127182229338791	0.6770823117871851	0.748354134080573	agree to 5 percent
+diff_specific:procedure	procedure	19.455130437714036	19.357854785525465	19.552406089902608	inside the range of the runs widened by the range or by 0.5 percent of the mean (the larger)
+diff_specific:hw2	hw2	72.11970643350145	71.97546702063444	72.26394584636846	agree to 0.2 percent
+diff_specific:ctrl_canu	control	625.2993298768693	594.0343633830258	656.5642963707127	agree to 5 percent
+diff_specific:ctrl_flye	control	631.8129095516041	600.2222640740239	663.4035550291843	agree to 5 percent
+diff_specific:ctrl_canu_quiver	control	53.22517788165085	50.56391898756831	55.886436775733394	agree to 5 percent
+diff_specific:ctrl_flye_quiver	control	537.8175831767629	510.92670401792475	564.7084623356011	agree to 5 percent
+diff_specific_indel:procedure	procedure	15.109203596721548	15.033657578737937	15.184749614705154	inside the range of the runs widened by the range or by 0.5 percent of the mean (the larger)
+diff_specific_indel:hw2	hw2	67.43315343314055	67.29828712627426	67.56801974000683	agree to 0.2 percent
+diff_specific_indel:ctrl_canu	control	587.80350013967	558.4133251326864	617.1936751466535	agree to 5 percent
+diff_specific_indel:ctrl_flye	control	335.76596315035	318.9776649928325	352.5542613078675	agree to 5 percent
+diff_specific_indel:ctrl_canu_quiver	control	47.22092749782185	44.85988112293076	49.581973872712936	agree to 5 percent
+diff_specific_indel:ctrl_flye_quiver	control	297.2188637660296	282.3579205777281	312.07980695433105	agree to 5 percent
+diff_specific_snv:procedure	procedure	4.345926840992488	4.324197206787525	4.3676564751974505	inside the range of the runs widened by the range or by 0.5 percent of the mean (the larger)
+diff_specific_snv:hw2	hw2	4.686553000360905	4.677179894360183	4.695926106361627	agree to 0.2 percent
+diff_specific_snv:ctrl_canu	control	37.49582973719933	35.62103825033936	39.3706212240593	agree to 5 percent
+diff_specific_snv:ctrl_flye	control	296.04694640125405	281.2445990811913	310.84929372131677	agree to 5 percent
+diff_specific_snv:ctrl_canu_quiver	control	6.004250383829003	5.704037864637553	6.304462903020453	agree to 5 percent
+diff_specific_snv:ctrl_flye_quiver	control	240.59871941073334	228.56878344019668	252.62865538127	agree to 5 percent
+diff_total:procedure	procedure	47.703654904165205	47.46513662964438	47.94217317868603	inside the range of the runs widened by the range or by 0.5 percent of the mean (the larger)
+diff_total:hw2	hw2	100.34135092039091	100.14066821855013	100.54203362223168	agree to 0.2 percent
+diff_total:ctrl_canu	control	653.5464666443696	620.8691433121511	686.2237899765881	agree to 5 percent
+diff_total:ctrl_flye	control	654.9208133480112	622.1747726806107	687.6668540154117	agree to 5 percent
+diff_total:ctrl_canu_quiver	control	80.07751987599723	76.07364388219736	84.08139586979709	agree to 5 percent
+diff_total:ctrl_flye_quiver	control	557.1254951311103	529.2692203745547	584.9817698876658	agree to 5 percent
+discordant:procedure	procedure	9975.333333333334	9924.123333333333	10025.876666666667	inside the range of the runs widened by the range or by 0.5 percent of the mean (the larger)
+discordant:hw2	hw2	10264.0	10243.472	10284.528	agree to 0.2 percent
+discordant:ctrl_canu	control	10397.0	9877.15	10916.85	agree to 5 percent
+discordant:ctrl_flye	control	11008.0	10457.6	11558.4	agree to 5 percent
+discordant:ctrl_canu_quiver	control	10299.0	9784.05	10813.95	agree to 5 percent
+discordant:ctrl_flye_quiver	control	11008.0	10457.6	11558.4	agree to 5 percent
+false_dup:procedure	procedure	0.011157088256807094	0.01110130281552306	0.011212873698091132	inside the range of the runs widened by the range or by 0.5 percent of the mean (the larger)
+false_dup:hw2	hw2	0.016792966668877186	0.016759380735539432	0.01682655260221494	agree to 0.2 percent
+false_dup:ctrl_canu	control	0.013910821662182993	0.013215280579073844	0.014606362745292142	agree to 5 percent
+false_dup:ctrl_flye	control	0.17075888463767028	0.16222094040578677	0.17929682886955378	agree to 5 percent
+false_dup:ctrl_canu_quiver	control	0.013870282079625356	0.013176767975644089	0.014563796183606623	agree to 5 percent
+false_dup:ctrl_flye_quiver	control	0.16562758228199212	0.15734620316789252	0.17390896139609172	agree to 5 percent
+l50:procedure	procedure	31.0	30.845	31.155	inside the range of the runs widened by the range or by 0.5 percent of the mean (the larger)
+l50:hw2	hw2	100.0	99.8	100.2	agree to 0.2 percent
+l50:ctrl_canu	control	212.0	201.4	222.6	agree to 5 percent
+l50:ctrl_flye	control	260.0	247.0	273.0	agree to 5 percent
+l50:ctrl_canu_quiver	control	212.0	201.4	222.6	agree to 5 percent
+l50:ctrl_flye_quiver	control	260.0	247.0	273.0	agree to 5 percent
+longest:procedure	procedure	1587410.0	1579472.95	1595347.05	inside the range of the runs widened by the range or by 0.5 percent of the mean (the larger)
+longest:hw2	hw2	787827.0	786251.346	789402.654	agree to 0.2 percent
+longest:ctrl_canu	control	476723.0	452886.85	500559.15	agree to 5 percent
+longest:ctrl_flye	control	411508.0	390932.6	432083.4	agree to 5 percent
+longest:ctrl_canu_quiver	control	477127.0	453270.65	500983.35	agree to 5 percent
+longest:ctrl_flye_quiver	control	411992.0	391392.4	432591.6	agree to 5 percent
+mapped:procedure	procedure	94.47286185397472	94.00049312004006	94.94523501257414	inside the range of the runs widened by the range or by 0.5 percent of the mean (the larger)
+mapped:hw2	hw2	94.25805632564634	94.06954021299504	94.44657243829764	agree to 0.2 percent
+mapped:ctrl_canu	control	93.54349331761905	88.8663186517381	98.22066798350001	agree to 5 percent
+mapped:ctrl_flye	control	93.01132030129737	88.3607542862325	97.66188631636224	agree to 5 percent
+mapped:ctrl_canu_quiver	control	93.59142172894997	88.91185064250247	98.27099281539746	agree to 5 percent
+mapped:ctrl_flye_quiver	control	92.90029661271292	88.25528178207728	97.54531144334857	agree to 5 percent
+n50:procedure	procedure	581225.0	578318.875	584131.125	inside the range of the runs widened by the range or by 0.5 percent of the mean (the larger)
+n50:hw2	hw2	153735.0	153427.53	154042.47	agree to 0.2 percent
+n50:ctrl_canu	control	76395.0	72575.25	80214.75	agree to 5 percent
+n50:ctrl_flye	control	48021.0	45619.95	50422.05	agree to 5 percent
+n50:ctrl_canu_quiver	control	76496.0	72671.2	80320.8	agree to 5 percent
+n50:ctrl_flye_quiver	control	48026.0	45624.7	50427.3	agree to 5 percent
+ng50:procedure	procedure	581225.0	578318.875	584131.125	inside the range of the runs widened by the range or by 0.5 percent of the mean (the larger)
+ng50:hw2	hw2	153735.0	153427.53	154042.47	agree to 0.2 percent
+ng50:ctrl_canu	control	75309.0	71543.55	79074.45	agree to 5 percent
+ng50:ctrl_flye	control	54037.0	51335.15	56738.85	agree to 5 percent
+ng50:ctrl_canu_quiver	control	75374.0	71605.3	79142.7	agree to 5 percent
+ng50:ctrl_flye_quiver	control	54098.0	51393.1	56802.9	agree to 5 percent
+proteins_whole:procedure	procedure	0.41373002869452896	0.4116527095090722	0.41581601692196996	inside the range of the runs widened by the range or by 0.5 percent of the mean (the larger)
+proteins_whole:hw2	hw2	0.41247301760682425	0.4116480715716106	0.4132979636420379	agree to 0.2 percent
+proteins_whole:ctrl_canu	control	0.4042547658058308	0.3840420275155393	0.42446750409612233	agree to 5 percent
+proteins_whole:ctrl_flye	control	0.40321448076773037	0.38305375672934383	0.4233752048061169	agree to 5 percent
+proteins_whole:ctrl_canu_quiver	control	0.4109646043015786	0.39041637408649965	0.43151283451665756	agree to 5 percent
+proteins_whole:ctrl_flye_quiver	control	0.3979610413253231	0.37806298925905696	0.4178590933915893	agree to 5 percent
+readback80:procedure	procedure	0.7024657302300642	0.6989519905744904	0.7059794698856381	inside the range of the runs widened by the range or by 0.5 percent of the mean (the larger)
+readback80:hw2	hw2	0.6983089111984366	0.6969122933760398	0.6997055290208335	agree to 0.2 percent
+readback80:ctrl_canu	control	0.6857989459796956	0.6515089986807108	0.7200888932786804	agree to 5 percent
+readback80:ctrl_flye	control	0.6616524272803596	0.6285698059163416	0.6947350486443775	agree to 5 percent
+readback80:ctrl_canu_quiver	control	0.6858328100858596	0.6515411695815666	0.7201244505901526	agree to 5 percent
+readback80:ctrl_flye_quiver	control	0.6626231983237267	0.6294920384075404	0.695754358239913	agree to 5 percent
+readback_pieces:procedure	procedure	0.08698778688425564	0.08655179740441744	0.08742325109138536	inside the range of the runs widened by the range or by 0.5 percent of the mean (the larger)
+readback_pieces:hw2	hw2	0.09515111049521914	0.0949608082742287	0.09534141271620958	agree to 0.2 percent
+readback_pieces:ctrl_canu	control	0.1027395311788803	0.09760255461993628	0.10787650773782431	agree to 5 percent
+readback_pieces:ctrl_flye	control	0.12249230120497323	0.11636768614472456	0.1286169162652219	agree to 5 percent
+readback_pieces:ctrl_canu_quiver	control	0.10223725574264834	0.09712539295551592	0.10734911852978077	agree to 5 percent
+readback_pieces:ctrl_flye_quiver	control	0.12147914323688784	0.11540518607504345	0.12755310039873224	agree to 5 percent
+real_similar:procedure	procedure	0.7965194623632826	0.7925368650514663	0.800502059675099	inside the range of the runs widened by the range or by 0.5 percent of the mean (the larger)
+real_similar:hw2	hw2	0.7832587202624944	0.7816922028219695	0.7848252377030194	agree to 0.2 percent
+real_similar:ctrl_canu	control	0.7721678097384844	0.7335594192515602	0.8107762002254086	agree to 5 percent
+real_similar:ctrl_flye	control	0.47480714384872924	0.4510667866562928	0.4985475010411657	agree to 5 percent
+real_similar:ctrl_canu_quiver	control	0.774629186639253	0.7358977273072903	0.8133606459712156	agree to 5 percent
+real_similar:ctrl_flye_quiver	control	0.47070161844560654	0.4471665375233262	0.4942366993678869	agree to 5 percent
+star_unique:procedure	procedure	0.8891530179933165	0.8847072529033498	0.8935987830832831	inside the range of the runs widened by the range or by 0.5 percent of the mean (the larger)
+star_unique:hw2	hw2	0.8865645649590643	0.8847914358291462	0.8883376940889824	agree to 0.2 percent
+star_unique:ctrl_canu	control	0.8777591600117399	0.833871202011153	0.9216471180123269	agree to 5 percent
+star_unique:ctrl_flye	control	0.8269586730160498	0.7856107393652473	0.8683066066668522	agree to 5 percent
+star_unique:ctrl_canu_quiver	control	0.8822921481852437	0.8381775407759815	0.9264067555945059	agree to 5 percent
+star_unique:ctrl_flye_quiver	control	0.8185818781673381	0.7776527842589711	0.859510972075705	agree to 5 percent
+total_bp:procedure	procedure	50019054.0	49768958.73	50269149.27	inside the range of the runs widened by the range or by 0.5 percent of the mean (the larger)
+total_bp:hw2	hw2	49942992.0	49843106.016	50042877.984	agree to 0.2 percent
+total_bp:ctrl_canu	control	48943119.0	46495963.05	51390274.95	agree to 5 percent
+total_bp:ctrl_flye	control	53067921.0	50414524.95	55721317.05	agree to 5 percent
+total_bp:ctrl_canu_quiver	control	48988189.0	46538779.55	51437598.45	agree to 5 percent
+total_bp:ctrl_flye_quiver	control	53079263.0	50425299.85	55733226.15	agree to 5 percent
+transcripts:procedure	procedure	0.8957291832276376	0.891244648966301	0.9002196058341725	inside the range of the runs widened by the range or by 0.5 percent of the mean (the larger)
+transcripts:hw2	hw2	0.8825628433641294	0.8807977176774011	0.8843279690508576	agree to 0.2 percent
+transcripts:ctrl_canu	control	0.8588563655955767	0.8159135473157978	0.9017991838753555	agree to 5 percent
+transcripts:ctrl_flye	control	0.8002614425268066	0.7602483704004663	0.840274514653147	agree to 5 percent
+transcripts:ctrl_canu_quiver	control	0.8609585048313873	0.8179105795898178	0.9040064300729567	agree to 5 percent
+transcripts:ctrl_flye_quiver	control	0.795809853556855	0.7560193608790122	0.8356003462346977	agree to 5 percent
+unspanned:procedure	procedure	55.0	54.725	55.275	inside the range of the runs widened by the range or by 0.5 percent of the mean (the larger)
+unspanned:hw2	hw2	1949.0	1945.102	1952.898	agree to 0.2 percent
+unspanned:ctrl_canu	control	2181.0	2071.95	2290.05	agree to 5 percent
+unspanned:ctrl_flye	control	467046.0	443693.7	490398.3	agree to 5 percent
+unspanned:ctrl_canu_quiver	control	4564.0	4335.8	4792.2	agree to 5 percent
+unspanned:ctrl_flye_quiver	control	710611.0	675080.45	746141.55	agree to 5 percent

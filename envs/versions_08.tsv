@@ -1,0 +1,7 @@
+program	version	environment	purpose
+bwa	0.7.19-r1273	$VAR_BIN	index and mapping of the Illumina read pairs (bwa-mem)
+samtools	1.24	$VAR_BIN	sorting, index, flagstat, stats, read counts
+bcftools	1.24	$VAR_BIN	mpileup, haploid calling, normalisation, filtering of the differences
+mosdepth	0.3.14	$VAR_BIN	depth in windows of 1 kb, callable positions
+python	3.11.17	$PY	summary tables, arrangement of differences, shared differences
+numpy	2.4.6	$PY	random scatter of differences, window counts

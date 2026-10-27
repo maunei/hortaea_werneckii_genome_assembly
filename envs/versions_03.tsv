@@ -1,0 +1,8 @@
+program	version	environment	purpose
+fasterq-dump (SRA Toolkit)	3.4.1	RNA_BIN	conversion of SRA archive files to FASTQ
+seqkit	v2.14.0	QC_BIN	counting read pairs in the FASTQ files
+FastQC	v0.13.0	QC_BIN	quality control of all reads
+fastp	1.4.0	QC_BIN	report-only quality, adapter, duplication and insert-size evaluation
+MultiQC	1.35	QC_BIN	summary report of all runs
+pigz	2.7	StdEnv/2023 module	parallel compression of the FASTQ files
+Python	3.11.17	PY	tables from the fastp and FastQC outputs (standard library only)

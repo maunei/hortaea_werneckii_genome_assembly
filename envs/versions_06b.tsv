@@ -1,0 +1,7 @@
+program	version	environment	purpose
+Trinity	2.5.1	TRINITY_BIN	de novo assembly of transcripts from RNA-seq reads without a genome (step 06)
+Jellyfish	2.2.10	TRINITY_BIN	k-mer counting inside Trinity
+Samtools (Trinity environment)	1.24	TRINITY_BIN	used inside Trinity
+Bowtie2	2.5.5	TRINITY_BIN	used inside Trinity
+minimap2	2.31-r1302	QC_BIN	alignment of transcripts to assemblies (splice mode), of assembly to assembly (asm10), of PacBio reads (map-pb); steps 06 and 07
+Python	3.11.17	PY	scripts of steps 06 and 07 (standard library only)

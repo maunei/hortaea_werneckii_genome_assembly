@@ -1,0 +1,99 @@
+bash scripts/01_prepare_hw2.sh
+sbatch  jobs/01_check_inputs.sbatch
+sbatch  --array=0-4 jobs/02_pacbio_reads.sbatch
+sbatch --dependency=afterok:<pacbio> jobs/02_merge_reads.sbatch
+sbatch --dependency=afterok:<merge> jobs/02_compare_deposited.sbatch
+sbatch  jobs/02_screen_db_index.sbatch
+sbatch --dependency=afterok:<merge>:<dbindex> jobs/02_screen_reads.sbatch
+sbatch  --export=ALL,RUN=SRR5086621,GROUP=rna,EXPECTED=3333452 --time=01:00:00 --cpus-per-task=8 jobs/03_convert.sbatch
+sbatch  --export=ALL,RUN=SRR5086622,GROUP=rna,EXPECTED=175019208 --time=08:00:00 --cpus-per-task=16 jobs/03_convert.sbatch
+sbatch  --export=ALL,RUN=SRR866616,GROUP=illumina2013,EXPECTED=37667637 --time=04:00:00 --cpus-per-task=16 jobs/03_convert.sbatch
+sbatch --dependency=afterok:<conv_miseq>:<conv_hiseq>:<conv_ill> jobs/03_qc.sbatch
+sbatch --dependency=afterok:<screen_reads> --export=ALL,RUN=r1,THREADS=16 jobs/04_procedure.sbatch
+sbatch --dependency=afterok:<screen_reads> --export=ALL,RUN=r2,THREADS=12 --cpus-per-task=12 jobs/04_procedure.sbatch
+sbatch --dependency=afterok:<screen_reads> --export=ALL,RUN=r3,THREADS=8 --cpus-per-task=8 jobs/04_procedure.sbatch
+sbatch --dependency=afterok:<screen_reads> jobs/04_control_canu.sbatch
+sbatch --dependency=afterok:<screen_reads> jobs/04_control_flye.sbatch
+sbatch --dependency=afterok:<proc_r1> --export=ALL,RAW=proc_r1_raw,OUTNAME=proc_r1,THREADS=16 --cpus-per-task=16 jobs/05_align_subreads.sbatch
+sbatch --dependency=afterok:<align_r1> --export=ALL,RAW=proc_r1_raw,OUTNAME=proc_r1,THREADS=32 --cpus-per-task=32 jobs/05_polish.sbatch
+sbatch --dependency=afterok:<polish_r1> --export=ALL,OUTNAME=proc_r1 jobs/05_remove_contaminant_contigs.sbatch
+sbatch --dependency=afterok:<proc_r2> --export=ALL,RAW=proc_r2_raw,OUTNAME=proc_r2,THREADS=12 --cpus-per-task=12 jobs/05_align_subreads.sbatch
+sbatch --dependency=afterok:<align_r2> --export=ALL,RAW=proc_r2_raw,OUTNAME=proc_r2,THREADS=24 --cpus-per-task=24 jobs/05_polish.sbatch
+sbatch --dependency=afterok:<polish_r2> --export=ALL,OUTNAME=proc_r2 jobs/05_remove_contaminant_contigs.sbatch
+sbatch --dependency=afterok:<proc_r3> --export=ALL,RAW=proc_r3_raw,OUTNAME=proc_r3,THREADS=8 --cpus-per-task=8 jobs/05_align_subreads.sbatch
+sbatch --dependency=afterok:<align_r3> --export=ALL,RAW=proc_r3_raw,OUTNAME=proc_r3,THREADS=16 --cpus-per-task=16 jobs/05_polish.sbatch
+sbatch --dependency=afterok:<polish_r3> --export=ALL,OUTNAME=proc_r3 jobs/05_remove_contaminant_contigs.sbatch
+sbatch --dependency=afterok:<ctrl_canu> --export=ALL,RAW=ctrl_canu,OUTNAME=ctrl_canu_quiver jobs/05_align_subreads.sbatch
+sbatch --dependency=afterok:<align_ctrl_canu> --export=ALL,RAW=ctrl_canu,OUTNAME=ctrl_canu_quiver jobs/05_polish.sbatch
+sbatch --dependency=afterok:<polish_ctrl_canu> --export=ALL,OUTNAME=ctrl_canu_quiver jobs/05_remove_contaminant_contigs.sbatch
+sbatch --dependency=afterok:<ctrl_flye> --export=ALL,RAW=ctrl_flye,OUTNAME=ctrl_flye_quiver jobs/05_align_subreads.sbatch
+sbatch --dependency=afterok:<align_ctrl_flye> --export=ALL,RAW=ctrl_flye,OUTNAME=ctrl_flye_quiver jobs/05_polish.sbatch
+sbatch --dependency=afterok:<polish_ctrl_flye> --export=ALL,OUTNAME=ctrl_flye_quiver jobs/05_remove_contaminant_contigs.sbatch
+sbatch --dependency=afterok:<conv_hiseq> jobs/06_trinity_denovo.sbatch
+sbatch  jobs/07_genbank_files.sbatch
+sbatch --dependency=afterok:<screen_reads> --export=ALL,ASM=hw2 jobs/07_mito.sbatch
+sbatch --dependency=afterok:<genbank>:<mito_hw2> jobs/07_the22.sbatch
+sbatch --dependency=afterok:<the22> jobs/07_depth_unscreened.sbatch
+sbatch --dependency=afterok:<proc_r1>:<conv_hiseq> --export=ALL,ASM=proc_r1_raw jobs/06_tests.sbatch
+sbatch --dependency=afterok:<proc_r1>:<trinity> --export=ALL,ASM=proc_r1_raw jobs/06_transcript_alignment.sbatch
+sbatch --dependency=afterok:<proc_r1>:<conv_ill> --export=ALL,ASM=proc_r1_raw,FASTA=/path/to/work/asm/proc_r1_raw/final.fasta jobs/08_illumina_accuracy.sbatch
+sbatch --dependency=afterok:<proc_r1> --export=ALL,ASM=proc_r1_raw,FASTA=/path/to/work/asm/proc_r1_raw/final.fasta jobs/02_screen_contigs.sbatch
+sbatch --dependency=afterok:<remove_r1>:<conv_hiseq> --export=ALL,ASM=proc_r1 jobs/06_tests.sbatch
+sbatch --dependency=afterok:<remove_r1>:<trinity> --export=ALL,ASM=proc_r1 jobs/06_transcript_alignment.sbatch
+sbatch --dependency=afterok:<remove_r1>:<conv_ill> --export=ALL,ASM=proc_r1,FASTA=/path/to/work/asm/proc_r1/final.fasta jobs/08_illumina_accuracy.sbatch
+sbatch --dependency=afterok:<remove_r1> --export=ALL,ASM=proc_r1,FASTA=/path/to/work/asm/proc_r1/final.fasta jobs/02_screen_contigs.sbatch
+sbatch --dependency=afterok:<remove_r2>:<conv_hiseq> --export=ALL,ASM=proc_r2 jobs/06_tests.sbatch
+sbatch --dependency=afterok:<remove_r2>:<trinity> --export=ALL,ASM=proc_r2 jobs/06_transcript_alignment.sbatch
+sbatch --dependency=afterok:<remove_r2>:<conv_ill> --export=ALL,ASM=proc_r2,FASTA=/path/to/work/asm/proc_r2/final.fasta jobs/08_illumina_accuracy.sbatch
+sbatch --dependency=afterok:<remove_r2> --export=ALL,ASM=proc_r2,FASTA=/path/to/work/asm/proc_r2/final.fasta jobs/02_screen_contigs.sbatch
+sbatch --dependency=afterok:<remove_r3>:<conv_hiseq> --export=ALL,ASM=proc_r3 jobs/06_tests.sbatch
+sbatch --dependency=afterok:<remove_r3>:<trinity> --export=ALL,ASM=proc_r3 jobs/06_transcript_alignment.sbatch
+sbatch --dependency=afterok:<remove_r3>:<conv_ill> --export=ALL,ASM=proc_r3,FASTA=/path/to/work/asm/proc_r3/final.fasta jobs/08_illumina_accuracy.sbatch
+sbatch --dependency=afterok:<remove_r3> --export=ALL,ASM=proc_r3,FASTA=/path/to/work/asm/proc_r3/final.fasta jobs/02_screen_contigs.sbatch
+sbatch --dependency=afterok:<ctrl_canu>:<conv_hiseq> --export=ALL,ASM=ctrl_canu jobs/06_tests.sbatch
+sbatch --dependency=afterok:<ctrl_canu>:<trinity> --export=ALL,ASM=ctrl_canu jobs/06_transcript_alignment.sbatch
+sbatch --dependency=afterok:<ctrl_canu>:<conv_ill> --export=ALL,ASM=ctrl_canu,FASTA=/path/to/work/asm/ctrl_canu/final.fasta jobs/08_illumina_accuracy.sbatch
+sbatch --dependency=afterok:<ctrl_canu> --export=ALL,ASM=ctrl_canu,FASTA=/path/to/work/asm/ctrl_canu/final.fasta jobs/02_screen_contigs.sbatch
+sbatch --dependency=afterok:<ctrl_flye>:<conv_hiseq> --export=ALL,ASM=ctrl_flye jobs/06_tests.sbatch
+sbatch --dependency=afterok:<ctrl_flye>:<trinity> --export=ALL,ASM=ctrl_flye jobs/06_transcript_alignment.sbatch
+sbatch --dependency=afterok:<ctrl_flye>:<conv_ill> --export=ALL,ASM=ctrl_flye,FASTA=/path/to/work/asm/ctrl_flye/final.fasta jobs/08_illumina_accuracy.sbatch
+sbatch --dependency=afterok:<ctrl_flye> --export=ALL,ASM=ctrl_flye,FASTA=/path/to/work/asm/ctrl_flye/final.fasta jobs/02_screen_contigs.sbatch
+sbatch --dependency=afterok:<remove_ctrl_canu>:<conv_hiseq> --export=ALL,ASM=ctrl_canu_quiver jobs/06_tests.sbatch
+sbatch --dependency=afterok:<remove_ctrl_canu>:<trinity> --export=ALL,ASM=ctrl_canu_quiver jobs/06_transcript_alignment.sbatch
+sbatch --dependency=afterok:<remove_ctrl_canu>:<conv_ill> --export=ALL,ASM=ctrl_canu_quiver,FASTA=/path/to/work/asm/ctrl_canu_quiver/final.fasta jobs/08_illumina_accuracy.sbatch
+sbatch --dependency=afterok:<remove_ctrl_canu> --export=ALL,ASM=ctrl_canu_quiver,FASTA=/path/to/work/asm/ctrl_canu_quiver/final.fasta jobs/02_screen_contigs.sbatch
+sbatch --dependency=afterok:<remove_ctrl_flye>:<conv_hiseq> --export=ALL,ASM=ctrl_flye_quiver jobs/06_tests.sbatch
+sbatch --dependency=afterok:<remove_ctrl_flye>:<trinity> --export=ALL,ASM=ctrl_flye_quiver jobs/06_transcript_alignment.sbatch
+sbatch --dependency=afterok:<remove_ctrl_flye>:<conv_ill> --export=ALL,ASM=ctrl_flye_quiver,FASTA=/path/to/work/asm/ctrl_flye_quiver/final.fasta jobs/08_illumina_accuracy.sbatch
+sbatch --dependency=afterok:<remove_ctrl_flye> --export=ALL,ASM=ctrl_flye_quiver,FASTA=/path/to/work/asm/ctrl_flye_quiver/final.fasta jobs/02_screen_contigs.sbatch
+sbatch --dependency=afterok:<conv_hiseq> --export=ALL,ASM=hw2 jobs/06_tests.sbatch
+sbatch --dependency=afterok:<trinity> --export=ALL,ASM=hw2 jobs/06_transcript_alignment.sbatch
+sbatch --dependency=afterok:<conv_ill> --export=ALL,ASM=hw2,FASTA=/path/to/work/asm/hw2/final.fasta jobs/08_illumina_accuracy.sbatch
+sbatch  --export=ALL,ASM=hw2,FASTA=/path/to/work/asm/hw2/final.fasta jobs/02_screen_contigs.sbatch
+sbatch --dependency=afterok:<acc_proc_r1_raw>:<acc_hw2> --export=ALL,ASM_A=proc_r1_raw,ASM_B=hw2 jobs/08_shared_differences.sbatch
+sbatch --dependency=afterok:<acc_proc_r1>:<acc_hw2> --export=ALL,ASM_A=proc_r1,ASM_B=hw2 jobs/08_shared_differences.sbatch
+sbatch --dependency=afterok:<remove_r1> --export=ALL,A_ASM=proc_r1,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
+sbatch --dependency=afterok:<remove_r1> --export=ALL,ASM=proc_r1 jobs/07_mito.sbatch
+sbatch --dependency=afterok:<remove_r1> --export=ALL,ASM=proc_r1 jobs/07_the22_vs_assembly.sbatch
+sbatch --dependency=afterok:<acc_proc_r2>:<acc_hw2> --export=ALL,ASM_A=proc_r2,ASM_B=hw2 jobs/08_shared_differences.sbatch
+sbatch --dependency=afterok:<remove_r2> --export=ALL,A_ASM=proc_r2,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
+sbatch --dependency=afterok:<remove_r2> --export=ALL,ASM=proc_r2 jobs/07_mito.sbatch
+sbatch --dependency=afterok:<remove_r2> --export=ALL,ASM=proc_r2 jobs/07_the22_vs_assembly.sbatch
+sbatch --dependency=afterok:<acc_proc_r3>:<acc_hw2> --export=ALL,ASM_A=proc_r3,ASM_B=hw2 jobs/08_shared_differences.sbatch
+sbatch --dependency=afterok:<remove_r3> --export=ALL,A_ASM=proc_r3,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
+sbatch --dependency=afterok:<remove_r3> --export=ALL,ASM=proc_r3 jobs/07_mito.sbatch
+sbatch --dependency=afterok:<remove_r3> --export=ALL,ASM=proc_r3 jobs/07_the22_vs_assembly.sbatch
+sbatch --dependency=afterok:<acc_ctrl_canu>:<acc_hw2> --export=ALL,ASM_A=ctrl_canu,ASM_B=hw2 jobs/08_shared_differences.sbatch
+sbatch --dependency=afterok:<ctrl_canu> --export=ALL,A_ASM=ctrl_canu,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
+sbatch --dependency=afterok:<ctrl_canu> --export=ALL,ASM=ctrl_canu jobs/07_mito.sbatch
+sbatch --dependency=afterok:<ctrl_canu> --export=ALL,ASM=ctrl_canu jobs/07_the22_vs_assembly.sbatch
+sbatch --dependency=afterok:<acc_ctrl_flye>:<acc_hw2> --export=ALL,ASM_A=ctrl_flye,ASM_B=hw2 jobs/08_shared_differences.sbatch
+sbatch --dependency=afterok:<ctrl_flye> --export=ALL,A_ASM=ctrl_flye,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
+sbatch --dependency=afterok:<ctrl_flye> --export=ALL,ASM=ctrl_flye jobs/07_mito.sbatch
+sbatch --dependency=afterok:<ctrl_flye> --export=ALL,ASM=ctrl_flye jobs/07_the22_vs_assembly.sbatch
+sbatch --dependency=afterok:<acc_ctrl_canu_quiver>:<acc_hw2> --export=ALL,ASM_A=ctrl_canu_quiver,ASM_B=hw2 jobs/08_shared_differences.sbatch
+sbatch --dependency=afterok:<remove_ctrl_canu> --export=ALL,A_ASM=ctrl_canu_quiver,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
+sbatch --dependency=afterok:<acc_ctrl_flye_quiver>:<acc_hw2> --export=ALL,ASM_A=ctrl_flye_quiver,ASM_B=hw2 jobs/08_shared_differences.sbatch
+sbatch --dependency=afterok:<remove_ctrl_flye> --export=ALL,A_ASM=ctrl_flye_quiver,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
+sbatch --dependency=afterok:<trans_hw2>:<qc>:<trans_ctrl_canu_quiver>:<proc_r2>:<proc_r3>:<acc_proc_r1_raw>:<proc_r1>:<scr_hw2>:<acc_ctrl_canu>:<remove_r2>:<remove_r3>:<remove_r1>:<the22_ctrl_flye>:<pacbio>:<scr_proc_r1_raw>:<the22_ctrl_canu>:<polish_ctrl_flye>:<remove_ctrl_canu>:<trans_ctrl_flye_quiver>:<mito_ctrl_flye>:<mito_ctrl_canu>:<acc_ctrl_canu_quiver>:<polish_ctrl_canu>:<tests_ctrl_canu_quiver>:<shared_ctrl_canu>:<scr_ctrl_canu>:<acc_ctrl_flye>:<screen_reads>:<align_ctrl_flye>:<shared_ctrl_flye>:<compare_ctrl_canu_quiver>:<conv_miseq>:<conv_hiseq>:<tests_ctrl_canu>:<scr_ctrl_flye>:<trans_proc_r1_raw>:<compare_proc_r2>:<compare_proc_r3>:<compare_proc_r1>:<align_r1>:<align_r3>:<align_r2>:<mito_proc_r1>:<mito_proc_r2>:<mito_proc_r3>:<genbank>:<scr_ctrl_flye_quiver>:<tests_proc_r1_raw>:<trans_proc_r1>:<trans_proc_r3>:<trans_proc_r2>:<remove_ctrl_flye>:<trinity>:<tests_ctrl_flye>:<acc_hw2>:<align_ctrl_canu>:<deposited>:<tests_hw2>:<tests_proc_r1>:<tests_proc_r2>:<tests_proc_r3>:<depth_unscreened>:<conv_ill>:<shared_proc_r1_raw>:<compare_ctrl_flye>:<acc_proc_r1>:<acc_proc_r2>:<acc_proc_r3>:<shared_proc_r2>:<shared_proc_r3>:<shared_proc_r1>:<tests_ctrl_flye_quiver>:<compare_ctrl_flye_quiver>:<shared_ctrl_flye_quiver>:<the22>:<scr_proc_r3>:<scr_proc_r2>:<compare_ctrl_canu>:<scr_proc_r1>:<shared_ctrl_canu_quiver>:<ctrl_flye>:<the22_proc_r2>:<the22_proc_r3>:<the22_proc_r1>:<mito_hw2>:<acc_ctrl_flye_quiver>:<ctrl_canu>:<trans_ctrl_flye>:<polish_r3>:<polish_r2>:<polish_r1>:<scr_ctrl_canu_quiver>:<trans_ctrl_canu>:<check_inputs>:<dbindex>:<merge> jobs/09_summary.sbatch
+Everything is submitted; the last job (09_summary) runs when all others have finished and writes results/09_summary/ and results/assembly/.

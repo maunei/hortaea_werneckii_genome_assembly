@@ -1,0 +1,11 @@
+program	version	environment	purpose
+bax2bam	0.0.9-1 (the program prints 0.0.8)	$HDF5_BIN	conversion of the .bax.h5 files to subreads (step 02)
+seqkit	seqkit v2.14.0	$QC_BIN	read statistics, seed selection, FASTQ to FASTA (steps 02, 04)
+samtools	samtools 1.24	$QC_BIN	BAM to FASTQ (step 02)
+blasr	5.3.5-0	$LEGACY_BIN	alignment of the reads to the seeds (step 04)
+pbdagcon	0.1-boost1.60_0	$LEGACY_BIN	consensus per seed, the corrected reads (step 04)
+Canu	canu 2.2	$MODERN_BIN	assembly of the corrected reads; control run with default settings (step 04)
+Flye	2.9.6-b1802	$MODERN_BIN	control assembly with default settings (step 04)
+GenomicConsensus-Quiver	2.3.3	$LEGACY_BIN	polishing of the contigs with Quiver (step 05)
+pbalign	0.3.2-py_1	$LEGACY_BIN	alignment of the subreads with their quality tracks for Quiver (step 05)
+Python	Python 3.11.17	$PY	scripts of steps 01, 02, 09

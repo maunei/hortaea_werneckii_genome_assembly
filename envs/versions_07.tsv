@@ -1,0 +1,11 @@
+program	version	environment	purpose
+minimap2	2.31-r1302	$QC_BIN	alignment of contigs to contigs, of the 22 sequences, of mitochondrial genomes and of PacBio reads (preset map-pb)
+samtools	1.24	$QC_BIN	sorting and indexing of read alignments
+mosdepth	0.3.14	$QC_BIN	read depth in windows of 1 kb and per contig
+miniprot	0.18-r281	$BLAST_BIN	alignment of Swiss-Prot fungal proteins to the 22 sequences
+tblastn	2.16.0+	$BLAST_BIN	alignment of mitochondrial proteins (genetic code 4) to contigs
+makeblastdb	2.16.0+	$BLAST_BIN	nucleotide databases for tblastn
+python	3.11.17	$PY	scripts of step 07
+pandas	3.0.6	$PY	tables
+biopython	1.88	$PY	reading GenBank records of the mitochondrial reference genomes
+curl	8.4.0	system	download of the mitochondrial reference records through the NCBI Entrez interface

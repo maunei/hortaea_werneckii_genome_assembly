@@ -1,0 +1,10 @@
+program	version	environment	purpose
+BUSCO	6.1.0	$BUSCO_BIN	gene-space completeness, lineage fungi_odb10, genome mode
+miniprot	0.18-r281	$BUSCO_BIN	alignment of Swiss-Prot fungal proteins to the assembly (also the gene finder used inside BUSCO)
+STAR	2.7.11b	$RNA_BIN	alignment of the RNA-seq read pairs
+minimap2	2.31-r1302	$QC_BIN	read-back of the PacBio reads (preset map-pb) and alignment of the contigs against each other (preset asm20)
+samtools	1.24	$QC_BIN	sorting, indexing and reading the read-back alignments
+mosdepth	0.3.14	$QC_BIN	read depth in windows of 1 kb
+Python	3.11.17	$PY	summary scripts of step 06
+NumPy	2.4.6	$PY	summary scripts of step 06
+GNU time	1.9	system	wall time and peak memory of each program in timings.tsv
