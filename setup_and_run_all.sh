@@ -120,5 +120,5 @@ case "$STAGE" in
   check)     load; stage_check ;;
   run)       load; stage_run ;;
   all)       stage_settings; load; stage_software; stage_databases; stage_inputs; stage_check; stage_run ;;
-  *) sed -n '2,14p' "$0"; exit 0 ;;
+  *) echo "Nothing was run: no stage was given. Usage:  bash setup_and_run_all.sh STAGE   (all = everything, in order)"; echo; sed -n '2,12p' "$0"; exit 0 ;;
 esac
