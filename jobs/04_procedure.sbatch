@@ -28,9 +28,15 @@ seqkit fx2tab -n -l reads.fa | sort -k2,2nr -T "$T" | awk -v need="$NEED" '{c+=$
 seqkit grep -f seed_names.txt reads.fa -o seeds.fa; seqkit stats -a -T seeds.fa > "$R/seeds_stats.tsv"
 echo "seeds: $(grep -c '>' seeds.fa); shortest seed: $(seqkit fx2tab -n -l seeds.fa | sort -k2,2n | head -1 | cut -f2)"
 # 2 correction: all reads aligned to the seeds with BLASR (up to 24 alignments per read), consensus per seed with pbdagcon (coverage >= 4, length >= 500)
-/usr/bin/time -v blasr reads.fa seeds.fa -m 5 --bestn 24 --nCandidates 24 --minMatch 12 --maxLCPLength 15 --maxScore -1000 --nproc "$NT" --noSplitSubreads --out aln.m5 > "$LOGDIR/blasr.out" 2> "$LOGDIR/blasr.time"; echo "blasr exit $?"
+/usr/bin/time -v blasr reads.fa seeds.fa -m 5 --bestn 24 --nCandidates 24 --minMatch 12 --maxLCPLength 15 --maxScore -1000 --nproc "$NT" --noSplitSubreads --out aln.m5 > "$LOGDIR/blasr.out" 2> "$LOGDIR/blasr.time"; brc=$?; echo "blasr exit $brc"; [ $brc = 0 ] || exit 2
 sort -k6,6 -T "$T" --parallel="$NT" aln.m5 > aln.sorted.m5; rm -f aln.m5
-/usr/bin/time -v pbdagcon -j "$NT" -t 12 -c 4 -m 500 aln.sorted.m5 > corrected.fasta 2> "$LOGDIR/pbdagcon.time"; echo "pbdagcon exit $?"
+# pbdagcon (a program of the original protocol) can stop with a thread error when it runs with many threads; the result of a run that stopped is incomplete, so the run is repeated (three attempts) and the job fails if none succeeds
+for attempt in 1 2 3; do
+  /usr/bin/time -v pbdagcon -j "$NT" -t 12 -c 4 -m 500 aln.sorted.m5 > corrected.fasta 2> "$LOGDIR/pbdagcon.time"; prc=$?
+  echo "pbdagcon exit $prc (attempt $attempt)"; [ $prc = 0 ] && break
+  cp "$LOGDIR/pbdagcon.time" "$LOGDIR/pbdagcon_failed_attempt$attempt.time"
+done
+[ $prc = 0 ] || { echo "pbdagcon failed in three attempts; the corrected reads would be incomplete" >&2; exit 4; }
 seqkit stats -a -T corrected.fasta > "$R/corrected_stats.tsv"; cp corrected.fasta "$OUT/corrected.fasta"; cut -f1-9 "$R/corrected_stats.tsv"
 # 3 assembly of the corrected reads with Canu (assembly only, corrected-read error limit 0.025)
 export PATH="$MODERN_BIN:$QC_BIN:$P0"

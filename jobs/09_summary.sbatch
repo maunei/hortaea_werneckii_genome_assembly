@@ -21,5 +21,6 @@ export HW RESULTS
 bash "$HW/scripts/09_replicates.sh" || exit 3
 "$PY" "$HW/scripts/09_release.py" proc_r1 || exit 4
 "$PY" "$HW/scripts/09_resources.py" || echo "resources table not made (job accounting not available)"
-"$PY" "$HW/scripts/10_validate.py" check "$RESULTS" || echo "validation reported differences; see results/10_validation/validation_report.txt"
+vrc=0; "$PY" "$HW/scripts/10_validate.py" check "$RESULTS" || { vrc=5; echo "validation reported differences; see results/10_validation/validation_report.txt"; }
 hw_end 09_summary
+exit $vrc   # the job ends with an error when the results are outside the expected table, so that the message at the end of the run says FAILED

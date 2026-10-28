@@ -57,3 +57,4 @@ else:
         else: bad += 1; lines.append(f'[FAIL] {item}: {v:.6g} outside {lo:.6g} to {hi:.6g}')
     verdict = 'OVERALL: PASS - the expected table is reproduced' if bad == 0 and miss == 0 else f'OVERALL: FAIL ({bad} outside, {miss} missing)'
     (out / 'validation_report.txt').write_text('\n'.join(lines + ['', f'{ok} pass, {bad} fail, {miss} missing', verdict]) + '\n'); print(verdict, ok, bad, miss)
+    sys.exit(0 if bad == 0 and miss == 0 else 1)   # an error code when the results are outside the table (the summary job passes it on)
