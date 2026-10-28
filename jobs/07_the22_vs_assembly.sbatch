@@ -7,9 +7,8 @@
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=<ADDRESS>
-module --force purge
-module load StdEnv/2023
-HW="${SLURM_SUBMIT_DIR:-$PWD}"; source "$HW/config/config.sh"; source "$HW/config/lib.sh"
+HW="${SLURM_SUBMIT_DIR:-$PWD}"; source "$HW/config/modules.sh"      # the modules of settings.yaml
+source "$HW/config/config.sh"; source "$HW/config/lib.sh"
 hw_start the22_vs_asm
 # Step 07b: repeats the alignment of the 22 sequences of Hw 2.0 against any other assembly (the contaminant screen of the contigs of an assembly is step 02b, jobs/02_screen_contigs.sbatch).
 # Parameters (sbatch --export=ALL,ASM=...,FASTA=...): ASM = assembly name; FASTA = assembly FASTA (default $WORK/asm/$ASM/final.fasta).

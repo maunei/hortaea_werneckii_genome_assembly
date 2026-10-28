@@ -1,13 +1,13 @@
 # Settings shared by all scripts of the package (source this file). Locations are read from environment variables when they are set.
 # HW_WORK: work folder for large intermediate files (reads, alignments, assemblies); HW_ENVS: folder of the software environments (tools are called by path, no activation).
 export HW="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+[ -f "$HW/config/local.sh" ] && source "$HW/config/local.sh"      # values of settings.yaml, written by setup_and_run_all.sh (not part of the repository)
 export INPUT="$HW/input"
 export RESULTS="${HW_RESULTS:-$HW/results}"
 export LOGS_BASE="$HW/logs"
-export WORK="${HW_WORK:?set HW_WORK to the folder for large intermediate files (see the README, step 0)}"
-export ENVS="${HW_ENVS:?set HW_ENVS to the folder of the software environments (see the README, step 0)}"
-export DBS="${HW_DBS:?set HW_DBS to the folder of the reference databases (see the README, step 0)}"      # reference databases (contaminant screen, BUSCO lineage, proteins)
-export ACCOUNT="${HW_ACCOUNT:-}"
+export WORK="${HW_WORK:?set HW_WORK to the folder for large intermediate files (fill in settings.yaml and run  bash setup_and_run_all.sh settings,  or see the README)}"
+export ENVS="${HW_ENVS:?set HW_ENVS to the folder of the software environments (fill in settings.yaml and run  bash setup_and_run_all.sh settings,  or see the README)}"
+export DBS="${HW_DBS:?set HW_DBS to the folder of the reference databases (fill in settings.yaml and run  bash setup_and_run_all.sh settings,  or see the README)}"      # reference databases (contaminant screen, BUSCO lineage, proteins)
 export GENOME_SIZE=50000000                                      # bases; the length of Hw 2.0 rounded to 50 Mb
 export LC_ALL=C
 unset PYTHONSAFEPATH
@@ -30,3 +30,13 @@ export TRINITY_BIN="$ENVS/04_B_trinity/bin"        # Trinity 2.5.1 (de novo tran
 # Step 02b (contaminant screen): environment with minimap2, seqkit, pigz, pandas and the index files of the screen databases
 export SCREEN_BIN="$ENVS/04_screen/bin"                          # minimap2 2.31, seqkit, pigz, python 3.12 with pandas
 export SCREEN_DB="${HW_SCREEN_DB:-$DBS/screen}"                  # four FASTA parts (+ .mmi indexes) and manifest, made by scripts/fetch_screen_databases.sh
+# Arguments that scripts/submit_all.sh and setup_and_run_all.sh add to every sbatch call: the account and the mail settings of settings.yaml.
+# They override the header lines of the job files; empty when settings.yaml has not been used (then the header lines apply).
+SBATCH_COMMON=()
+[ -n "${HW_ACCOUNT:-}" ] && SBATCH_COMMON+=(--account="$HW_ACCOUNT")
+case "${HW_MAIL_WHEN:-}" in
+  "") ;;
+  NONE) SBATCH_COMMON+=(--mail-type=NONE) ;;
+  ALL)  SBATCH_COMMON+=(--mail-type=BEGIN,END,FAIL --mail-user="$HW_MAIL") ;;
+  *)    SBATCH_COMMON+=(--mail-type=FAIL --mail-user="$HW_MAIL") ;;
+esac

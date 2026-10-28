@@ -7,9 +7,8 @@
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=<ADDRESS>
-module --force purge
-module load StdEnv/2023
-HW="${SLURM_SUBMIT_DIR:-$PWD}"; source "$HW/config/config.sh"; source "$HW/config/lib.sh"
+HW="${SLURM_SUBMIT_DIR:-$PWD}"; source "$HW/config/modules.sh"      # the modules of settings.yaml
+source "$HW/config/config.sh"; source "$HW/config/lib.sh"
 hw_start screen_dbindex
 # Build one minimap2 index per database part (preset map-pb: k=19, w=10, homopolymer-compressed). -I 100G keeps each part in one index.
 source "$HW/scripts/screen_common.sh"

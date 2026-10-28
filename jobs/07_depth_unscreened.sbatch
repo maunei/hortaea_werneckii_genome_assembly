@@ -7,9 +7,8 @@
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=<ADDRESS>
-module --force purge
-module load StdEnv/2023
-HW="${SLURM_SUBMIT_DIR:-$PWD}"; source "$HW/config/config.sh"; source "$HW/config/lib.sh"
+HW="${SLURM_SUBMIT_DIR:-$PWD}"; source "$HW/config/modules.sh"      # the modules of settings.yaml
+source "$HW/config/config.sh"; source "$HW/config/lib.sh"
 hw_start depth_unscreened
 # Step 07b (side table): PacBio depth of the 22 sequences of Hw 2.0 with the high-quality subreads BEFORE the contaminant screen, next to the depth with the screened reads,
 # so that the effect of the screen on sequences of vector origin can be read. Needs the output of jobs/07_the22.sbatch.

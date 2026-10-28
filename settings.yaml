@@ -1,0 +1,18 @@
+# Settings of the Hw 2.1 workflow. Edit the values below (one "key: value" per line, no other changes), then run:
+#     bash setup_and_run_all.sh all            (or stage by stage; see the README, "Run everything")
+# Lines that start with # are comments.
+
+# ---- scheduler (SLURM)
+account: def-yourgroup_cpu                # the account that is charged for the jobs (the one you give to sbatch --account)
+mail_address: your.address@example.org    # where the scheduler sends messages
+mail_when: FAIL                           # FAIL: a message only when a job fails | ALL: also when a job begins and ends (about 300 messages) | NONE: no messages
+modules: StdEnv/2023                      # software modules loaded at the start of every job (module load ...); leave empty if the computer has no module system
+finished_job_name: hw_run_finished        # name of the short job that sends one message when the whole analysis has finished (not sent when mail_when is NONE)
+
+# ---- folders (outside the repository; they are created if they do not exist)
+work_dir: /path/to/work                   # large intermediate files: reads, alignments, assemblies; about 200 GB
+envs_dir: /path/to/environments           # the ten software environments, made by the stage "software"
+dbs_dir: /path/to/databases               # reference databases, about 85 GB, downloaded by the stage "databases"
+
+# ---- optional
+input_source: ""                          # folder with the input files of an earlier run (same layout as input/); they are linked instead of downloaded. Empty: download (about 80 GB)

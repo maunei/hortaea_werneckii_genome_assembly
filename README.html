@@ -19,6 +19,16 @@ img{max-width:100%}figure svg{max-width:100%;height:auto}
 <p>This workflow assembles the genome of the black yeast <em>Hortaea werneckii</em> (strain EXF-2000) from the PacBio reads of Sinha et al. (2017), using a procedure that gives a new assembly, here called <strong>Hw 2.1</strong>, and evaluates Hw 2.1 against the published assembly of the same study, <strong>Hw 2.0</strong>. Both assemblies come from the same sequencing data. The workflow contains the scripts, the settings, the evaluations and the results, so that every step can be repeated and understood.</p>
 <p>Preliminary analyses to improve the assembly (not shown) led to the procedure described here. This document starts from that procedure: it explains the data and the procedure, explains how the assembly is evaluated, gives the results, and then gives the commands to run every step in order.</p>
 <p>Sections marked with a triangle open on a click. They hold explanations that are used further on in the text, the details of each step and the definitions of the measures.</p>
+<h2>Run everything: quick start</h2>
+<p>What is needed: a computer cluster with the SLURM job scheduler (the program that queues and runs jobs), micromamba or conda, internet access for the downloads, and about 400 GB of free disk space (about 200 GB of working files, 85 GB of reference databases and 80 GB of input files). The analysis used 203 core-hours of processor time in the run reported here (section 5).</p>
+<ol><li><strong>Get the repository</strong> and go into its folder: <code>git clone https://github.com/maunei/hortaea_werneckii_genome_assembly.git</code> and <code>cd hortaea_werneckii_genome_assembly</code>.</li><li><strong>Fill in <code>settings.yaml</code>.</strong> It has one line for each value: the scheduler account, your e-mail address, how many messages you want, the software modules of your cluster (if any), and three folders for large files outside the repository. Nothing else has to be edited.</li><li><strong>Run <code>bash setup_and_run_all.sh all</code>.</strong> It checks the settings, creates the software environments, downloads the reference databases and the input files, checks that everything works from a compute node, and submits the whole analysis (97 jobs with their dependencies). Then wait.</li><li><strong>When the analysis has finished</strong> (one message arrives if you asked for messages; <code>squeue -u $USER</code> shows nothing), the results are in <code>results/</code>: the assembly Hw 2.1 in <code>results/assembly/</code>, the verdict on the five evaluations in <code>results/09_summary/verdict.tsv</code> and the check against the expected values in <code>results/10_validation/</code>.</li></ol>
+<pre><code>git clone https://github.com/maunei/hortaea_werneckii_genome_assembly.git
+cd hortaea_werneckii_genome_assembly
+# edit settings.yaml
+bash setup_and_run_all.sh all</code></pre>
+<details><summary>The stages one by one (to run a part, or to repeat after a problem)</summary><p>The command is <code>bash setup_and_run_all.sh STAGE</code>. Every stage can be repeated: what is already there is not made again, and the script stops with a message at the first problem.</p>
+<table><thead><tr><th>Stage</th><th>What it does</th></tr></thead><tbody><tr><td><code>settings</code></td><td>checks <code>settings.yaml</code> (nothing left at the example values, folders given as absolute paths), creates the three folders and writes <code>config/local.sh</code>, the file from which all jobs read the values</td></tr><tr><td><code>software</code></td><td>creates the ten software environments from the lock files (step 1)</td></tr><tr><td><code>databases</code></td><td>downloads and indexes the reference databases (step 2); skipped when they are present</td></tr><tr><td><code>inputs</code></td><td>downloads the input files (step 3), or links them from the folder <code>input_source</code> of <code>settings.yaml</code> when that is given; skipped when every file of <code>input/CHECKSUMS.md5</code> is present</td></tr><tr><td><code>check</code></td><td>checks the folders, programs, databases and input files, runs a one-minute job on a compute node that tests them, and prints how many jobs the run will submit</td></tr><tr><td><code>run</code></td><td>submits the whole analysis (<code>scripts/submit_all.sh</code>) and one short job that sends a message when the last job has completed (<code>DRYRUN=1</code> prints the submissions only)</td></tr><tr><td><code>all</code></td><td><code>settings</code>, <code>software</code>, <code>databases</code>, <code>inputs</code>, <code>check</code> and <code>run</code>, in this order</td></tr></tbody></table>
+<p>The job files are not changed. The script passes the account and the mail settings to every job when it is submitted, which overrides the placeholders <code>&lt;ACCOUNT&gt;</code> and <code>&lt;ADDRESS&gt;</code> in the header of each job file. A person who submits a single job by hand (section 5) replaces the placeholders as described in step 0.</p></details>
 <h2>Overview of the analysis</h2>
 <figure><div role='img' aria-label='Workflow of the analysis'><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="685.550332pt" height="480.096pt" viewBox="0 0 685.550332 480.096" xmlns="http://www.w3.org/2000/svg" version="1.1">
  <metadata>
@@ -24891,39 +24901,39 @@ sbatch  jobs/07_genbank_files.sbatch
 sbatch --dependency=afterok:&lt;screen_reads&gt; --export=ALL,ASM=hw2 jobs/07_mito.sbatch
 sbatch --dependency=afterok:&lt;genbank&gt;:&lt;mito_hw2&gt; jobs/07_the22.sbatch
 sbatch --dependency=afterok:&lt;the22&gt; jobs/07_depth_unscreened.sbatch
-sbatch --dependency=afterok:&lt;proc_r1&gt;:&lt;conv_hiseq&gt; --export=ALL,ASM=proc_r1_raw jobs/06_tests.sbatch
+sbatch --dependency=afterok:&lt;proc_r1&gt;:&lt;conv_hiseq&gt;:&lt;screen_reads&gt; --export=ALL,ASM=proc_r1_raw jobs/06_tests.sbatch
 sbatch --dependency=afterok:&lt;proc_r1&gt;:&lt;trinity&gt; --export=ALL,ASM=proc_r1_raw jobs/06_transcript_alignment.sbatch
 sbatch --dependency=afterok:&lt;proc_r1&gt;:&lt;conv_ill&gt; --export=ALL,ASM=proc_r1_raw,FASTA=/path/to/work/asm/proc_r1_raw/final.fasta jobs/08_illumina_accuracy.sbatch
 sbatch --dependency=afterok:&lt;proc_r1&gt; --export=ALL,ASM=proc_r1_raw,FASTA=/path/to/work/asm/proc_r1_raw/final.fasta jobs/02_screen_contigs.sbatch
-sbatch --dependency=afterok:&lt;remove_r1&gt;:&lt;conv_hiseq&gt; --export=ALL,ASM=proc_r1 jobs/06_tests.sbatch
+sbatch --dependency=afterok:&lt;remove_r1&gt;:&lt;conv_hiseq&gt;:&lt;screen_reads&gt; --export=ALL,ASM=proc_r1 jobs/06_tests.sbatch
 sbatch --dependency=afterok:&lt;remove_r1&gt;:&lt;trinity&gt; --export=ALL,ASM=proc_r1 jobs/06_transcript_alignment.sbatch
 sbatch --dependency=afterok:&lt;remove_r1&gt;:&lt;conv_ill&gt; --export=ALL,ASM=proc_r1,FASTA=/path/to/work/asm/proc_r1/final.fasta jobs/08_illumina_accuracy.sbatch
 sbatch --dependency=afterok:&lt;remove_r1&gt; --export=ALL,ASM=proc_r1,FASTA=/path/to/work/asm/proc_r1/final.fasta jobs/02_screen_contigs.sbatch
-sbatch --dependency=afterok:&lt;remove_r2&gt;:&lt;conv_hiseq&gt; --export=ALL,ASM=proc_r2 jobs/06_tests.sbatch
+sbatch --dependency=afterok:&lt;remove_r2&gt;:&lt;conv_hiseq&gt;:&lt;screen_reads&gt; --export=ALL,ASM=proc_r2 jobs/06_tests.sbatch
 sbatch --dependency=afterok:&lt;remove_r2&gt;:&lt;trinity&gt; --export=ALL,ASM=proc_r2 jobs/06_transcript_alignment.sbatch
 sbatch --dependency=afterok:&lt;remove_r2&gt;:&lt;conv_ill&gt; --export=ALL,ASM=proc_r2,FASTA=/path/to/work/asm/proc_r2/final.fasta jobs/08_illumina_accuracy.sbatch
 sbatch --dependency=afterok:&lt;remove_r2&gt; --export=ALL,ASM=proc_r2,FASTA=/path/to/work/asm/proc_r2/final.fasta jobs/02_screen_contigs.sbatch
-sbatch --dependency=afterok:&lt;remove_r3&gt;:&lt;conv_hiseq&gt; --export=ALL,ASM=proc_r3 jobs/06_tests.sbatch
+sbatch --dependency=afterok:&lt;remove_r3&gt;:&lt;conv_hiseq&gt;:&lt;screen_reads&gt; --export=ALL,ASM=proc_r3 jobs/06_tests.sbatch
 sbatch --dependency=afterok:&lt;remove_r3&gt;:&lt;trinity&gt; --export=ALL,ASM=proc_r3 jobs/06_transcript_alignment.sbatch
 sbatch --dependency=afterok:&lt;remove_r3&gt;:&lt;conv_ill&gt; --export=ALL,ASM=proc_r3,FASTA=/path/to/work/asm/proc_r3/final.fasta jobs/08_illumina_accuracy.sbatch
 sbatch --dependency=afterok:&lt;remove_r3&gt; --export=ALL,ASM=proc_r3,FASTA=/path/to/work/asm/proc_r3/final.fasta jobs/02_screen_contigs.sbatch
-sbatch --dependency=afterok:&lt;ctrl_canu&gt;:&lt;conv_hiseq&gt; --export=ALL,ASM=ctrl_canu jobs/06_tests.sbatch
+sbatch --dependency=afterok:&lt;ctrl_canu&gt;:&lt;conv_hiseq&gt;:&lt;screen_reads&gt; --export=ALL,ASM=ctrl_canu jobs/06_tests.sbatch
 sbatch --dependency=afterok:&lt;ctrl_canu&gt;:&lt;trinity&gt; --export=ALL,ASM=ctrl_canu jobs/06_transcript_alignment.sbatch
 sbatch --dependency=afterok:&lt;ctrl_canu&gt;:&lt;conv_ill&gt; --export=ALL,ASM=ctrl_canu,FASTA=/path/to/work/asm/ctrl_canu/final.fasta jobs/08_illumina_accuracy.sbatch
 sbatch --dependency=afterok:&lt;ctrl_canu&gt; --export=ALL,ASM=ctrl_canu,FASTA=/path/to/work/asm/ctrl_canu/final.fasta jobs/02_screen_contigs.sbatch
-sbatch --dependency=afterok:&lt;ctrl_flye&gt;:&lt;conv_hiseq&gt; --export=ALL,ASM=ctrl_flye jobs/06_tests.sbatch
+sbatch --dependency=afterok:&lt;ctrl_flye&gt;:&lt;conv_hiseq&gt;:&lt;screen_reads&gt; --export=ALL,ASM=ctrl_flye jobs/06_tests.sbatch
 sbatch --dependency=afterok:&lt;ctrl_flye&gt;:&lt;trinity&gt; --export=ALL,ASM=ctrl_flye jobs/06_transcript_alignment.sbatch
 sbatch --dependency=afterok:&lt;ctrl_flye&gt;:&lt;conv_ill&gt; --export=ALL,ASM=ctrl_flye,FASTA=/path/to/work/asm/ctrl_flye/final.fasta jobs/08_illumina_accuracy.sbatch
 sbatch --dependency=afterok:&lt;ctrl_flye&gt; --export=ALL,ASM=ctrl_flye,FASTA=/path/to/work/asm/ctrl_flye/final.fasta jobs/02_screen_contigs.sbatch
-sbatch --dependency=afterok:&lt;remove_ctrl_canu&gt;:&lt;conv_hiseq&gt; --export=ALL,ASM=ctrl_canu_quiver jobs/06_tests.sbatch
+sbatch --dependency=afterok:&lt;remove_ctrl_canu&gt;:&lt;conv_hiseq&gt;:&lt;screen_reads&gt; --export=ALL,ASM=ctrl_canu_quiver jobs/06_tests.sbatch
 sbatch --dependency=afterok:&lt;remove_ctrl_canu&gt;:&lt;trinity&gt; --export=ALL,ASM=ctrl_canu_quiver jobs/06_transcript_alignment.sbatch
 sbatch --dependency=afterok:&lt;remove_ctrl_canu&gt;:&lt;conv_ill&gt; --export=ALL,ASM=ctrl_canu_quiver,FASTA=/path/to/work/asm/ctrl_canu_quiver/final.fasta jobs/08_illumina_accuracy.sbatch
 sbatch --dependency=afterok:&lt;remove_ctrl_canu&gt; --export=ALL,ASM=ctrl_canu_quiver,FASTA=/path/to/work/asm/ctrl_canu_quiver/final.fasta jobs/02_screen_contigs.sbatch
-sbatch --dependency=afterok:&lt;remove_ctrl_flye&gt;:&lt;conv_hiseq&gt; --export=ALL,ASM=ctrl_flye_quiver jobs/06_tests.sbatch
+sbatch --dependency=afterok:&lt;remove_ctrl_flye&gt;:&lt;conv_hiseq&gt;:&lt;screen_reads&gt; --export=ALL,ASM=ctrl_flye_quiver jobs/06_tests.sbatch
 sbatch --dependency=afterok:&lt;remove_ctrl_flye&gt;:&lt;trinity&gt; --export=ALL,ASM=ctrl_flye_quiver jobs/06_transcript_alignment.sbatch
 sbatch --dependency=afterok:&lt;remove_ctrl_flye&gt;:&lt;conv_ill&gt; --export=ALL,ASM=ctrl_flye_quiver,FASTA=/path/to/work/asm/ctrl_flye_quiver/final.fasta jobs/08_illumina_accuracy.sbatch
 sbatch --dependency=afterok:&lt;remove_ctrl_flye&gt; --export=ALL,ASM=ctrl_flye_quiver,FASTA=/path/to/work/asm/ctrl_flye_quiver/final.fasta jobs/02_screen_contigs.sbatch
-sbatch --dependency=afterok:&lt;conv_hiseq&gt; --export=ALL,ASM=hw2 jobs/06_tests.sbatch
+sbatch --dependency=afterok:&lt;conv_hiseq&gt;:&lt;screen_reads&gt; --export=ALL,ASM=hw2 jobs/06_tests.sbatch
 sbatch --dependency=afterok:&lt;trinity&gt; --export=ALL,ASM=hw2 jobs/06_transcript_alignment.sbatch
 sbatch --dependency=afterok:&lt;conv_ill&gt; --export=ALL,ASM=hw2,FASTA=/path/to/work/asm/hw2/final.fasta jobs/08_illumina_accuracy.sbatch
 sbatch  --export=ALL,ASM=hw2,FASTA=/path/to/work/asm/hw2/final.fasta jobs/02_screen_contigs.sbatch
@@ -24954,7 +24964,7 @@ sbatch --dependency=afterok:&lt;acc_ctrl_flye_quiver&gt;:&lt;acc_hw2&gt; --expor
 sbatch --dependency=afterok:&lt;remove_ctrl_flye&gt; --export=ALL,A_ASM=ctrl_flye_quiver,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
 sbatch --dependency=afterok:&lt;trans_hw2&gt;:&lt;qc&gt;:&lt;trans_ctrl_canu_quiver&gt;:&lt;proc_r2&gt;:&lt;proc_r3&gt;:&lt;acc_proc_r1_raw&gt;:&lt;proc_r1&gt;:&lt;scr_hw2&gt;:&lt;acc_ctrl_canu&gt;:&lt;remove_r2&gt;:&lt;remove_r3&gt;:&lt;remove_r1&gt;:&lt;the22_ctrl_flye&gt;:&lt;pacbio&gt;:&lt;scr_proc_r1_raw&gt;:&lt;the22_ctrl_canu&gt;:&lt;polish_ctrl_flye&gt;:&lt;remove_ctrl_canu&gt;:&lt;trans_ctrl_flye_quiver&gt;:&lt;mito_ctrl_flye&gt;:&lt;mito_ctrl_canu&gt;:&lt;acc_ctrl_canu_quiver&gt;:&lt;polish_ctrl_canu&gt;:&lt;tests_ctrl_canu_quiver&gt;:&lt;shared_ctrl_canu&gt;:&lt;scr_ctrl_canu&gt;:&lt;acc_ctrl_flye&gt;:&lt;screen_reads&gt;:&lt;align_ctrl_flye&gt;:&lt;shared_ctrl_flye&gt;:&lt;compare_ctrl_canu_quiver&gt;:&lt;conv_miseq&gt;:&lt;conv_hiseq&gt;:&lt;tests_ctrl_canu&gt;:&lt;scr_ctrl_flye&gt;:&lt;trans_proc_r1_raw&gt;:&lt;compare_proc_r2&gt;:&lt;compare_proc_r3&gt;:&lt;compare_proc_r1&gt;:&lt;align_r1&gt;:&lt;align_r3&gt;:&lt;align_r2&gt;:&lt;mito_proc_r1&gt;:&lt;mito_proc_r2&gt;:&lt;mito_proc_r3&gt;:&lt;genbank&gt;:&lt;scr_ctrl_flye_quiver&gt;:&lt;tests_proc_r1_raw&gt;:&lt;trans_proc_r1&gt;:&lt;trans_proc_r3&gt;:&lt;trans_proc_r2&gt;:&lt;remove_ctrl_flye&gt;:&lt;trinity&gt;:&lt;tests_ctrl_flye&gt;:&lt;acc_hw2&gt;:&lt;align_ctrl_canu&gt;:&lt;deposited&gt;:&lt;tests_hw2&gt;:&lt;tests_proc_r1&gt;:&lt;tests_proc_r2&gt;:&lt;tests_proc_r3&gt;:&lt;depth_unscreened&gt;:&lt;conv_ill&gt;:&lt;shared_proc_r1_raw&gt;:&lt;compare_ctrl_flye&gt;:&lt;acc_proc_r1&gt;:&lt;acc_proc_r2&gt;:&lt;acc_proc_r3&gt;:&lt;shared_proc_r2&gt;:&lt;shared_proc_r3&gt;:&lt;shared_proc_r1&gt;:&lt;tests_ctrl_flye_quiver&gt;:&lt;compare_ctrl_flye_quiver&gt;:&lt;shared_ctrl_flye_quiver&gt;:&lt;the22&gt;:&lt;scr_proc_r3&gt;:&lt;scr_proc_r2&gt;:&lt;compare_ctrl_canu&gt;:&lt;scr_proc_r1&gt;:&lt;shared_ctrl_canu_quiver&gt;:&lt;ctrl_flye&gt;:&lt;the22_proc_r2&gt;:&lt;the22_proc_r3&gt;:&lt;the22_proc_r1&gt;:&lt;mito_hw2&gt;:&lt;acc_ctrl_flye_quiver&gt;:&lt;ctrl_canu&gt;:&lt;trans_ctrl_flye&gt;:&lt;polish_r3&gt;:&lt;polish_r2&gt;:&lt;polish_r1&gt;:&lt;scr_ctrl_canu_quiver&gt;:&lt;trans_ctrl_canu&gt;:&lt;check_inputs&gt;:&lt;dbindex&gt;:&lt;merge&gt; jobs/09_summary.sbatch
 Everything is submitted; the last job (09_summary) runs when all others have finished and writes results/09_summary/ and results/assembly/.</code></pre></details>
-<details><summary>Step 0. Get the workflow and set the locations</summary><p>The workflow is a folder of scripts, settings and documents. Large files (reads, alignments, assemblies), the software and the reference databases are kept outside it; their places are set once. All commands below are run from the workflow folder, because the scheduler logs are written relative to it. Every job file in <code>jobs/</code> starts with header lines for the scheduler; two of them name the account to be charged and the address for notices: <code>#SBATCH --account=&lt;ACCOUNT&gt;</code> and <code>#SBATCH --mail-user=&lt;ADDRESS&gt;</code>. The <code>sed</code> command below puts your two values in these lines of all job files at once.</p>
+<details><summary>Step 0. Get the workflow and set the locations</summary><p>Steps 0 to 3 and the run are done by <code>setup_and_run_all.sh</code> (see "Run everything: quick start" at the beginning of this document); this section describes them one by one, for a person who wants to run a step by hand. The workflow is a folder of scripts, settings and documents. Large files (reads, alignments, assemblies), the software and the reference databases are kept outside it; their places are set once. All commands below are run from the workflow folder, because the scheduler logs are written relative to it. Every job file in <code>jobs/</code> starts with header lines for the scheduler; two of them name the account to be charged and the address for notices: <code>#SBATCH --account=&lt;ACCOUNT&gt;</code> and <code>#SBATCH --mail-user=&lt;ADDRESS&gt;</code>. The <code>sed</code> command below puts your two values in these lines of all job files at once.</p>
 <p><strong>Commands, in the order in which they are run:</strong></p>
 <pre><code>git clone https://github.com/maunei/hortaea_werneckii_genome_assembly.git    # or copy the folder
 cd hortaea_werneckii_genome_assembly
@@ -24966,25 +24976,37 @@ ADDRESS=&lt;your e-mail address&gt;         # fill in; job notices go there (to 
 sed -i &quot;s/^#SBATCH --account=.*/#SBATCH --account=$ACCOUNT/; s/^#SBATCH --mail-user=.*/#SBATCH --mail-user=$ADDRESS/&quot; jobs/*.sbatch
 source config/config.sh               # run this at the start of every session</code></pre>
 <p><strong>Expected output:</strong> no output. <code>config/config.sh</code> defines the folders used by every script (<code>$WORK</code>, <code>$INPUT</code>, <code>$RESULTS</code>, ...) and the places of the programs.</p>
-<details><summary>Expected tree of the results of this step</summary><p>To be completed from the test run of a fresh clone of the repository. The folders that the step is expected to write to are:</p>
-<pre><code>(no result files: the step only places the workflow and sets the locations)</code></pre>
-<p>The tree of files in each folder (with one line that says what each file contains) will be added here.</p></details></details>
+<details><summary>Expected tree of the results of this step</summary><p>No result files. The step places the repository on the computer and (through setup_and_run_all.sh) writes config/local.sh from settings.yaml. The folders results/ and logs/ exist and are empty, each with one .gitkeep file.</p></details></details>
 <details><summary>Step 1. Create the software environments</summary><p>The programs are not part of the workflow. They are created from lock files that name the exact version and build of every program (<code>envs/lockfiles/</code>; the programs and versions are listed in the section on software).</p>
 <p><strong>Commands, in the order in which they are run:</strong></p>
 <pre><code>bash scripts/make_environments.sh</code></pre>
 <p><strong>Expected output:</strong> ten environments in <code>$HW_ENVS</code> and the link that the older PacBio programs need (<code>libcompat</code>).</p>
-<details><summary>Expected tree of the results of this step</summary><p>To be completed from the test run of a fresh clone of the repository. The folders that the step is expected to write to are:</p>
-<pre><code>$HW_ENVS/   (outside the workflow folder: the ten software environments)</code></pre>
-<p>The tree of files in each folder (with one line that says what each file contains) will be added here.</p></details></details>
+<details><summary>Expected tree of the results of this step</summary><p>Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; &lt;name&gt; and &lt;run&gt; stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.</p>
+<pre><code>$HW_ENVS/   (outside the repository)
+├── 04_A_rna/   (636M)
+├── 04_B_qc/   (3.2G)
+├── 04_B_trinity/   (1.1G)
+├── 04_I_qc/   (3.2G)
+├── 04_I_var/   (484M)
+├── 04_pacbio_hdf518/   (580M)
+├── 04_pacbio_legacy/   (382M)
+├── 04_pacbio_modern/   (2.5G)
+├── 04_probe/   (1.5G)
+├── 04_screen/   (898M)
+└── libcompat_r2/   (4.0K)</code></pre></details></details>
 <details><summary>Step 2. Fetch the reference data and index the screen database</summary><p>Three reference sets are needed: the BUSCO lineage and the Swiss-Prot fungal proteins (evaluation 2), and the reference collection of the contaminant screen (step 02b). They are downloaded once by a job and used offline afterwards. The screen collection is then indexed by a second job.</p>
 <p><strong>Commands, in the order in which they are run:</strong></p>
 <pre><code>F=$(sbatch --parsable jobs/02_fetch_databases.sbatch)                           # BUSCO lineage fungi_odb10, Swiss-Prot fungal proteins and the reference collection of the screen (about 83 GB, about 30 minutes for the collection)
 I=$(sbatch --parsable --dependency=afterok:$F jobs/02_screen_db_index.sbatch)   # four minimap2 indexes; about 10 minutes</code></pre>
 <p><strong>Expected output:</strong> files in <code>$HW_DBS</code> and the source, version and checksum of every reference set recorded in <code>envs/databases.tsv</code>.</p>
 <p>Time in the run reported here: the longest job took 0.1 hours of elapsed time; all jobs of the step together used 0.3 core-hours of processor time; the largest peak memory was 86 GB.</p>
-<details><summary>Expected tree of the results of this step</summary><p>To be completed from the test run of a fresh clone of the repository. The folders that the step is expected to write to are:</p>
-<pre><code>$HW_DBS/   (outside the workflow folder: BUSCO lineage, Swiss-Prot fungal proteins, contaminant-screen databases)</code></pre>
-<p>The tree of files in each folder (with one line that says what each file contains) will be added here.</p></details></details>
+<details><summary>Expected tree of the results of this step</summary><p>Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; &lt;name&gt; and &lt;run&gt; stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.</p>
+<pre><code>$HW_DBS/   (outside the repository; 85G)
+├── busco_downloads/   (279M)
+├── mito_refs/   (840K)
+├── proteins/   (25M)
+├── rdna_refs/   (12K)
+└── screen/   (83G)</code></pre></details></details>
 <details><summary>Step 3. Input files, their checksums and the published assembly Hw 2.0</summary><p>The input files are downloaded from the archives and checked: the checksums of the archive files are compared with the checksums published by the archive, and the checksum of every input file is listed in <code>input/CHECKSUMS.md5</code> so that another person can verify that the same data are used. The published assembly Hw 2.0 is then made available as the file that all later steps read for it.</p>
 <p><strong>Commands, in the order in which they are run:</strong></p>
 <pre><code>F=$(sbatch --parsable jobs/01_fetch_inputs.sbatch)               # skip if the files are already in input/
@@ -24998,10 +25020,30 @@ bash scripts/01_prepare_hw2.sh                                    # Hw 2.0 as $W
 <p>Two checks are made, and both can be repeated by anyone who uses the same data. First, every archive file is compared with the md5 checksum and the size that the archive itself publishes (<code>input/manifests/*.tsv</code>, one table per data group): this shows that the files are the files of the archive. Second, the md5 checksum of every input file used here is listed in <code>input/CHECKSUMS.md5</code>, so that another person can compute the checksums of their own copy and compare them with this list, and know that the same data are used as in the results reported below.</p>
 <p><strong>Output files</strong></p>
 <ul><li><code>results/01_inputs/archive_check.tsv</code>: one row per archive file with the published checksum, the checksum found and the status.</li><li><code>results/01_inputs/checksums_failed.txt</code>: empty when every file agrees with <code>CHECKSUMS.md5</code>.</li></ul></details>
-<details><summary>Expected tree of the results of this step</summary><p>To be completed from the test run of a fresh clone of the repository. The folders that the step is expected to write to are:</p>
-<pre><code>input/
-results/01_inputs/</code></pre>
-<p>The tree of files in each folder (with one line that says what each file contains) will be added here.</p></details></details>
+<details><summary>Expected tree of the results of this step</summary><p>Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; &lt;name&gt; and &lt;run&gt; stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.</p>
+<pre><code>results/01_inputs/   (3 files)
+├── archive_check.tsv   - one row for each archive file: checksum published by the archive, checksum found, status
+└── checksums_failed.txt   - empty when every file agrees with input/CHECKSUMS.md5
+
+input/   (outside git: 80G; the repository itself holds CHECKSUMS.md5, manifests/ and hw2/github_commit.txt)
+├── hw2/   (684 files, 5.5G)
+│   ├── github_Hortaea_werneckii/   (672 files, 5.5G)
+│   └── ncbi_GCA_002127715.1/   (11 files, 32M)
+├── illumina2013/   (3 files, 3.2G)
+│   └── SRR866616/   (2 files, 3.2G)
+├── manifests/   (4 files, 20K)
+├── pacbio/   (33 files, 56G)
+│   ├── SRR5086620/   (6 files, 13G)
+│   ├── SRR5086623/   (6 files, 13G)
+│   ├── SRR5086626/   (6 files, 11G)
+│   ├── SRR5086627/   (6 files, 12G)
+│   └── SRR5086628/   (8 files, 8.3G)
+├── pacbio_deposited/   (3 files, 1.4G)
+│   └── SRR5086624/   (2 files, 1.4G)
+├── rnaseq/   (5 files, 14G)
+│   ├── SRR5086621/   (2 files, 494M)
+│   └── SRR5086622/   (2 files, 14G)
+└── CHECKSUMS.md5   - md5 checksum of every input file</code></pre></details></details>
 <details><summary>Step 4. PacBio reads: conversion, the two read sets, comparison with the authors' file</summary><p>The raw <code>.bax.h5</code> files are converted to subreads with their quality tracks (one task per sequencing run), merged into the high-quality set and the filtered set, and the filtered set is compared with the file that the authors deposited.</p>
 <p><strong>Commands, in the order in which they are run:</strong></p>
 <pre><code>A=$(sbatch --parsable jobs/02_pacbio_reads.sbatch)                              # array of five tasks, one per run
@@ -25019,10 +25061,27 @@ sbatch --dependency=afterok:$M jobs/02_compare_deposited.sbatch                 
 <p>The authors deposited the filtered subreads they used as FASTQ (accession SRR5086624, file <code>Hw_PacBio.filtered_subreads.fastq.bz2</code>). <code>scripts/compare_deposited_fastq.py</code> compares it with the filtered set made here, read by read, by well number and subread coordinates. 334,997 of the 334,998 wells of the set made here are in the deposited file, 404,987 reads are identical, and 65,233 reads differ only in the end coordinate of the last subread of a well (one base), the sequence of one being contained in the other. The set made here has one extra well with one read. The two sets are therefore the same data for all practical purposes, and the set made here is used because it can be remade from the raw files by anyone.</p>
 <p><strong>Output files</strong></p>
 <ul><li><code>results/02_pacbio_reads/&lt;RUN&gt;_seqkit_stats.tsv</code>, <code>&lt;RUN&gt;_bax_metrics.json</code>: read statistics and well metrics of each run.</li><li><code>results/02_pacbio_reads/merged_seqkit_stats.tsv</code>: statistics of the two merged sets (the reads themselves are kept in the work folder).</li><li><code>results/02_pacbio_reads/deposited_fastq_comparison.json</code>: the comparison above.</li></ul></details>
-<details><summary>Expected tree of the results of this step</summary><p>To be completed from the test run of a fresh clone of the repository. The folders that the step is expected to write to are:</p>
-<pre><code>results/02_pacbio_reads/
-$HW_WORK/pacbio_bam/   and   $HW_WORK/reads/pacbio/   (large files)</code></pre>
-<p>The tree of files in each folder (with one line that says what each file contains) will be added here.</p></details></details>
+<details><summary>Expected tree of the results of this step</summary><p>Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; &lt;name&gt; and &lt;run&gt; stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.</p>
+<pre><code>results/02_pacbio_reads/   (95 files)
+├── &lt;run&gt;_bax_metrics.json   (x5)   - well and read metrics of the run
+├── &lt;run&gt;_seqkit_stats.tsv   (x5)   - reads, bases and length statistics of the run
+├── deposited_fastq_comparison.json   - comparison with the file deposited by the authors (SRR5086624)
+└── merged_seqkit_stats.tsv   - statistics of the high-quality and the filtered read set
+
+$HW_WORK/pacbio_bam/   (20 files, 21G)
+└── {SRR5086620, SRR5086623, SRR5086626, SRR5086627, SRR5086628}/
+    ├── &lt;name&gt;.filtered_subreads.fastq
+    ├── &lt;name&gt;.hq_subreads.fastq
+    ├── &lt;name&gt;.subreads.bam
+    └── &lt;name&gt;.subreads.bam.pbi
+
+$HW_WORK/reads/pacbio/   (6 files, 18G)
+├── READY_02
+├── READY_02A
+├── filtered_clean.fastq
+├── filtered_subreads.fastq
+├── hq_clean.fastq
+└── hq_subreads.fastq</code></pre></details></details>
 <details><summary>Step 5. Contaminant screen of the reads</summary><p>Reads that match contaminant sequence and no fungal sequence are removed whole; the screened read sets are what the later steps use. The optional self-test checks the sensitivity of the screen on simulated reads of known origin.</p>
 <p><strong>Commands, in the order in which they are run:</strong></p>
 <pre><code>bash scripts/fetch_screen_test_genomes.sh                  # optional: three small genomes for the self-test
@@ -25058,10 +25117,48 @@ S=$(sbatch --parsable --dependency=afterok:$M:$I jobs/02_screen_reads.sbatch)</c
 <p><strong>References</strong></p>
 <ul><li>Li H (2018) Minimap2: pairwise alignment for nucleotide sequences. Bioinformatics 34:3094-3100. doi:10.1093/bioinformatics/bty191</li><li>Nurk S, Koren S, Rhie A, et al. (2022) The complete sequence of a human genome. Science 376:44-53. doi:10.1126/science.abj6987</li></ul>
 <p>(authors, year, volume, pages and DOI checked against Crossref)</p></details>
-<details><summary>Expected tree of the results of this step</summary><p>To be completed from the test run of a fresh clone of the repository. The folders that the step is expected to write to are:</p>
-<pre><code>results/02_pacbio_reads/screen/
-$HW_WORK/screen_reads/   (large files)</code></pre>
-<p>The tree of files in each folder (with one line that says what each file contains) will be added here.</p></details></details>
+<details><summary>Expected tree of the results of this step</summary><p>Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; &lt;name&gt; and &lt;run&gt; stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.</p>
+<pre><code>results/02_pacbio_reads/screen/   (12 files)
+├── counts_by_set.tsv   - reads kept and excluded by the contaminant screen, for each read set
+├── criterion.txt   - the rule by which a read is excluded
+├── filtered_by_organism.tsv   - excluded reads by organism, filtered set
+├── filtered_counts.tsv   - counts of the screen, filtered set
+├── filtered_criterion.json   - criterion and thresholds, filtered set
+├── filtered_excluded_reads.txt   - names of the excluded reads, filtered set
+├── filtered_per_read.tsv.gz   - screen result for every read of the filtered set
+├── hq_by_organism.tsv   - excluded reads by organism, high-quality set
+├── hq_counts.tsv   - counts of the screen, high-quality set
+├── hq_criterion.json   - criterion and thresholds, high-quality set
+├── hq_excluded_reads.txt   - names of the excluded reads, high-quality set
+└── hq_per_read.tsv.gz   - screen result for every read of the high-quality set
+
+results/02_pacbio_reads/screen_contigs/   (70 files)
+└── {ctrl_canu, ctrl_canu_quiver, ctrl_canu_quiver_polished, ctrl_flye, ctrl_flye_quiver, ctrl_flye_quiver_polished, hw2, proc_r1, proc_r1_polished, proc_r1_raw, proc_r2, proc_r2_polished, proc_r3, proc_r3_polished}/
+    ├── &lt;name&gt;_by_organism.tsv   - excluded contigs by organism
+    ├── &lt;name&gt;_counts.tsv   - contigs kept and excluded
+    ├── &lt;name&gt;_criterion.json   - criterion and thresholds of the contig screen
+    ├── &lt;name&gt;_excluded_contigs.txt   - names of the excluded contigs
+    └── &lt;name&gt;_per_contig.tsv.gz   - screen result for every contig
+
+$HW_WORK/screen_reads/   (18 files, 102M)
+├── filtered_bacteria_1.minimap2.log
+├── filtered_bacteria_1.paf.gz
+├── filtered_bacteria_2.minimap2.log
+├── filtered_bacteria_2.paf.gz
+├── filtered_fungi.minimap2.log
+├── filtered_fungi.paf.gz
+├── filtered_lengths.tsv
+├── filtered_other.minimap2.log
+├── filtered_other.paf.gz
+├── hq_bacteria_1.minimap2.log
+├── hq_bacteria_1.paf.gz
+├── hq_bacteria_2.minimap2.log
+├── hq_bacteria_2.paf.gz
+├── hq_fungi.minimap2.log
+├── hq_fungi.paf.gz
+├── hq_lengths.tsv
+├── hq_other.minimap2.log
+└── hq_other.paf.gz</code></pre></details></details>
 <details><summary>Step 6. RNA-seq and Illumina 2013 reads: conversion and quality control</summary><p>The archive files of the RNA-seq runs and of the Illumina run are converted to FASTQ, the number of read pairs is compared with the archive record, and the quality of the reads is measured.</p>
 <p><strong>Commands, in the order in which they are run:</strong></p>
 <pre><code>C1=$(sbatch --parsable --export=ALL,RUN=SRR5086621,GROUP=rna,EXPECTED=3333452 --time=01:00:00 --cpus-per-task=8 jobs/03_convert.sbatch)
@@ -25090,10 +25187,32 @@ sbatch --dependency=afterok:$C1:$C2:$C3 jobs/03_qc.sbatch</code></pre>
 <p><strong>Why these settings</strong></p>
 <ul><li><code>--split-3</code> and normalised names: the aligners require the mates in the same order; checking the names once here saves a failure later.</li><li>Counts compared with the archive: this guards against a truncated download or an interrupted conversion, the two commonest silent failures.</li><li>Duplication accuracy level 3 of fastp (about 4 GB of memory for the table of read signatures): the duplication rate is estimated from hashed read signatures, and a higher level uses a larger table, which lowers the number of unrelated reads that are counted as duplicates by chance; this matters for a run of 175 million pairs.</li><li>No trimming: stated above.</li></ul>
 <p>Programs and versions are listed in <code>envs/versions_03.tsv</code>.</p></details>
-<details><summary>Expected tree of the results of this step</summary><p>To be completed from the test run of a fresh clone of the repository. The folders that the step is expected to write to are:</p>
-<pre><code>results/03_rna_illumina/
-$HW_WORK/reads/   and   $HW_WORK/qc/   (large files)</code></pre>
-<p>The tree of files in each folder (with one line that says what each file contains) will be added here.</p></details></details>
+<details><summary>Expected tree of the results of this step</summary><p>Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; &lt;name&gt; and &lt;run&gt; stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.</p>
+<pre><code>results/03_rna_illumina/   (7 files)
+├── fastp/
+│   └── &lt;run&gt;.json   (x3)   - fastp report of the run
+├── multiqc_report.html   - MultiQC report of all runs
+├── qc_summary.tsv   - quality-control statistics of the RNA-seq and Illumina runs
+└── read_counts.tsv   - read pairs of each run
+
+$HW_WORK/reads/rna/   (7 files, 20G)
+├── &lt;run&gt;.counts.tsv   (x2)
+├── &lt;run&gt;_1.fastq.gz   (x2)
+├── &lt;run&gt;_2.fastq.gz   (x2)
+└── READY_03
+
+$HW_WORK/reads/illumina2013/   (4 files, 4.2G)
+├── &lt;run&gt;.counts.tsv
+├── &lt;run&gt;_1.fastq.gz
+├── &lt;run&gt;_2.fastq.gz
+└── READY_03
+
+$HW_WORK/qc/   (55 files, 9.8M)
+└── 03_rna_illumina/
+    ├── fastp/
+    ├── fastqc/
+    ├── multiqc/
+    └── tmp/</code></pre></details></details>
 <details><summary>Step 7. The procedure: seeds, correction and assembly, three runs, and the two control assemblies</summary><p>Seeds, correction with BLASR and pbdagcon, and the Canu assembly, run three times with different thread settings; and the two control assemblies at default settings.</p>
 <p><strong>Commands, in the order in which they are run:</strong></p>
 <pre><code>P1=$(sbatch --parsable --dependency=afterok:$S --export=ALL,RUN=r1,THREADS=16 jobs/04_procedure.sbatch)
@@ -25110,10 +25229,45 @@ K2=$(sbatch --parsable --dependency=afterok:$S jobs/04_control_flye.sbatch)</cod
 <p>This is the hypothesis the tests examine, not a result. Many regions of this genome occur in two copies that differ by a few percent: in Hw 2.0, 72.3 percent of the conserved fungal genes (BUSCO) are found in two copies. An assembler that tolerates the 15 percent error of a raw subread in an overlap cannot always tell a true overlap from the overlap of two similar copies, and the assembly graph then breaks or merges at those places. After correction against the longest reads, the error of each corrected read is small enough that the copies can be separated. Two <strong>control assemblies</strong> show what the two assemblers give without this step, from the same filtered reads and the same genome size of 50 Mb: Canu with its default settings and its own correction (<code>ctrl_canu</code>), and Flye with default settings (<code>ctrl_flye</code>, which includes Flye's own default polishing). Both controls are also polished with Quiver in step 05 (<code>ctrl_canu_quiver</code>, <code>ctrl_flye_quiver</code>), so that they can be compared with the polished assemblies of the procedure on the accuracy of the bases. The like-for-like comparison for the effect of the correction is <code>ctrl_canu</code> against <code>proc_r1_raw</code>, the first run before polishing, and <code>ctrl_canu_quiver</code> against <code>proc_r1</code>, both after polishing.</p>
 <p><strong>Three runs for the noise scale</strong></p>
 <p>The procedure is run three times from the same reads, with 16, 12 and 8 threads (<code>proc_r1</code>, <code>proc_r2</code>, <code>proc_r3</code>, named after their polished assemblies). Multithreaded programs can return different results from the same input, and the spread of any measure over the three runs is the noise scale against which differences from Hw 2.0 are judged (step 09). The raw assembly of each run (before polishing) is kept as <code>proc_r&lt;N&gt;_raw</code>; the tests are run on that of the first run.</p></details>
-<details><summary>Expected tree of the results of this step</summary><p>To be completed from the test run of a fresh clone of the repository. The folders that the step is expected to write to are:</p>
-<pre><code>results/04_procedure/
-$HW_WORK/asm/   (large files)</code></pre>
-<p>The tree of files in each folder (with one line that says what each file contains) will be added here.</p></details></details>
+<details><summary>Expected tree of the results of this step</summary><p>Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; &lt;name&gt; and &lt;run&gt; stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.</p>
+<pre><code>results/04_procedure/   (20 files)
+├── {ctrl_canu, ctrl_flye}/
+│   ├── assembly_stats.tsv   - contig statistics of the assembly
+│   └── time_memory.txt   - time and memory of the stage
+└── {proc_r1, proc_r2, proc_r3}/
+    ├── assembly_stats.tsv   - contig statistics of the assembly
+    ├── corrected_stats.tsv   - statistics of the corrected reads
+    ├── reads_stats.tsv   - statistics of the input reads
+    ├── seeds_stats.tsv   - statistics of the seed reads
+    └── time_memory.txt   - time and memory of the stage
+
+$HW_WORK/asm/   (968 files, 18G)
+├── ctrl_canu/
+│   ├── canu/
+│   └── final.fasta
+├── {ctrl_canu_quiver, ctrl_flye_quiver, proc_r1, proc_r2, proc_r3}/
+│   ├── final.fasta
+│   └── polished.fasta
+├── ctrl_flye/
+│   ├── flye/
+│   └── final.fasta
+├── hw2/
+│   └── final.fasta
+├── proc_r1_raw/
+│   ├── canu_asm/
+│   ├── work/
+│   ├── corrected.fasta
+│   └── final.fasta
+├── proc_r2_raw/
+│   ├── canu_asm/
+│   ├── work/
+│   ├── corrected.fasta
+│   └── final.fasta
+└── proc_r3_raw/
+    ├── canu_asm/
+    ├── work/
+    ├── corrected.fasta
+    └── final.fasta</code></pre></details></details>
 <details><summary>Step 8. Polishing with Quiver and removal of contaminant contigs: the final assembly Hw 2.1</summary><p>For each of the three runs and the two controls: alignment of the screened subreads (five tasks), Quiver, and removal of the contigs that the contig screen excludes. Each job waits for the previous one.</p>
 <p><strong>Commands, in the order in which they are run:</strong></p>
 <pre><code>declare -A R      # job that makes the final assembly of each name
@@ -25137,20 +25291,45 @@ done</code></pre>
 <p>Runs 2 and 3 (12 and 24, 8 and 16 threads) and the two controls (<code>RAW=ctrl_canu,OUTNAME=ctrl_canu_quiver</code> and <code>RAW=ctrl_flye,OUTNAME=ctrl_flye_quiver</code>) are submitted in the same way; <code>scripts/submit_all.sh</code> contains all of them with their dependencies.</p>
 <p><strong>Output files</strong></p>
 <ul><li><code>results/05_polish/&lt;OUTNAME&gt;/assembly_stats.tsv</code>: statistics of the assembly before and after polishing.</li><li><code>results/05_polish/&lt;OUTNAME&gt;/quiver_changes.tsv</code>: number of changes Quiver made, by type (insertion, deletion, substitution).</li><li><code>results/05_polish/&lt;OUTNAME&gt;/removed_contigs.tsv</code> and <code>assembly_stats_after_removal.tsv</code>: the contigs removed by step 05c and the statistics after their removal.</li><li><code>results/05_polish/&lt;OUTNAME&gt;/time_memory.txt</code>: wall time and peak memory of Quiver.</li></ul></details>
-<details><summary>Expected tree of the results of this step</summary><p>To be completed from the test run of a fresh clone of the repository. The folders that the step is expected to write to are:</p>
-<pre><code>results/05_polish/
-$HW_WORK/asm/   (large files)
-results/assembly/</code></pre>
-<p>The tree of files in each folder (with one line that says what each file contains) will be added here.</p></details></details>
+<details><summary>Expected tree of the results of this step</summary><p>Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; &lt;name&gt; and &lt;run&gt; stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.</p>
+<pre><code>results/05_polish/   (26 files)
+└── {ctrl_canu_quiver, ctrl_flye_quiver, proc_r1, proc_r2, proc_r3}/
+    ├── assembly_stats.tsv   - contig statistics of the assembly
+    ├── assembly_stats_after_removal.tsv   - contig statistics after the removal of contaminant contigs
+    ├── quiver_changes.tsv   - bases changed by Quiver, by type
+    ├── removed_contigs.tsv   - contigs removed by the contaminant screen
+    └── time_memory.txt   - time and memory of the stage
+
+results/assembly/   (3 files)
+├── Hw2.1.fasta.gz   - the assembly Hw 2.1
+└── Hw2.1_contigs.tsv   - name, length and origin of each contig of Hw 2.1
+
+$HW_WORK/polish/   (125 files, 53G)
+└── {ctrl_canu_quiver, ctrl_flye_quiver, proc_r1, proc_r2, proc_r3}/
+    ├── &lt;run&gt;.aligned.bam   (x5)
+    ├── &lt;run&gt;.aligned.bam.bai   (x5)
+    ├── &lt;run&gt;.aligned.bam.pbi   (x5)
+    ├── &lt;run&gt;.names.txt   (x5)
+    ├── polished.fasta
+    ├── polished.gff
+    ├── ref.fa
+    ├── ref.fa.fai
+    └── ref.lock</code></pre></details></details>
 <details><summary>Step 9. Transcripts assembled without a genome (used by evaluation 2)</summary><p>The RNA-seq reads are assembled into transcripts once, without any genome; the same transcripts are aligned to every assembly in step 10.</p>
 <p><strong>Commands, in the order in which they are run:</strong></p>
 <pre><code>T=$(sbatch --parsable --dependency=afterok:$C2 jobs/06_trinity_denovo.sbatch)</code></pre>
 <p><strong>Expected output:</strong> <code>$WORK/trinity/Trinity.fasta</code> and <code>results/06_transcripts/trinity_assembly.json</code>.</p>
 <p>Time in the run reported here: the longest job took 1.6 hours of elapsed time; all jobs of the step together used 18 core-hours of processor time; the largest peak memory was 150 GB.</p>
-<details><summary>Expected tree of the results of this step</summary><p>To be completed from the test run of a fresh clone of the repository. The folders that the step is expected to write to are:</p>
-<pre><code>results/06_transcripts/
-$HW_WORK/trinity/   (large files)</code></pre>
-<p>The tree of files in each folder (with one line that says what each file contains) will be added here.</p></details></details>
+<details><summary>Expected tree of the results of this step</summary><p>Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; &lt;name&gt; and &lt;run&gt; stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.</p>
+<pre><code>results/06_transcripts/   (20 files)
+├── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
+│   ├── summary.json   - all measures of this assembly (or comparison) in one file
+│   └── transcripts.tsv.gz   - alignment of every Trinity transcript
+└── trinity_assembly.json   - statistics of the Trinity transcripts
+
+$HW_WORK/trinity/   (2 files, 120M)
+├── Trinity.fasta
+└── Trinity.fasta.gene_trans_map</code></pre></details></details>
 <details><summary>Step 10. Evaluations of every assembly</summary><p>The five evaluations are run on Hw 2.0, Hw 2.1 (three runs) and the two polished controls with the same jobs. The first block is for Hw 2.0 only (the files that carry it, its 22 extra sequences, its mitochondrion); the second block is for every assembly; the third compares each assembly with Hw 2.0 after the Illumina accuracy of both has been computed. Paste the whole block at once, in the same shell session as steps 7 and 8 (it uses the job numbers kept in shell variables there): every job is submitted with the dependencies it needs, so the scheduler starts each one when the files it reads exist, and nothing has to be awaited between the commands.</p>
 <p><strong>Commands, in the order in which they are run:</strong></p>
 <pre><code>dep() { local d=&quot;&quot;; for j in &quot;$@&quot;; do [ -n &quot;$j&quot; ] &amp;&amp; d=&quot;$d:$j&quot;; done; [ -n &quot;$d&quot; ] &amp;&amp; echo &quot;--dependency=afterok$d&quot;; }   # helper: dependency on the given jobs
@@ -25284,13 +25463,253 @@ done</code></pre>
 <p>Base-quality recalibration of the alignments (BAQ, the base alignment quality of samtools) is left at the default of bcftools. These values can be changed only through the optional variables named in the head of the job script; they exist to test on a subsample (for example a lower depth limit) and the production runs use the values above.</p>
 <p><strong>Limits</strong></p>
 <p>Differences in the first and last 20 bases of a contig cannot be matched in the shared-differences step. Differences lying in regions with a real second copy at 90 to 99 percent identity can be missing, because reads of the other copy lower the mapping quality; the callable-position rule removes most of these sites. No difference is called where the depth is outside the limits, so the density is stated for callable sequence only.</p></details>
-<details><summary>Expected tree of the results of this step</summary><p>To be completed from the test run of a fresh clone of the repository. The folders that the step is expected to write to are:</p>
-<pre><code>results/06_tests/
-results/07_comparator/
-results/07_compare/
-results/08_illumina_accuracy/
-$HW_WORK/aln/   and   $HW_WORK/map/   (large files)</code></pre>
-<p>The tree of files in each folder (with one line that says what each file contains) will be added here.</p></details></details>
+<details><summary>Expected tree of the results of this step</summary><p>Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; &lt;name&gt; and &lt;run&gt; stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.</p>
+<pre><code>results/06_tests/   (262 files)
+└── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
+    ├── busco.json   - BUSCO counts
+    ├── busco.tsv   - BUSCO result table
+    ├── busco_full_table.tsv   - BUSCO full table, one row for each BUSCO gene
+    ├── busco_short_summary.txt   - BUSCO short summary
+    ├── contiguity.json   - contiguity measures, as json
+    ├── contiguity.tsv   - N50, L50, NG50, auN and contig counts
+    ├── depth.json   - depth summary, as json
+    ├── depth.tsv   - depth of the PacBio reads, summary
+    ├── depth_1kb_windows.bed.gz   - depth in windows of 1 kb
+    ├── depth_mosdepth_summary.txt   - mosdepth summary
+    ├── miniprot.json   - protein alignment (miniprot) statistics
+    ├── miniprot_proteins.tsv.gz   - alignment of every Swiss-Prot fungal protein
+    ├── readback.json   - read-back measures (reads aligned, bases not spanned, discordant junctions)
+    ├── readback_discordant_junctions.tsv   - junctions where the two sides of a read land in different places
+    ├── readback_per_contig.tsv   - read-back for every contig
+    ├── readback_unspanned_gaps.tsv   - places inside contigs that no read crosses
+    ├── redundancy.json   - false duplication measures
+    ├── redundancy_classes.tsv   - redundancy classes
+    ├── redundancy_histogram.tsv   - histogram of the redundancy
+    ├── redundancy_per_contig.tsv   - redundancy for every contig
+    ├── star.json   - STAR statistics, as json
+    ├── star.tsv   - RNA-seq read alignment (STAR), statistics
+    ├── star_Log.final.out   - STAR final log
+    ├── star_SJ.out.tab.gz   - splice junctions found by STAR
+    ├── summary.json   - all measures of this assembly (or comparison) in one file
+    ├── summary.tsv   - all measures of this assembly in one table
+    ├── telomeres.json   - telomere result, as json
+    ├── telomeres.tsv   - telomeric repeats at contig ends
+    └── timings.tsv   - time of each test
+
+results/07_comparator/   (82 files)
+├── genbank_files/
+│   ├── case_differences.tsv
+│   ├── contigs_by_file.tsv
+│   ├── differing_sequences.tsv
+│   ├── file_summary.tsv
+│   ├── only_in_one_file.tsv
+│   ├── summary.json   - all measures of this assembly (or comparison) in one file
+│   └── the22_ids.tsv
+├── mito/
+│   └── {ctrl_canu, ctrl_flye, hw2, proc_r1, proc_r2, proc_r3}/
+│       ├── candidate_contigs.tsv   - candidate mitochondrial contigs
+│       ├── contigs_with_evidence.tsv   - contigs with mitochondrial evidence
+│       ├── mito_contigs.tsv   - contigs that are mitochondrial
+│       ├── ncbi_mito_alignments.paf
+│       ├── ncbi_mito_vs_assembly.paf
+│       ├── ref_genome_alignments.paf
+│       ├── summary.json   - all measures of this assembly (or comparison) in one file
+│       └── tblastn_hits.tsv
+└── the22/
+    ├── contaminant_screen/
+    │   ├── the22_hw2_by_organism.tsv
+    │   ├── the22_hw2_counts.tsv
+    │   ├── the22_hw2_criterion.json
+    │   ├── the22_hw2_excluded_contigs.txt
+    │   └── the22_hw2_per_contig.tsv.gz
+    ├── vs_assemblies/
+    │   ├── the22_vs_ctrl_canu.paf
+    │   ├── the22_vs_ctrl_canu.tsv
+    │   ├── the22_vs_ctrl_flye.paf
+    │   ├── the22_vs_ctrl_flye.tsv
+    │   ├── the22_vs_proc_r1.paf
+    │   ├── the22_vs_proc_r1.tsv
+    │   ├── the22_vs_proc_r2.paf
+    │   ├── the22_vs_proc_r2.tsv
+    │   ├── the22_vs_proc_r3.paf
+    │   └── the22_vs_proc_r3.tsv
+    ├── &lt;name&gt;_blastn_rdna.tsv
+    ├── &lt;name&gt;_miniprot.paf
+    ├── &lt;name&gt;_proteins_swissprot.tsv
+    ├── &lt;name&gt;_table.tsv
+    ├── &lt;name&gt;_tblastn_bla.tsv
+    ├── &lt;name&gt;_tblastn_mito.tsv
+    ├── &lt;name&gt;_vs_hw2.paf
+    ├── &lt;name&gt;_vs_hw2.tsv
+    ├── &lt;name&gt;_vs_ncbi_mito.paf
+    ├── depth_unscreened_and_screened_reads.tsv
+    └── summary.json   - all measures of this assembly (or comparison) in one file
+
+results/07_compare/   (22 files)
+└── {ctrl_canu_quiver_vs_hw2, ctrl_canu_vs_hw2, ctrl_flye_quiver_vs_hw2, ctrl_flye_vs_hw2, proc_r1_vs_hw2, proc_r2_vs_hw2, proc_r3_vs_hw2}/
+    ├── alignment_stats.json   - alignment of the two assemblies, statistics
+    ├── disagreements.tsv   - every place where the two assemblies arrange the sequence differently, with the reads that support each side
+    └── summary.json   - all measures of this assembly (or comparison) in one file
+
+results/08_illumina_accuracy/   (105 files)
+├── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
+│   ├── depth_limits.json   - depth limits used
+│   ├── differences.tsv   - every difference between the assembly and the Illumina reads
+│   ├── indel_lengths.tsv   - lengths of the insertions and deletions
+│   ├── per_contig.tsv   - accuracy of every contig
+│   ├── substitution_types.tsv   - counts of the substitution types
+│   ├── summary.json   - all measures of this assembly (or comparison) in one file
+│   ├── timing.tsv   - time of each analysis
+│   └── windows_10kb.tsv   - differences in windows of 10 kb
+└── shared/
+    ├── ctrl_canu_quiver_vs_hw2/
+    │   ├── counts.tsv   - counts of the differences, shared and specific
+    │   ├── ctrl_canu_quiver_status.tsv
+    │   ├── hw2_status.tsv
+    │   └── summary.json   - all measures of this assembly (or comparison) in one file
+    ├── ctrl_canu_vs_hw2/
+    │   ├── counts.tsv   - counts of the differences, shared and specific
+    │   ├── ctrl_canu_status.tsv
+    │   ├── hw2_status.tsv
+    │   └── summary.json   - all measures of this assembly (or comparison) in one file
+    ├── ctrl_flye_quiver_vs_hw2/
+    │   ├── counts.tsv   - counts of the differences, shared and specific
+    │   ├── ctrl_flye_quiver_status.tsv
+    │   ├── hw2_status.tsv
+    │   └── summary.json   - all measures of this assembly (or comparison) in one file
+    ├── ctrl_flye_vs_hw2/
+    │   ├── counts.tsv   - counts of the differences, shared and specific
+    │   ├── ctrl_flye_status.tsv
+    │   ├── hw2_status.tsv
+    │   └── summary.json   - all measures of this assembly (or comparison) in one file
+    ├── proc_r1_raw_vs_hw2/
+    │   ├── counts.tsv   - counts of the differences, shared and specific
+    │   ├── hw2_status.tsv
+    │   ├── proc_r1_raw_status.tsv
+    │   └── summary.json   - all measures of this assembly (or comparison) in one file
+    ├── proc_r1_vs_hw2/
+    │   ├── counts.tsv   - counts of the differences, shared and specific
+    │   ├── hw2_status.tsv
+    │   ├── proc_r1_status.tsv
+    │   └── summary.json   - all measures of this assembly (or comparison) in one file
+    ├── proc_r2_vs_hw2/
+    │   ├── counts.tsv   - counts of the differences, shared and specific
+    │   ├── hw2_status.tsv
+    │   ├── proc_r2_status.tsv
+    │   └── summary.json   - all measures of this assembly (or comparison) in one file
+    └── proc_r3_vs_hw2/
+        ├── counts.tsv   - counts of the differences, shared and specific
+        ├── hw2_status.tsv
+        ├── proc_r3_status.tsv
+        └── summary.json   - all measures of this assembly (or comparison) in one file
+
+$HW_WORK/aln/   (56 files, 241M)
+├── 06_transcripts/
+│   └── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
+├── 07_compare/
+│   └── {ctrl_canu_quiver_vs_hw2, ctrl_canu_vs_hw2, ctrl_flye_quiver_vs_hw2, ctrl_flye_vs_hw2, proc_r1_vs_hw2, proc_r2_vs_hw2, proc_r3_vs_hw2}/
+└── 07_reads/
+    ├── hq_clean_to_ctrl_canu.tsv.gz
+    ├── hq_clean_to_ctrl_canu_quiver.tsv.gz
+    ├── hq_clean_to_ctrl_flye.tsv.gz
+    ├── hq_clean_to_ctrl_flye_quiver.tsv.gz
+    ├── hq_clean_to_hw2.tsv.gz
+    ├── hq_clean_to_proc_r1.tsv.gz
+    ├── hq_clean_to_proc_r2.tsv.gz
+    └── hq_clean_to_proc_r3.tsv.gz
+
+$HW_WORK/map/   (963 files, 38G)
+└── illumina2013/
+    └── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
+
+$HW_WORK/tests/   (198 files, 12G)
+└── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
+    ├── steps/
+    ├── depth.mosdepth.global.dist.txt
+    ├── depth.mosdepth.region.dist.txt
+    ├── depth.mosdepth.summary.txt
+    ├── depth.regions.bed.gz
+    ├── depth.regions.bed.gz.csi
+    ├── miniprot.paf
+    ├── readback.bam
+    ├── readback.bam.bai
+    ├── self.paf
+    ├── star_&lt;run&gt;_Log.final.out
+    ├── star_&lt;run&gt;_Log.out
+    ├── star_&lt;run&gt;_Log.progress.out
+    └── star_&lt;run&gt;_SJ.out.tab
+
+$HW_WORK/07_comparator/   (228 files, 8.6G)
+├── {ctrl_canu, ctrl_flye, hw2, hw2_unscreened, proc_r1, proc_r2, proc_r3}/
+│   ├── asm.lengths
+│   ├── depth.mosdepth.global.dist.txt
+│   ├── depth.mosdepth.region.dist.txt
+│   ├── depth.mosdepth.summary.txt
+│   ├── depth.per_contig.tsv
+│   ├── depth.regions.bed.gz
+│   ├── depth.regions.bed.gz.csi
+│   ├── depth_mapq20.mosdepth.global.dist.txt
+│   ├── depth_mapq20.mosdepth.region.dist.txt
+│   ├── depth_mapq20.mosdepth.summary.txt
+│   ├── depth_mapq20.regions.bed.gz
+│   ├── depth_mapq20.regions.bed.gz.csi
+│   ├── flagstat.txt
+│   ├── minimap2.log
+│   ├── reads_used.txt
+│   ├── reads_vs_asm.bam
+│   └── reads_vs_asm.bam.bai
+├── genbank_files/
+├── {mito_ctrl_canu, mito_ctrl_flye, mito_hw2, mito_proc_r1, mito_proc_r2, mito_proc_r3}/
+│   ├── db.ndb
+│   ├── db.nhr
+│   ├── db.nin
+│   ├── db.njs
+│   ├── db.not
+│   ├── db.nsq
+│   ├── db.ntf
+│   ├── db.nto
+│   ├── ends.paf
+│   ├── head.fa
+│   ├── makeblastdb.log
+│   ├── mito_contigs.fa
+│   ├── ncbi_mito.fa
+│   └── tail.fa
+├── screen_the22/
+│   ├── lengths.tsv
+│   ├── the22_hw2_bacteria_1.minimap2.log
+│   ├── the22_hw2_bacteria_1.paf.gz
+│   ├── the22_hw2_bacteria_2.minimap2.log
+│   ├── the22_hw2_bacteria_2.paf.gz
+│   ├── the22_hw2_fungi.minimap2.log
+│   ├── the22_hw2_fungi.paf.gz
+│   ├── the22_hw2_other.minimap2.log
+│   └── the22_hw2_other.paf.gz
+├── the22/
+│   ├── &lt;name&gt;.fa
+│   ├── db22.ndb
+│   ├── db22.nhr
+│   ├── db22.nin
+│   ├── db22.njs
+│   ├── db22.not
+│   ├── db22.nsq
+│   ├── db22.ntf
+│   ├── db22.nto
+│   ├── mdb.log
+│   └── ncbi_mito.fa
+└── {the22_vs_ctrl_canu, the22_vs_ctrl_flye, the22_vs_proc_r1, the22_vs_proc_r2, the22_vs_proc_r3}/
+    └── the22.fa
+
+$HW_WORK/screen_contigs/   (126 files, 840K)
+└── {ctrl_canu, ctrl_canu_quiver, ctrl_canu_quiver_polished, ctrl_flye, ctrl_flye_quiver, ctrl_flye_quiver_polished, hw2, proc_r1, proc_r1_polished, proc_r1_raw, proc_r2, proc_r2_polished, proc_r3, proc_r3_polished}/
+    ├── &lt;name&gt;_bacteria_1.minimap2.log
+    ├── &lt;name&gt;_bacteria_1.paf.gz
+    ├── &lt;name&gt;_bacteria_2.minimap2.log
+    ├── &lt;name&gt;_bacteria_2.paf.gz
+    ├── &lt;name&gt;_fungi.minimap2.log
+    ├── &lt;name&gt;_fungi.paf.gz
+    ├── &lt;name&gt;_other.minimap2.log
+    ├── &lt;name&gt;_other.paf.gz
+    └── lengths.tsv</code></pre></details></details>
 <details><summary>Step 11. Summary, assessment of the evaluations and validation</summary><p>When every job above has finished, the summary job writes the tables, the figures, the assessment of each evaluation, the checksums of the three runs, the time and memory of the jobs, the final assembly as files, and checks the results against the expected table.</p>
 <p><strong>Commands, in the order in which they are run:</strong></p>
 <pre><code>sbatch jobs/09_summary.sbatch</code></pre>
@@ -25308,19 +25727,47 @@ $HW_WORK/aln/   and   $HW_WORK/map/   (large files)</code></pre>
 <details><summary>Validation of a rerun</summary><p>A rerun of the workflow is reproducible if it gives the same results within the variation the procedure itself shows. <code>validation/expected.tsv</code> lists the measures of the run reported here (written by <code>scripts/10_validate.py make-expected</code>) with an acceptance interval for each:</p>
 <ul><li>the measures of Hw 2.1 (mean of the three polished runs): inside the range seen over the runs, widened on both sides by that range or by 0.5 percent of the mean, whichever is larger;</li><li>the numbers of reads of the two PacBio sets: exact;</li><li>the measures of Hw 2.0, which does not depend on any assembler: within 0.2 percent;</li><li>the measures of the control assemblies (a single run each of programs whose results vary between computers): within 5 percent.</li></ul>
 <p>The report <code>results/10_validation/validation_report.txt</code> lists every item as <code>PASS</code>, <code>FAIL</code> or <code>MISSING</code> and ends with one line. When only some steps have been rerun, the items of the others are <code>MISSING</code>.</p></details>
-<details><summary>Expected tree of the results of this step</summary><p>To be completed from the test run of a fresh clone of the repository. The folders that the step is expected to write to are:</p>
-<pre><code>results/09_summary/
-results/10_validation/
-results/assembly/</code></pre>
-<p>The tree of files in each folder (with one line that says what each file contains) will be added here.</p></details></details>
+<details><summary>Expected tree of the results of this step</summary><p>Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; &lt;name&gt; and &lt;run&gt; stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.</p>
+<pre><code>results/09_summary/   (25 files)
+├── fig_contigs.png   - figure (contigs), png
+├── fig_contigs.svg   - figure (contigs), svg
+├── fig_measures.png   - figure (measures), png
+├── fig_measures.svg   - figure (measures), svg
+├── fig_qc_depth.png   - figure (qc depth), png
+├── fig_qc_depth.svg   - figure (qc depth), svg
+├── fig_qc_illumina.png   - figure (qc illumina), png
+├── fig_qc_illumina.svg   - figure (qc illumina), svg
+├── fig_qc_pacbio.png   - figure (qc pacbio), png
+├── fig_qc_pacbio.svg   - figure (qc pacbio), svg
+├── fig_qc_pacbio_qv.png   - figure (qc pacbio qv), png
+├── fig_qc_pacbio_qv.svg   - figure (qc pacbio qv), svg
+├── fig_workflow.png   - figure (workflow), png
+├── fig_workflow.svg   - figure (workflow), svg
+├── measures.tsv   - every measure of every assembly
+├── noise_scale.tsv   - run-to-run variation of each measure
+├── qc_stats.tsv   - quality-control statistics of the data
+├── replicate_check.tsv   - checksums of the three runs (are they identical?)
+├── resources_jobs.tsv   - time and memory of every job
+├── resources_stages.tsv   - time of each timed stage
+├── resources_totals.json   - core-hours by group
+├── results_table.tsv   - the results table of the README
+├── verdict.json   - verdict on each evaluation
+└── verdict.tsv   - verdict on each evaluation (table)
+
+results/10_validation/   (2 files)
+└── validation_report.txt   - comparison with validation/expected.tsv, pass or fail for each item</code></pre></details></details>
 <h2>6. Limits of the evaluation and decisions taken</h2>
 <ul><li><strong>How the procedure was defined.</strong> Preliminary analyses on the same reads (not shown) led to the procedure described here, including the choice of Quiver for polishing. The evaluations were applied to the final procedure only. The assessment therefore tests a procedure that was defined with knowledge of the data, not one fixed blindly. The accuracy evaluation uses Illumina reads that play no part in building or polishing either assembly.</li><li><strong>The reads as referee.</strong> Evaluations 3 and 4 use the PacBio reads that were also used to build the assemblies (Hw 2.0 and Hw 2.1 alike). They show whether an assembly is consistent with its source reads; they are not independent evidence of the genome.</li><li><strong>Noise scale.</strong> It is practically zero (section 4), so it gives no protection against calling a very small difference real. The assessments of measures that changed by less than 1 percent are marked "slightly".</li><li><strong>Differences specific to one assembly are an upper bound.</strong> A difference counted as specific may also be a real difference between the cultures, or an error of the Illumina data, that falls where the other assembly happens to have another sequence nearby.</li><li><strong>Adapters.</strong> Adapter sequence was found in 14.3 percent of the HiSeq read pairs; the reads were not trimmed because the aligners soft-clip them. The effect on the RNA-seq evaluation is expected to be small and was not measured.</li><li><strong>RNA-seq reads and transcripts.</strong> Only the HiSeq run is used for the alignment of RNA-seq pairs; the MiSeq run is used for quality control only. The transcripts assembled without a genome come from the first 25 million of the 175 million HiSeq pairs, a practical choice of time and memory, not an impossibility; genes expressed weakly in the culture are missing from the transcripts. Using all the pairs is possible with a larger job.</li><li><strong>Contaminant screen.</strong> It uses a reference collection with one genome per genus and an alignment criterion, and detects contaminants that have a relative within about 10 percent divergence in the collection. Reads are removed whole; no base is masked or edited. Contigs excluded by the contig screen are removed from Hw 2.1 and from the controls; Hw 2.0 is kept as published.</li><li><strong>Comparison with the authors' filtered reads.</strong> The set of filtered subreads made here differs from the file the authors deposited only in the end coordinate of the last subread of 65,233 reads (one base) and one extra well. The set made here is used because it can be rebuilt from the raw files.</li><li><strong>The Illumina reads come from another culture</strong> of the strain than the PacBio reads and were sequenced at another time; this is why differences shared by both assemblies are set aside.</li><li><strong>Not covered.</strong> A gene annotation of Hw 2.1; the nucleosome-positioning data (MNase-seq) of the study; other strains or species.</li><li><strong>The database download job was not rerun.</strong> The job <code>jobs/02_fetch_databases.sbatch</code> was written after the reference data had been fetched; it calls the two scripts that made the original download and was checked for syntax only. A rerun would fetch the current version of the UniProt and NCBI sets, which may differ from the versions recorded in <code>envs/databases.tsv</code>.</li><li><strong>One computer and one set of program versions.</strong> The reproducibility shown is that of three runs on one computer; the versions are in the section on software, and the environments can be recreated from the lock files.</li></ul>
 <h2>7. Validation</h2>
+<details><summary>A second complete run, made from a fresh clone of the repository</summary><p>The whole workflow was run a second time from a fresh clone of the repository, with an empty work folder and empty results and logs (the software environments, the reference databases and the input files were those of the first run). The result of the second run:</p>
+<ul><li>The assembly Hw 2.1 is the same file: <code>results/assembly/Hw2.1.fasta.gz</code> has the same checksum as in the first run, and the checksums of the three runs of the procedure agree with each other and with the first run (<code>results/09_summary/replicate_check.tsv</code>).</li><li>The verdict is the same on all five evaluations (<code>results/09_summary/verdict.tsv</code>), and every measure of the procedure is the same, except those that depend on Trinity (below).</li><li><strong>Two programs give a different result at every run, with the same input.</strong> Trinity assembled 57,071 transcripts in the second run and 56,609 in the first, and the percentage of transcripts that align well to an assembly changed by about 0.4 percentage points, for every assembly alike (so the comparison between assemblies is unchanged). Flye, used only for a control assembly, gave 2,276 contigs against 2,263 and a longest contig of 363,769 against 411,508 bases.</li><li>The acceptance intervals of <code>validation/expected.tsv</code> were widened for these two cases (1 percent for the transcript measure of Hw 2.0 and 15 percent for the Flye control assemblies). With them, the second run passes all 151 checks, and so does the first.</li><li>The set of files in <code>results/</code> is the same as in the first run, except that the second run also holds the contig screen of <code>proc_r1_raw</code>, and lacks the outputs of the optional tests of the screen (<code>screen_db/</code> and <code>screen_test/</code>), which the workflow does not run by itself.</li></ul></details>
 <p>Four checks tie the workflow to its results:</p>
 <ol><li><strong>The input files are the files of the archives.</strong> All archive files agree with the checksums and sizes published by the archive (<code>results/01_inputs/archive_check.tsv</code>), and the checksums of all input files are in <code>input/CHECKSUMS.md5</code> for anyone to compare.</li><li><strong>The procedure is reproducible on one computer.</strong> The three runs, made with different numbers of threads, produced the same corrected reads, raw assemblies and polished contigs (<code>results/09_summary/replicate_check.tsv</code>).</li><li><strong>The contaminant screen is reproducible.</strong> A second run of the screen of reads on the same input gave the same counts (9,727 reads excluded from the high-quality set and 7,737 from the filtered set).</li><li><strong>A rerun reproduces the reported measures.</strong> <code>scripts/10_validate.py</code> compares the results of a rerun with <code>validation/expected.tsv</code>, which lists every measure of this report with an acceptance interval. The table was made from the run reported here, so the check of this run against itself passes by construction; the useful check is a rerun.</li></ol>
 <p>Not validated: a rerun on another computer or with other versions of the programs.</p>
 <h2>8. Folder layout</h2>
-<pre><code>config/                     config.sh (locations, places of the programs), lib.sh (job logging)
+<pre><code>settings.yaml               the values to fill in: scheduler account, e-mail address, folders (see &quot;Run everything: quick start&quot;)
+setup_and_run_all.sh        sets up from settings.yaml and runs everything, stage by stage
+config/                     config.sh (locations, places of the programs), lib.sh (job logging), modules.sh (software modules of the jobs)
 docs/                       one explanatory document per step (shown as collapsible sections in this report)
 jobs/                       scheduler job scripts, one per step (numbered as the steps)
 scripts/                    programs called by the jobs; submit_all.sh (all jobs), make_environments.sh, 09_summary.py, 10_validate.py

@@ -7,9 +7,8 @@
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=<ADDRESS>
-module --force purge
-module load StdEnv/2023
-HW="${SLURM_SUBMIT_DIR:-$PWD}"; source "$HW/config/config.sh"; source "$HW/config/lib.sh"
+HW="${SLURM_SUBMIT_DIR:-$PWD}"; source "$HW/config/modules.sh"      # the modules of settings.yaml
+source "$HW/config/config.sh"; source "$HW/config/lib.sh"
 hw_start 06_tests
 
 # Step 06: tests of lines 1 to 4 of one assembly (plan, section 6).

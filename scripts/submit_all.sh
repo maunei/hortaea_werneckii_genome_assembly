@@ -14,7 +14,7 @@ S() {   # S key "dependency keys (space separated, may be empty)" sbatch-argumen
   local key="$1" deps="$2"; shift 2; local dep=""
   for d in $deps; do dep="$dep:${ID[$d]}"; done; [ -n "$dep" ] && dep="--dependency=afterok$dep"
   if [ -n "$DRYRUN" ]; then echo "sbatch $dep $*"; ID[$key]="<$key>"; return; fi
-  local id; id=$(sbatch --parsable $dep "$@" | cut -d';' -f1); ID[$key]="$id"; printf "%s\t%s\t%s\t%s\n" "$key" "$id" "${dep#--dependency=}" "$(basename "${@: -1}")" >> "$LEDGER"; echo "$key $id"
+  local id; id=$(sbatch --parsable $dep "${SBATCH_COMMON[@]}" "$@" | cut -d';' -f1); ID[$key]="$id"; printf "%s\t%s\t%s\t%s\n" "$key" "$id" "${dep#--dependency=}" "$(basename "${@: -1}")" >> "$LEDGER"; echo "$key $id"
 }
 # 01 inputs; the published assembly Hw 2.0 is made available as $WORK/asm/hw2/final.fasta
 [ -n "$DRYRUN" ] && echo "bash scripts/01_prepare_hw2.sh" || bash scripts/01_prepare_hw2.sh
@@ -59,7 +59,7 @@ S depth_unscreened "the22" jobs/07_depth_unscreened.sbatch
 # (assembly name : job that must have finished)
 ASMS="proc_r1_raw:proc_r1 proc_r1:remove_r1 proc_r2:remove_r2 proc_r3:remove_r3 ctrl_canu:ctrl_canu ctrl_flye:ctrl_flye ctrl_canu_quiver:remove_ctrl_canu ctrl_flye_quiver:remove_ctrl_flye hw2:"
 for pair in $ASMS; do a=${pair%%:*}; dep=${pair#*:}
-  S tests_$a "$dep conv_hiseq" --export=ALL,ASM=$a jobs/06_tests.sbatch
+  S tests_$a "$dep conv_hiseq screen_reads" --export=ALL,ASM=$a jobs/06_tests.sbatch
   S trans_$a "$dep trinity" --export=ALL,ASM=$a jobs/06_transcript_alignment.sbatch
   S acc_$a "$dep conv_ill" --export=ALL,ASM=$a,FASTA=$WORK/asm/$a/final.fasta jobs/08_illumina_accuracy.sbatch
   S scr_$a "$dep" --export=ALL,ASM=$a,FASTA=$WORK/asm/$a/final.fasta jobs/02_screen_contigs.sbatch

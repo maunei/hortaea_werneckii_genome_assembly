@@ -8,9 +8,8 @@
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=<ADDRESS>
 
-module --force purge
-module load StdEnv/2023
-HW="${SLURM_SUBMIT_DIR:-$PWD}"; source "$HW/config/config.sh"; source "$HW/config/lib.sh"
+HW="${SLURM_SUBMIT_DIR:-$PWD}"; source "$HW/config/modules.sh"      # the modules of settings.yaml
+source "$HW/config/config.sh"; source "$HW/config/lib.sh"
 hw_start 04_control_flye
 
 # Step 04 (control): Flye with its default settings on the same filtered reads and the same genome size.

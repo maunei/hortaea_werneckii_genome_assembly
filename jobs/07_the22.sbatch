@@ -7,9 +7,8 @@
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=<ADDRESS>
-module --force purge
-module load StdEnv/2023
-HW="${SLURM_SUBMIT_DIR:-$PWD}"; source "$HW/config/config.sh"; source "$HW/config/lib.sh"
+HW="${SLURM_SUBMIT_DIR:-$PWD}"; source "$HW/config/modules.sh"      # the modules of settings.yaml
+source "$HW/config/config.sh"; source "$HW/config/lib.sh"
 hw_start the22
 # Step 07b: the 22 sequences of the GitHub file of Hw 2.0 that are absent from the NCBI record.
 # Needs the table of step 07a (results/07_comparator/genbank_files/the22_ids.tsv).

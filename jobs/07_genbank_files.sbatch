@@ -7,9 +7,8 @@
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=<ADDRESS>
-module --force purge
-module load StdEnv/2023
-HW="${SLURM_SUBMIT_DIR:-$PWD}"; source "$HW/config/config.sh"; source "$HW/config/lib.sh"
+HW="${SLURM_SUBMIT_DIR:-$PWD}"; source "$HW/config/modules.sh"      # the modules of settings.yaml
+source "$HW/config/config.sh"; source "$HW/config/lib.sh"
 hw_start genbank_files
 # Step 07a: comparison of the complete GitHub file of Hw 2.0 with the other GenBank files of the repository and the NCBI record.
 OUT="$RESULTS/07_comparator/genbank_files"; TMP="$WORK/07_comparator/genbank_files"; mkdir -p "$OUT" "$TMP"
