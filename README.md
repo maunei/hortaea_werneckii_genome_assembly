@@ -11,9 +11,9 @@ Sections marked with a triangle open on a click. They hold explanations that are
 What is needed: a computer cluster with the SLURM job scheduler (the program that queues and runs jobs), micromamba or conda, internet access for the downloads, and about 400 GB of free disk space (about 200 GB of working files, 85 GB of reference databases and 80 GB of input files). The analysis used 203 core-hours of processor time in the run reported here (section 5).
 
 1. **Get the repository** and go into its folder: `git clone https://github.com/maunei/hortaea_werneckii_genome_assembly.git` and `cd hortaea_werneckii_genome_assembly`.
-2. **Fill in `settings.yaml`.** It has one line for each value: the scheduler account, your e-mail address, how many messages you want, the software modules of your cluster (if any), and three folders for large files outside the repository. Nothing else has to be edited.
+2. **Fill in `settings.yaml`.** It has one line for each value: the scheduler account, your e-mail address, how many messages you want, the software modules of your cluster (if any), and three folders for large files outside the repository. The work folder must be new and empty for each run. Nothing else has to be edited.
 3. **Run `bash setup_and_run_all.sh all`.** It checks the settings, creates the software environments, downloads the reference databases and the input files, checks that everything works from a compute node, and submits the whole analysis (97 jobs with their dependencies). Then wait.
-4. **When the analysis has finished** (one message arrives if you asked for messages; `squeue -u $USER` shows nothing), the results are in `results/`: the assembly Hw 2.1 in `results/assembly/`, the verdict on the five evaluations in `results/09_summary/verdict.tsv` and the check against the expected values in `results/10_validation/`.
+4. **When the analysis has finished** (one message arrives if you asked for messages, saying COMPLETED, or FAILED if the analysis did not finish; `squeue -u $USER` shows nothing), the results are in `results/`: the assembly Hw 2.1 in `results/assembly/`, the verdict on the five evaluations in `results/09_summary/verdict.tsv` and the check against the expected values in `results/10_validation/`.
 
 ```
 git clone https://github.com/maunei/hortaea_werneckii_genome_assembly.git
@@ -32,8 +32,8 @@ The command is `bash setup_and_run_all.sh STAGE`. Every stage can be repeated: w
 | `software` | creates the ten software environments from the lock files (step 1) |
 | `databases` | downloads and indexes the reference databases (step 2); skipped when they are present |
 | `inputs` | downloads the input files (step 3), or links them from the folder `input_source` of `settings.yaml` when that is given; skipped when every file of `input/CHECKSUMS.md5` is present |
-| `check` | checks the folders, programs, databases and input files, runs a one-minute job on a compute node that tests them, and prints how many jobs the run will submit |
-| `run` | submits the whole analysis (`scripts/submit_all.sh`) and one short job that sends a message when the last job has completed (`DRYRUN=1` prints the submissions only) |
+| `check` | checks the folders, programs, databases and input files, refuses a work folder that holds the files of an earlier run, runs a one-minute job on a compute node that tests them, and prints how many jobs the run will submit |
+| `run` | submits the whole analysis (`scripts/submit_all.sh`) and one short job that sends a message when the last job has ended, COMPLETED or FAILED (`DRYRUN=1` prints the submissions only) |
 | `all` | `settings`, `software`, `databases`, `inputs`, `check` and `run`, in this order |
 
 The job files are not changed. The script passes the account and the mail settings to every job when it is submitted, which overrides the placeholders `<ACCOUNT>` and `<ADDRESS>` in the header of each job file. A person who submits a single job by hand (section 5) replaces the placeholders as described in step 0.

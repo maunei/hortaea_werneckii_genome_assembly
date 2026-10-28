@@ -10,7 +10,7 @@ modules: StdEnv/2023                      # software modules loaded at the start
 finished_job_name: hw_run_finished        # name of the short job that sends one message when the whole analysis has finished (not sent when mail_when is NONE)
 
 # ---- folders (outside the repository; they are created if they do not exist)
-work_dir: /path/to/work                   # large intermediate files: reads, alignments, assemblies; about 200 GB
+work_dir: /path/to/work                   # large intermediate files: reads, alignments, assemblies; about 200 GB. A NEW, empty folder for each run (an old one makes the steps skip)
 envs_dir: /path/to/environments           # the ten software environments, made by the stage "software"
 dbs_dir: /path/to/databases               # reference databases, about 85 GB, downloaded by the stage "databases"
 

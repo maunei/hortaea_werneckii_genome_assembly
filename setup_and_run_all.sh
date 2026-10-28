@@ -48,6 +48,14 @@ wait_jobs() {   # wait_jobs "id,id" "label": waits until the jobs have left the 
   echo "$label completed"
 }
 
+work_has_old_run() {   # the work folder holds the products of an earlier run while results/ of this clone is empty: the steps would be skipped as "already done" and results/ would stay incomplete
+  local d found=""; for d in asm reads pacbio_bam tests; do [ -n "$(ls -A "$WORK/$d" 2>/dev/null)" ] && found=1; done
+  [ -n "$found" ] && [ -z "$(find "$RESULTS" -type f ! -name .gitkeep 2>/dev/null | head -1)" ]
+}
+no_old_work() {
+  work_has_old_run && die "work_dir ($WORK) already holds the files of an earlier run, but results/ of this clone is empty. The steps would be skipped as 'already done' and results/ would stay incomplete. Use a new, empty folder as work_dir in settings.yaml (then run the stage settings again)."
+  return 0
+}
 stage_software() {
   say "software: environments in $ENVS"
   mkdir -p logs; bash scripts/make_environments.sh 2>&1 | tee logs/make_environments.txt
@@ -78,6 +86,7 @@ stage_inputs() {
 }
 stage_check() {
   say "check"
+  no_old_work
   [ -z "$(inputs_missing)" ] || die "input files are missing (first: $(inputs_missing)); run the stage inputs"
   echo "input files: all present"
   local p; p=$(sbatch --parsable "${SBATCH_COMMON[@]}" jobs/00_preflight.sbatch | cut -d';' -f1) || die "could not submit the check job"
@@ -88,14 +97,17 @@ stage_check() {
 }
 stage_run() {
   say "run"
+  [ -n "$DRYRUN" ] || no_old_work
   if [ -n "$DRYRUN" ]; then DRYRUN=1 bash scripts/submit_all.sh | tee logs/dryrun.txt | tail -3; return; fi
   bash scripts/submit_all.sh | tee logs/submit_all.txt | tail -2
   local s; s=$(awk '$1=="summary"{print $2}' jobs/submitted_by_submit_all.tsv); [ -n "$s" ] || die "the summary job was not submitted"
   echo "all jobs are submitted; the last job (09_summary, job $s) runs when all others have finished"
   if [ "${HW_MAIL_WHEN:-FAIL}" != NONE ]; then
-    sbatch --parsable -J "${HW_FINISHED_JOB:-hw_run_finished}" --dependency=afterok:$s --account="$HW_ACCOUNT" --mail-type=BEGIN,END --mail-user="$HW_MAIL" \
-           --time=00:02:00 --mem=100M --cpus-per-task=1 --output=/dev/null --wrap='sleep 20' > /dev/null \
-      && echo "one message will be sent when the summary has completed (job name ${HW_FINISHED_JOB:-hw_run_finished}); a failed job is reported by the scheduler"
+    # runs when the summary job has ended, whether it completed or not; ends with an error when the summary did not complete, so that the scheduler message says "COMPLETED" or "FAILED"
+    sbatch --parsable -J "${HW_FINISHED_JOB:-hw_run_finished}" --dependency=afterany:$s --account="$HW_ACCOUNT" --mail-type=BEGIN,END --mail-user="$HW_MAIL" \
+           --time=00:02:00 --mem=100M --cpus-per-task=1 --output=/dev/null \
+           --wrap="sleep 20; st=\$(sacct -j $s -X -n -P -o State | head -1); [ \"\$st\" = COMPLETED ]" > /dev/null \
+      && echo "one message will be sent when the summary job has ended (job name ${HW_FINISHED_JOB:-hw_run_finished}): 'COMPLETED' if the whole analysis finished, 'FAILED' if not; a failed job is also reported by the scheduler"
   fi
   echo "follow the run with:  squeue -u \$USER;  results will be in results/ (README, 'Run everything')"
 }
