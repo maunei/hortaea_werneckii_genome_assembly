@@ -15,6 +15,13 @@ NCBI="https://ftp.ncbi.nlm.nih.gov"
 CHM13="https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/CHM13/assemblies/analysis_set/chm13v2.0.fa.gz"
 JOBS="${FETCH_JOBS:-4}"
 log() { echo "[$(date +'%F %T')] $*"; }
+# get FILE URL: downloads to FILE.part and renames when complete, so that a download stopped by a time limit is never taken for a finished file;
+# a finished .gz file that cannot be read to its end is downloaded again
+get() {
+  local f="$1" url="$2"
+  if [ -s "$f" ]; then case "$f" in *.gz) gzip -t "$f" 2>/dev/null && return 0; log "$f is incomplete: downloaded again"; rm -f "$f";; *) return 0;; esac; fi
+  curl -sS --fail --retry 6 -o "$f.part" "$url" && mv "$f.part" "$f"
+}
 
 # 1. selection of genomes (the list shipped with the package is used when present, so that the same genomes are fetched again)
 SEL="$HW/envs/screen_genomes.tsv"
@@ -56,10 +63,10 @@ awk -F'\t' 'NR>1 && ($2=="archaea" || ($2=="bacteria" && $10=="extra")){print $1
 
 # 4. viruses (RefSeq release file), human (T2T-CHM13v2.0), vectors (UniVec)
 log "viruses, human, vectors"
-[ -s "$T/viral.fna.gz" ] || curl -sS --fail --retry 6 -o "$T/viral.fna.gz" "$NCBI/refseq/release/viral/viral.1.1.genomic.fna.gz"
-[ -s "$T/RELEASE_NUMBER" ] || curl -sS --fail --retry 6 -o "$T/RELEASE_NUMBER" "$NCBI/refseq/release/RELEASE_NUMBER"
-[ -s "$T/chm13v2.0.fa.gz" ] || curl -sS --fail --retry 6 -o "$T/chm13v2.0.fa.gz" "$CHM13"
-[ -s "$T/UniVec" ] || curl -sS --fail --retry 6 -o "$T/UniVec" "$NCBI/pub/UniVec/UniVec"
+get "$T/viral.fna.gz" "$NCBI/refseq/release/viral/viral.1.1.genomic.fna.gz"
+get "$T/RELEASE_NUMBER" "$NCBI/refseq/release/RELEASE_NUMBER"
+get "$T/chm13v2.0.fa.gz" "$CHM13"
+get "$T/UniVec" "$NCBI/pub/UniVec/UniVec"
 gzip -dc "$T/viral.fna.gz" | awk '/^>/{ id=substr($1,2); print ">virus|" id "|" id; next } { print }' | gzip -1 >> "$S/other.fa.gz.tmp"
 gzip -dc "$T/chm13v2.0.fa.gz" | awk '/^>/{ id=substr($1,2); print ">human|CHM13v2.0|" id; next } { print }' | gzip -1 >> "$S/other.fa.gz.tmp"
 awk '/^>/{ id=substr($1,2); gsub(/\|/,"_",id); print ">vector|" id "|" id; next } { print }' "$T/UniVec" | gzip -1 >> "$S/other.fa.gz.tmp"

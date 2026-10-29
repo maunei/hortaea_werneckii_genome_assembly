@@ -23,7 +23,10 @@ $PY "$HW/scripts/fetch_archive.py" "$INPUT/manifests/illumina2013_sra_files.tsv"
 git -C "$INPUT/hw2/github_Hortaea_werneckii" checkout "$(cat "$INPUT/hw2/github_commit.txt")" 2>/dev/null
 mkdir -p "$INPUT/hw2/ncbi_GCA_002127715.1"
 FTP=https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/002/127/715/GCA_002127715.1_HwerPB1
-for f in genomic.fna.gz genomic.gff.gz protein.faa.gz assembly_report.txt assembly_stats.txt fcs_report.txt; do
-  curl -sSf -o "$INPUT/hw2/ncbi_GCA_002127715.1/GCA_002127715.1_HwerPB1_$f" "$FTP/GCA_002127715.1_HwerPB1_$f" || echo "not downloaded: $f"
+for f in genomic.fna.gz genomic.gff.gz protein.faa.gz cds_from_genomic.fna.gz feature_count.txt.gz feature_table.txt.gz assembly_report.txt assembly_stats.txt fcs_report.txt; do
+  [ -s "$INPUT/hw2/ncbi_GCA_002127715.1/GCA_002127715.1_HwerPB1_$f" ] || curl -sSf -o "$INPUT/hw2/ncbi_GCA_002127715.1/GCA_002127715.1_HwerPB1_$f" "$FTP/GCA_002127715.1_HwerPB1_$f" || echo "not downloaded: $f"
+done
+for f in README.txt md5checksums.txt; do   # the two files of the record that are not named after the assembly
+  [ -s "$INPUT/hw2/ncbi_GCA_002127715.1/$f" ] || curl -sSf -o "$INPUT/hw2/ncbi_GCA_002127715.1/$f" "$FTP/$f" || echo "not downloaded: $f"
 done
 hw_end 01_fetch_inputs

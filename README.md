@@ -8,7 +8,7 @@ Sections marked with a triangle open on a click. They hold explanations that are
 
 ## Run everything: quick start
 
-What is needed: a computer cluster with the SLURM job scheduler (the program that queues and runs jobs), micromamba or conda, internet access for the downloads, and about 400 GB of free disk space (about 200 GB of working files, 85 GB of reference databases and 80 GB of input files). The analysis used 203 core-hours of processor time in the run reported here (section 5). From the submission of the first job to the end of the last job it took 4 h 07 min, 5 h 00 min and 5 h 01 min in three complete runs of a fresh clone, on a computer with short queue waits (the longest single job, one run of the procedure, took 2 h 16 min, 3 h 15 min and 2 h 41 min); count on longer when the queue is busy.
+What is needed: a computer cluster with the SLURM job scheduler (the program that queues and runs jobs), micromamba or conda, internet access for the downloads, and about 400 GB of free disk space (about 200 GB of working files, 85 GB of reference databases and 80 GB of input files; the software environments add about 15 GB in about 304,000 files). The time of the downloads depends on the speed of the network: in a test from empty folders the speed was about 1 to 2 MB/s during the first six hours, so that both download jobs reached their time limit and the script submitted them again; the second jobs, with a faster network, took 17 and 47 minutes. The analysis used 203 core-hours of processor time in the run reported here (section 5). From the submission of the first job to the end of the last job it took 4 h 07 min, 5 h 00 min and 5 h 01 min in three complete runs of a fresh clone, on a computer with short queue waits (the longest single job, one run of the procedure, took 2 h 16 min, 3 h 15 min and 2 h 41 min); count on longer when the queue is busy.
 
 1. **Get the repository** and go into its folder: `git clone https://github.com/maunei/hortaea_werneckii_genome_assembly.git` and `cd hortaea_werneckii_genome_assembly`.
 2. **Fill in `settings.yaml`.** It has one line for each value: the scheduler account, your e-mail address, how many messages you want, the software modules of your cluster (if any), and three folders for large files outside the repository. The work folder must be new and empty for each run. Nothing else has to be edited.
@@ -644,7 +644,7 @@ The programs are not part of the workflow. They are created from lock files that
 bash scripts/make_environments.sh
 ```
 
-**Expected output:** ten environments in `$HW_ENVS` and the link that the older PacBio programs need (`libcompat`).
+**Expected output:** ten environments in `$HW_ENVS` and the link that the older PacBio programs need (`libcompat`). The ten environments hold about 304,000 files (15 GB). A computer with a limit on the number of files in the scratch area may need a folder with a larger file allowance for `envs_dir`: the test of the step from an empty folder, in project space, took 2 h 23 min of elapsed time and ended with all 30 programs that the jobs use present (some of them also run) and package lists identical to those of the environments used for the reported run.
 
 <details><summary>Expected tree of the results of this step</summary>
 
@@ -671,7 +671,7 @@ $HW_ENVS/   (outside the repository)
 
 <details><summary>Step 2. Fetch the reference data and index the screen database</summary>
 
-Three reference sets are needed: the BUSCO lineage and the Swiss-Prot fungal proteins (evaluation 2), and the reference collection of the contaminant screen (step 02b). They are downloaded once by a job and used offline afterwards. The screen collection is then indexed by a second job.
+Three reference sets are needed: the BUSCO lineage and the Swiss-Prot fungal proteins (evaluation 2), and the reference collection of the contaminant screen (step 02b). They are downloaded once by a job and used offline afterwards. The screen collection is then indexed by a second job. The same download job also fetches the small reference sequences of step 07 (the mitochondrial genomes of five fungi, the ribosomal DNA of *Hortaea werneckii* and the beta-lactamase marker). In a test of the stage from an empty folder, the screen collection, the BUSCO lineage and the index were identical to the copies used for the reported run (same checksums of the four database parts, same index sizes). Two points of the download can differ: a download that is stopped by the time limit of the job continues with the files that are missing, and the Swiss-Prot set is taken from the live UniProt interface, which gave 38,451 proteins in the reported run and 38,309 proteins a week later under the same release label (2026_03), so that the number of Swiss-Prot proteins found whole can change slightly when the data are downloaded again.
 
 **Commands, in the order in which they are run:**
 

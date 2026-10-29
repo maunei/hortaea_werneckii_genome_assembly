@@ -69,7 +69,8 @@ stage_software() {
 stage_databases() {
   say "databases: $DBS"
   local n; n=$(ls "$SCREEN_DB"/*.mmi 2>/dev/null | wc -l)
-  if [ -d "$BUSCO_LINEAGE" ] && [ -s "$SWISSPROT_FUNGI" ] && [ "$n" -ge 4 ]; then echo "already present (BUSCO lineage, Swiss-Prot fungal proteins, $n screen indexes): nothing to do"; return; fi
+  if [ -d "$BUSCO_LINEAGE" ] && [ -s "$SWISSPROT_FUNGI" ] && [ "$n" -ge 4 ] \
+     && [ -s "$DBS/mito_refs/mito_proteins.faa" ] && [ -s "$DBS/rdna_refs/vector_marker_bla.faa" ]; then echo "already present (BUSCO lineage, Swiss-Prot fungal proteins, $n screen indexes, mitochondrial and rDNA references): nothing to do"; return; fi
   # the downloads can resume (finished files are kept), so a job that reaches its time limit on a slow network is submitted again, up to 5 times
   local f i attempt st
   for attempt in 1 2 3 4 5; do
