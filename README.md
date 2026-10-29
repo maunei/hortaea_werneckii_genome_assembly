@@ -30,8 +30,8 @@ The command is `bash setup_and_run_all.sh STAGE`. Every stage can be repeated: w
 |---|---|
 | `settings` | checks `settings.yaml` (nothing left at the example values, folders given as absolute paths), creates the three folders and writes `config/local.sh`, the file from which all jobs read the values |
 | `software` | creates the ten software environments from the lock files (step 1) |
-| `databases` | downloads and indexes the reference databases (step 2); skipped when they are present |
-| `inputs` | downloads the input files (step 3), or links them from the folder `input_source` of `settings.yaml` when that is given; skipped when every file of `input/CHECKSUMS.md5` is present |
+| `databases` | downloads and indexes the reference databases (step 2); skipped when they are present; if a download job reaches its time limit (slow network) it is submitted again, up to five times, and continues with the files that are missing |
+| `inputs` | downloads the input files (step 3), or links them from the folder `input_source` of `settings.yaml` when that is given; skipped when every file of `input/CHECKSUMS.md5` is present; a download job that reaches its time limit is submitted again, up to five times |
 | `check` | checks the folders, programs, databases and input files, refuses a work folder that holds the files of an earlier run, runs a one-minute job on a compute node that tests them, and prints how many jobs the run will submit |
 | `run` | submits the whole analysis (`scripts/submit_all.sh`) and one short job that sends a message when the last job has ended, COMPLETED or FAILED (`DRYRUN=1` prints the submissions only) |
 | `all` | `settings`, `software`, `databases`, `inputs`, `check` and `run`, in this order |

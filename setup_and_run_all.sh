@@ -48,6 +48,10 @@ wait_jobs() {   # wait_jobs "id,id" "label": waits until the jobs have left the 
   echo "$label completed"
 }
 
+job_state() {   # job_state ID: waits until the job has left the queue and prints its final state (COMPLETED, TIMEOUT, FAILED, ...)
+  local id="$1"; while squeue -h -j "$id" 2>/dev/null | grep -q .; do sleep 30; done; sleep 5
+  sacct -j "$id" -X -n -P -o State | head -1 | awk '{print $1}'
+}
 work_has_old_run() {   # the work folder holds the products of an earlier run while results/ of this clone is empty: the steps would be skipped as "already done" and results/ would stay incomplete
   local d found=""; for d in asm reads pacbio_bam tests; do [ -n "$(ls -A "$WORK/$d" 2>/dev/null)" ] && found=1; done
   [ -n "$found" ] && [ -z "$(find "$RESULTS" -type f ! -name .gitkeep 2>/dev/null | head -1)" ]
@@ -66,9 +70,19 @@ stage_databases() {
   say "databases: $DBS"
   local n; n=$(ls "$SCREEN_DB"/*.mmi 2>/dev/null | wc -l)
   if [ -d "$BUSCO_LINEAGE" ] && [ -s "$SWISSPROT_FUNGI" ] && [ "$n" -ge 4 ]; then echo "already present (BUSCO lineage, Swiss-Prot fungal proteins, $n screen indexes): nothing to do"; return; fi
-  local f i; f=$(sbatch --parsable "${SBATCH_COMMON[@]}" jobs/02_fetch_databases.sbatch | cut -d';' -f1) || die "could not submit the download"
-  i=$(sbatch --parsable --dependency=afterok:$f "${SBATCH_COMMON[@]}" jobs/02_screen_db_index.sbatch | cut -d';' -f1) || die "could not submit the index job"
-  wait_jobs "$f,$i" "the download and index of the databases"
+  # the downloads can resume (finished files are kept), so a job that reaches its time limit on a slow network is submitted again, up to 5 times
+  local f i attempt st
+  for attempt in 1 2 3 4 5; do
+    f=$(sbatch --parsable "${SBATCH_COMMON[@]}" jobs/02_fetch_databases.sbatch | cut -d';' -f1) || die "could not submit the download"
+    i=$(sbatch --parsable --dependency=afterok:$f "${SBATCH_COMMON[@]}" jobs/02_screen_db_index.sbatch | cut -d';' -f1) || die "could not submit the index job"
+    echo "attempt $attempt: download job $f, index job $i; waiting (checks every 30 s)"
+    st=$(job_state "$f")
+    if [ "$st" = COMPLETED ]; then wait_jobs "$i" "the index of the databases"; return; fi
+    scancel "$i" 2>/dev/null
+    [ "$st" = TIMEOUT ] || die "the download of the databases ended with state $st; read the log in logs/ (job $f)"
+    echo "the download job reached its time limit; it is submitted again and continues with the files that are missing"
+  done
+  die "the databases are not complete after 5 attempts; run the stage databases again"
 }
 inputs_missing() { ( cd "$INPUT" && awk '{print $2}' CHECKSUMS.md5 | while read -r f; do [ -e "$f" ] || echo "$f"; done | head -1 ); }
 stage_inputs() {
@@ -80,8 +94,15 @@ stage_inputs() {
   fi
   if [ -z "$(inputs_missing)" ]; then echo "all files of input/CHECKSUMS.md5 are present: nothing to download"; return; fi
   [ -z "$INPUT_SOURCE" ] || die "input_source does not hold every file of input/CHECKSUMS.md5 (first missing: $(inputs_missing))"
-  local f; f=$(sbatch --parsable "${SBATCH_COMMON[@]}" jobs/01_fetch_inputs.sbatch | cut -d';' -f1) || die "could not submit the download"
-  wait_jobs "$f" "the download of the input files"
+  local f attempt st   # a job that reaches its time limit on a slow network is submitted again (finished files are kept), up to 5 times
+  for attempt in 1 2 3 4 5; do
+    f=$(sbatch --parsable "${SBATCH_COMMON[@]}" jobs/01_fetch_inputs.sbatch | cut -d';' -f1) || die "could not submit the download"
+    echo "attempt $attempt: download job $f; waiting (checks every 30 s)"
+    st=$(job_state "$f")
+    [ "$st" = COMPLETED ] && break
+    [ "$st" = TIMEOUT ] || die "the download of the input files ended with state $st; read the log in logs/ (job $f)"
+    echo "the download job reached its time limit; it is submitted again and continues with the files that are missing"
+  done
   [ -z "$(inputs_missing)" ] || die "files are still missing after the download (first: $(inputs_missing))"
 }
 stage_check() {
