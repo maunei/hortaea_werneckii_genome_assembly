@@ -1,6 +1,9 @@
 item	group	expected	low	high	rule
 pacbio_hq_reads	counts	718442.0	718442.0	718442.0	exact
 pacbio_filtered_reads	counts	470231.0	470231.0	470231.0	exact
+assembly_sequences_md5:proc_r1	checksum	befff43029a2e610b0bfffafd7fdaa15	befff43029a2e610b0bfffafd7fdaa15	befff43029a2e610b0bfffafd7fdaa15	exact (md5 of the sequences of the final assembly, names and orientation ignored)
+assembly_sequences_md5:proc_r2	checksum	befff43029a2e610b0bfffafd7fdaa15	befff43029a2e610b0bfffafd7fdaa15	befff43029a2e610b0bfffafd7fdaa15	exact (md5 of the sequences of the final assembly, names and orientation ignored)
+assembly_sequences_md5:proc_r3	checksum	befff43029a2e610b0bfffafd7fdaa15	befff43029a2e610b0bfffafd7fdaa15	befff43029a2e610b0bfffafd7fdaa15	exact (md5 of the sequences of the final assembly, names and orientation ignored)
 adjud_for_new:procedure	procedure	0.9592875318066157	0.9544910941475827	0.9640839694656488	inside the range of the runs widened by the range or by 0.5 percent of the mean (the larger)
 adjud_for_new:ctrl_canu	control	0.15384615384615385	0.11538461538461539	0.19230769230769232	agree to 25 percent (single runs of programs that differ from run to run: Flye by up to 12 percent, the polished Canu control by up to 21 percent in the number of unspanned places)
 adjud_for_new:ctrl_flye	control	0.22329545454545455	0.16747159090909092	0.2791193181818182	agree to 25 percent (single runs of programs that differ from run to run: Flye by up to 12 percent, the polished Canu control by up to 21 percent in the number of unspanned places)

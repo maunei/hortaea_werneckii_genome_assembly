@@ -20,6 +20,13 @@ def read_counts(res):
         for r in csv.DictReader(open(Path(res) / f), delimiter='\t'):
             if r['file'] == key: c[name] = float(r['num_seqs'])
     return c
+def read_seq_md5(res):   # checksum of the sequences of the final assembly of each run of the procedure (names and orientation ignored), from step 09
+    c = {}
+    f = Path(res) / '09_summary' / 'replicate_check.tsv'
+    if f.exists():
+        for r in csv.DictReader(open(f), delimiter='\t'):
+            if r.get('polished_assembly_sequences_md5'): c[r['run']] = r['polished_assembly_sequences_md5']
+    return c
 mode = sys.argv[1]; res = sys.argv[2]
 if mode == 'make-expected':
     M, assemblies = read_measures(res); counts = read_counts(res)
@@ -27,6 +34,7 @@ if mode == 'make-expected':
     with open(HW / 'validation' / 'expected.tsv', 'w') as w:
         w.write('item\tgroup\texpected\tlow\thigh\trule\n')
         for k, v in counts.items(): w.write(f'{k}\tcounts\t{v}\t{v}\t{v}\texact\n')
+        for k, v in sorted(read_seq_md5(res).items()): w.write(f'assembly_sequences_md5:{k}\tchecksum\t{v}\t{v}\t{v}\texact (md5 of the sequences of the final assembly, names and orientation ignored)\n')
         for m in meas:
             runs = [M[(m, a)] for a in ('proc_r1', 'proc_r2', 'proc_r3') if (m, a) in M]
             if runs:
@@ -43,9 +51,15 @@ if mode == 'make-expected':
     print('written validation/expected.tsv')
 else:
     out = Path(sys.argv[3]) if len(sys.argv) > 3 else Path(res) / '10_validation'; out.mkdir(parents=True, exist_ok=True)
-    M, _ = read_measures(res); counts = read_counts(res); ok = bad = miss = 0; lines = []
+    M, _ = read_measures(res); counts = read_counts(res); SEQ = read_seq_md5(res); ok = bad = miss = 0; lines = []
     for r in csv.DictReader(open(HW / 'validation' / 'expected.tsv'), delimiter='\t'):
         item = r['item']
+        if r['group'] == 'checksum':
+            v = SEQ.get(item.split(':')[1])
+            if v is None: miss += 1; lines.append(f'[MISSING] {item}')
+            elif v == r['expected']: ok += 1; lines.append(f'[PASS] {item}: {v} equal to the expected value')
+            else: bad += 1; lines.append(f'[FAIL] {item}: {v} differs from the expected {r["expected"]}')
+            continue
         if r['group'] == 'counts': v = counts.get(item)
         else:
             m, a = item.split(':')
