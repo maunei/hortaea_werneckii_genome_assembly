@@ -62,8 +62,18 @@ no_old_work() {
 }
 stage_software() {
   say "software: environments in $ENVS"
-  mkdir -p logs; bash scripts/make_environments.sh 2>&1 | tee logs/make_environments.txt
-  grep -q "FAILED\|not found" logs/make_environments.txt && die "an environment could not be created (see above)"
+  if CHECK=1 bash scripts/make_environments.sh > /dev/null 2>&1; then echo "all ten environments are complete: nothing to do"; return; fi
+  mkdir -p logs
+  local s st attempt   # the installation (about 2 h 15 min) is a job; a job that reaches its time limit is submitted again (complete environments are kept), up to 3 times
+  for attempt in 1 2 3; do
+    s=$(sbatch --parsable "${SBATCH_COMMON[@]}" jobs/01_software.sbatch | cut -d';' -f1) || die "could not submit the installation of the software"
+    echo "attempt $attempt: installation job $s; waiting (checks every 30 s)"
+    st=$(job_state "$s")
+    [ "$st" = COMPLETED ] && break
+    [ "$st" = TIMEOUT ] || die "the installation of the software ended with state $st; read the log in logs/ (job $s)"
+    echo "the installation job reached its time limit; it is submitted again"
+  done
+  [ "$st" = COMPLETED ] || die "the software is not complete after 3 attempts"
   echo "software done"
 }
 stage_databases() {

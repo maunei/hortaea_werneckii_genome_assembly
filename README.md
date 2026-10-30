@@ -29,7 +29,7 @@ The command is `bash setup_and_run_all.sh STAGE`. Every stage can be repeated: w
 | Stage | What it does |
 |---|---|
 | `settings` | checks `settings.yaml` (nothing left at the example values, folders given as absolute paths), creates the three folders and writes `config/local.sh`, the file from which all jobs read the values |
-| `software` | creates the ten software environments from the lock files (step 1) |
+| `software` | creates the ten software environments from the lock files (step 1), in a job of about 2 h 15 min; skipped when the ten environments are complete; a job that reaches its time limit is submitted again, up to 3 times |
 | `databases` | downloads and indexes the reference databases (step 2); skipped when they are present; if a download job reaches its time limit (slow network) it is submitted again, up to five times, and continues with the files that are missing |
 | `inputs` | downloads the input files (step 3), or links them from the folder `input_source` of `settings.yaml` when that is given; skipped when every file of `input/CHECKSUMS.md5` is present; a download job that reaches its time limit is submitted again, up to five times |
 | `check` | checks the folders, programs, databases and input files, refuses a work folder that holds the files of an earlier run, runs a one-minute job on a compute node that tests them, and prints how many jobs the run will submit |
@@ -641,10 +641,10 @@ The programs are not part of the workflow. They are created from lock files that
 **Commands, in the order in which they are run:**
 
 ```
-bash scripts/make_environments.sh
+sbatch jobs/01_software.sbatch       # about 2 h 15 min; needs micromamba or conda on your path. On a computer without a scheduler:  bash scripts/make_environments.sh
 ```
 
-**Expected output:** ten environments in `$HW_ENVS` and the link that the older PacBio programs need (`libcompat`). The ten environments hold about 304,000 files (15 GB). A computer with a limit on the number of files in the scratch area may need a folder with a larger file allowance for `envs_dir`: the installation takes about 2 h 15 min, and in two tests from empty folders it gave package lists identical to those of the environments used for the reported run.
+**Expected output:** ten environments in `$HW_ENVS` and the link that the older PacBio programs need (`libcompat`). The ten environments hold about 304,000 files (15 GB). A computer with a limit on the number of files in the scratch area may need a folder with a larger file allowance for `envs_dir`: the installation takes about 2 h 15 min, and in two tests from empty folders it gave package lists identical to those of the environments used for the reported run. An installation that was stopped can be started again: complete environments are kept, and an incomplete one (fewer packages than its lock file) is removed and made again.
 
 <details><summary>Expected tree of the results of this step</summary>
 
