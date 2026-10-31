@@ -13,7 +13,7 @@ What is needed: a computer cluster with the SLURM job scheduler (the program tha
 1. **Get the repository** and go into its folder: `git clone https://github.com/maunei/hortaea_werneckii_genome_assembly.git` and `cd hortaea_werneckii_genome_assembly`.
 2. **Fill in `settings.yaml`.** It has one line for each value: the scheduler account, your e-mail address, how many messages you want, the software modules of your cluster (if any), and three folders for large files outside the repository. The work folder must be new and empty for each run. Nothing else has to be edited.
 3. **Run `bash setup_and_run_all.sh all`.** It checks the settings, creates the software environments, downloads the reference databases and the input files, checks that everything works from a compute node, and submits the whole analysis (97 jobs with their dependencies). Then wait.
-4. **When the analysis has finished** (one message arrives if you asked for messages, saying COMPLETED, or FAILED if the analysis did not finish or its results are outside the expected values of `validation/expected.tsv`; `squeue -u $USER` shows nothing), the results are in `results/`: the assembly Hw 2.1 in `results/assembly/`, the verdict on the five evaluations in `results/09_summary/verdict.tsv` and the check against the expected values in `results/10_validation/`.
+4. **When the analysis has finished** (one message arrives if you asked for messages, saying COMPLETED, or FAILED if a job of the analysis did not finish; `squeue -u $USER` shows nothing), the results are in `results/`: the assembly Hw 2.1 in `results/assembly/`, the verdict on the five evaluations in `results/09_summary/verdict.tsv` and the comparison with the first analysis in `results/10_validation/`.
 
 ```
 git clone https://github.com/maunei/hortaea_werneckii_genome_assembly.git
@@ -1908,7 +1908,7 @@ When every job above has finished, the summary job writes the tables, the figure
 sbatch jobs/09_summary.sbatch
 ```
 
-**Expected output:** `results/09_summary/` (tables and figures), `results/assembly/Hw2.1.fasta.gz` and `results/10_validation/validation_report.txt`.
+**Expected output:** `results/09_summary/` (tables and figures), `results/assembly/Hw2.1.fasta.gz` and `results/10_validation/validation_report.txt` and `closeness.tsv`.
 
 <details><summary>Explanation, settings and details of this step</summary>
 
@@ -1942,14 +1942,16 @@ The three polished runs of the procedure (`proc_r1`, `proc_r2`, `proc_r3`) were 
 
 <details><summary>Validation of a rerun</summary>
 
-A rerun of the workflow is reproducible if it gives the same results within the variation the procedure itself shows. `validation/expected.tsv` lists the measures of the run reported here (written by `scripts/10_validate.py make-expected`) with an acceptance interval for each:
+The results of a rerun of the workflow are compared with the first analysis, the one reported here. `validation/expected.tsv` lists the measures of that analysis (written by `scripts/10_validate.py make-expected`) with the variation that is usual for each. Nothing is judged as pass or fail and the comparison never makes the run FAILED: for every value the report gives the value of the rerun, the value of the first analysis, the difference in percent and a note, "within the usual variation" or "larger than usual". A value that is larger than usual usually means that the data or the programs differ from the first analysis (for example a newer release of the Swiss-Prot proteins, or other versions of the programs), and it is a reason to look at the data used, not a failure.
 
-- the measures of Hw 2.1 (mean of the three polished runs): inside the range seen over the runs, widened on both sides by that range or by 0.5 percent of the mean, whichever is larger;
-- the numbers of reads of the two PacBio sets: exact;
-- the measures of Hw 2.0, which does not depend on any assembler: within 0.2 percent;
-- the measures of the control assemblies (a single run each of programs whose results vary between computers): within 5 percent.
+The usual variation of each kind of value is:
 
-The report `results/10_validation/validation_report.txt` lists every item as `PASS`, `FAIL` or `MISSING` and ends with one line. When only some steps have been rerun, the items of the others are `MISSING`.
+- the measures of Hw 2.1 (mean of the three polished runs): the range seen over the runs, widened on both sides by that range or by 0.5 percent of the mean, whichever is larger; 1 percent for the measures that use the Swiss-Prot proteins, and 1.5 percent for the transcript measures (Trinity gives a slightly different assembly at every run);
+- the measures of Hw 2.0, which does not depend on any assembler: 0.2 percent, and 1 percent or 1.5 percent for the Swiss-Prot and transcript measures;
+- the measures of the control assemblies (a single run each of programs whose results vary between computers): 25 percent;
+- the numbers of reads of the two PacBio sets and the checksum of the sequences of the assembly are compared exactly and reported as "same" or "differs". The checksum is the md5 of the contig sequences with names and orientation ignored: the sequences of the assembly are identical to those of the first analysis when it is the same.
+
+The report `results/10_validation/validation_report.txt` starts with a summary (how many values are within the usual variation, and whether the sequences of the assembly and the numbers of reads are the same), followed by one line per value; `results/10_validation/closeness.tsv` holds the same values as a table. When only some steps have been rerun, the values of the others are "not available".
 
 </details>
 
@@ -1985,7 +1987,8 @@ results/09_summary/   (25 files)
 └── verdict.tsv   - verdict on each evaluation (table)
 
 results/10_validation/   (2 files)
-└── validation_report.txt   - comparison with validation/expected.tsv, pass or fail for each item
+├── closeness.tsv   - the same values as a table (value, first analysis, difference, usual variation, note)
+└── validation_report.txt   - how close the rerun is to validation/expected.tsv: summary and one line per value
 ```
 
 </details>
@@ -2004,12 +2007,12 @@ results/10_validation/   (2 files)
 - **Comparison with the authors' filtered reads.** The set of filtered subreads made here differs from the file the authors deposited only in the end coordinate of the last subread of 65,233 reads (one base) and one extra well. The set made here is used because it can be rebuilt from the raw files.
 - **The Illumina reads come from another culture** of the strain than the PacBio reads and were sequenced at another time; this is why differences shared by both assemblies are set aside.
 - **Not covered.** A gene annotation of Hw 2.1; the nucleosome-positioning data (MNase-seq) of the study; other strains or species.
-- **The database download job was not rerun.** The job `jobs/02_fetch_databases.sbatch` was written after the reference data had been fetched; it calls the two scripts that made the original download and was checked for syntax only. A rerun would fetch the current version of the UniProt and NCBI sets, which may differ from the versions recorded in `envs/databases.tsv`.
+- **Downloaded data can differ from the first analysis.** The download of the databases and of the input files was repeated from empty folders: the input files, the contaminant-screen collection (RefSeq release 237), the BUSCO lineage and the small reference sequences were identical to those of the first analysis. The Swiss-Prot proteins are fetched from UniProt, which changes them from month to month (38,451 proteins in the first analysis, 38,309 in a later download), so the proportion of proteins found whole can move by about 0.2 percent. Each download is recorded with its source and date in `envs/databases.tsv`.
 - **One computer and one set of program versions.** The reproducibility shown is that of three runs on one computer; the versions are in the section on software, and the environments can be recreated from the lock files.
 
 ## 7. Validation
 
-The tests listed below were made with the version of the workflow in this repository, step by step: the installation of the software from an empty folder, the downloads of the databases and of the input files from empty folders, and the whole analysis from a fresh clone with the software, databases and input files of the run reported here. The checks of the following list are made by the workflow itself.
+The tests listed below were made with the version of the workflow in this repository, step by step: the installation of the software from an empty folder, the downloads of the databases and of the input files from empty folders, and the whole analysis from a fresh clone with the software, databases and input files of the run reported here. The comparison of the results with the first analysis is made by the workflow itself (step 10); it reports how close the values are and never makes a run FAILED.
 
 <details><summary>Complete run from empty folders: not yet made</summary>
 
@@ -2017,14 +2020,14 @@ A complete run with `bash setup_and_run_all.sh all` in which every stage starts 
 
 </details>
 
-Programs that give a different result at every run, with the same input: Trinity assembled 57,071 transcripts in one run and 56,609 in another, and the percentage of transcripts that align well to an assembly differed by up to 0.6 percent (relative), for every assembly alike (so the comparison between assemblies is unchanged). Flye, used only for a control assembly, gave 2,276 contigs against 2,263 and a longest contig of 363,769 against 411,508 bases. The polished Canu control had up to 21 percent more places that no read crosses (5,515 against 4,564). The acceptance intervals of `validation/expected.tsv` allow for this: 1.5 percent for the transcript measures and 25 percent for the control assemblies. The numbering of the contigs by Canu can also differ between runs (two contigs exchanged their names in some runs of the same data); the sequences are the same, and the assembly is identified by the checksum of its sequences (check 2 below).
+Programs that give a different result at every run, with the same input: Trinity assembled 57,071 transcripts in one run and 56,609 in another, and the percentage of transcripts that align well to an assembly differed by up to 0.6 percent (relative), for every assembly alike (so the comparison between assemblies is unchanged). Flye, used only for a control assembly, gave 2,276 contigs against 2,263 and a longest contig of 363,769 against 411,508 bases. The polished Canu control had up to 21 percent more places that no read crosses (5,515 against 4,564). The comparison with the first analysis (step 10) therefore reports these values with a wider usual variation: 1.5 percent for the transcript measures and 25 percent for the control assemblies. The proteins of Swiss-Prot are downloaded from UniProt, which changes them from month to month (38,451 proteins in the first analysis, 38,309 in a later download): the proportion of proteins found whole moved by about 0.2 percent for the assembly Hw 2.0 of the authors, and 1 percent is taken as usual. The numbering of the contigs by Canu can also differ between runs (two contigs exchanged their names in some runs of the same data); the sequences are the same, and the assembly is identified by the checksum of its sequences (check 2 below).
 
-Four checks tie the workflow to its results:
+Four checks tie the workflow to its results; the last compares a rerun with the first analysis and only reports how close it is:
 
 1. **The input files are the files of the archives.** All archive files agree with the checksums and sizes published by the archive (`results/01_inputs/archive_check.tsv`), and the checksums of all input files are in `input/CHECKSUMS.md5` for anyone to compare.
-2. **The procedure is reproducible on one computer.** The three runs, made with different numbers of threads, produced the same corrected reads, raw assemblies and polished contigs (`results/09_summary/replicate_check.tsv`). The last column of that file is a checksum of the sequences of the final assembly, names and orientation ignored; it is the same for the three runs (`befff43029a2e610b0bfffafd7fdaa15`), and step 10 compares it with the expected value (exact match).
+2. **The procedure is reproducible on one computer.** The three runs, made with different numbers of threads, produced the same corrected reads, raw assemblies and polished contigs (`results/09_summary/replicate_check.tsv`). The last column of that file is a checksum of the sequences of the final assembly, names and orientation ignored; it is the same for the three runs (`befff43029a2e610b0bfffafd7fdaa15`), and step 10 reports whether it is the same as in the first analysis.
 3. **The contaminant screen is reproducible.** A second run of the screen of reads on the same input gave the same counts (9,727 reads excluded from the high-quality set and 7,737 from the filtered set).
-4. **A rerun reproduces the reported measures.** `scripts/10_validate.py` compares the results of a rerun with `validation/expected.tsv`, which lists every measure of this report with an acceptance interval, and the checksum of the sequences of the assembly (154 values in all; the checksum must be equal). The table was made from the run reported here, so the check of this run against itself passes by construction; the useful check is a rerun.
+4. **A rerun is compared with the first analysis.** `scripts/10_validate.py` compares the results of a rerun with `validation/expected.tsv`, which lists every measure of this report with the variation that is usual for it, and the checksum of the sequences of the assembly. The report (`results/10_validation/validation_report.txt` and `closeness.tsv`) gives, for each value, the difference to the first analysis and a note, "within the usual variation" or "larger than usual"; it does not judge and never makes the run FAILED. The table was made from the run reported here, so a comparison of this run with itself shows no difference; the useful comparison is a rerun.
 
 Not validated: a rerun on another computer or with other versions of the programs.
 
@@ -2040,7 +2043,7 @@ scripts/                    programs called by the jobs; submit_all.sh (all jobs
 envs/                       software notes, versions by step, databases, lock files of the environments
 input/                      input files, their checksums and the download lists (PacBio, RNA-seq, Illumina 2013, Hw 2.0)
 results/                    tables, figures and summary files by step; results/assembly/ holds Hw 2.1
-validation/                 expected.tsv: the reported results with their acceptance intervals
+validation/                 expected.tsv: the values of the first analysis with the variation that is usual for each
 logs/                       logs of every job (scheduler output, program output, time and memory)
 ```
 

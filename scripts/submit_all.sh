@@ -73,7 +73,7 @@ for pair in proc_r1_raw:proc_r1 proc_r1:remove_r1 proc_r2:remove_r2 proc_r3:remo
   S mito_$a "$dep" --export=ALL,ASM=$a jobs/07_mito.sbatch
   S the22_$a "$dep" --export=ALL,ASM=$a jobs/07_the22_vs_assembly.sbatch
 done
-# last job: summary tables, figures and verdict, checksums of the three runs, time and memory, the released assembly, and the check against the expected table
+# last job: summary tables, figures and verdict, checksums of the three runs, time and memory, the released assembly, and the comparison with the first analysis
 ALL=""; for k in "${!ID[@]}"; do ALL="$ALL $k"; done
 S summary "$ALL" jobs/09_summary.sbatch
 echo "Everything is submitted; the last job (09_summary) runs when all others have finished and writes results/09_summary/ and results/assembly/."
