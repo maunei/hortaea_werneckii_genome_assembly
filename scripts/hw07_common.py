@@ -22,6 +22,23 @@ def write_fasta(path, seqs, width=80):
             o.write(f">{k}\n")
             for i in range(0, len(s), width): o.write(s[i:i + width] + "\n")
 
+NCBI_HW2_DIR = "hw2/ncbi_GCA_002127715.1"; NCBI_HW2_NAME = "GCA_002127715.1_HwerPB1"
+def ncbi_hw2_file(input_dir, suffix):
+    """Path of one file of the NCBI record of Hw 2.0, chosen by its exact name (suffix: 'genomic.fna.gz', 'assembly_report.txt', ...).
+    A pattern such as *_genomic.fna.gz must not be used: it also matches the file of gene sequences (..._cds_from_genomic.fna.gz), and the file found first depends on the folder."""
+    p = os.path.join(input_dir, NCBI_HW2_DIR, f"{NCBI_HW2_NAME}_{suffix}")
+    if not os.path.isfile(p): sys.exit(f"ERROR: input file not found: {p}")
+    return p
+def ncbi_hw2_mito_accession(report_path):
+    """Accession of the mitochondrial record (role non-nuclear) in the assembly report of NCBI."""
+    acc = [l.split("\t")[4] for l in open(report_path, newline=None).read().splitlines() if not l.startswith("#") and len(l.split("\t")) > 7 and l.split("\t")[7] == "non-nuclear"]
+    if len(acc) != 1: sys.exit(f"ERROR: {report_path} lists {len(acc)} non-nuclear records (expected 1)")
+    return acc[0]
+def need_record(seqs, name, path):
+    """seqs[name] with a clear message when the record is not in the file."""
+    if name not in seqs: sys.exit(f"ERROR: record {name} not found in {path} ({len(seqs)} records, first: {next(iter(seqs), None)})")
+    return seqs[name]
+
 def md5(s): return hashlib.md5(s.encode()).hexdigest()
 
 def gc_fraction(s):

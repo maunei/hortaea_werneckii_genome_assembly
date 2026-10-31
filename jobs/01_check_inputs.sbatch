@@ -19,7 +19,7 @@ mkdir -p "$RESULTS/01_inputs"; cd "$INPUT"
 md5sum -c --quiet CHECKSUMS.md5 > "$RESULTS/01_inputs/checksums_failed.txt" 2>&1; rc1=$?
 echo "files in the list: $(wc -l < CHECKSUMS.md5); failed: $(grep -c FAILED "$RESULTS/01_inputs/checksums_failed.txt")"
 # (2) archive checksums
-$PY - <<PYEOF
+$PY - <<PYEOF || exit 4
 import csv, os
 inp = os.environ['INPUT']; res = os.environ['RESULTS'] + '/01_inputs'
 md5 = {}
@@ -35,5 +35,7 @@ with open(res + '/archive_check.tsv', 'w') as w:
     for x in rows: w.write('\t'.join(map(str, x)) + '\n')
 print('archive files:', len(rows), ' ok:', sum(1 for x in rows if x[-1] == 'ok'))
 PYEOF
+# the files of the NCBI record of Hw 2.0 that steps 07a-07c read: found by exact name, and holding the records the report lists
+"$PY" "$HW/scripts/check_ncbi_input.py" "$INPUT" || exit 4
 hw_end 01_check_inputs
 exit $rc1

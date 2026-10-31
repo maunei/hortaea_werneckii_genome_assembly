@@ -22,10 +22,11 @@ export LD_LIBRARY_PATH="$LEGACY_LIBS:$LD_LIBRARY_PATH"
 P0=$PATH
 export PATH="$LEGACY_BIN:$QC_BIN:$P0"
 # 1 seeds: the longest reads until SEEDCOV-fold of the genome size
-seqkit fq2fa -j 4 "$READS" -o reads.fa; seqkit stats -a -T reads.fa > "$R/reads_stats.tsv"
+seqkit fq2fa -j 4 "$READS" -o reads.fa || exit 4; seqkit stats -a -T reads.fa > "$R/reads_stats.tsv" || exit 4
 NEED=$(awk -v c="$SEEDCOV" -v g="$GS" 'BEGIN{printf "%d", c*g}')
-seqkit fx2tab -n -l reads.fa | sort -k2,2nr -T "$T" | awk -v need="$NEED" '{c+=$2; print $1; if(c>=need){exit}}' > seed_names.txt
-seqkit grep -f seed_names.txt reads.fa -o seeds.fa; seqkit stats -a -T seeds.fa > "$R/seeds_stats.tsv"
+seqkit fx2tab -n -l reads.fa | sort -k2,2nr -T "$T" > reads_by_length.tsv || exit 4   # written to a file first: a pipe closed early by awk gives "Broken pipe" messages
+awk -v need="$NEED" '{c+=$2; print $1; if(c>=need){exit}}' reads_by_length.tsv > seed_names.txt || exit 4; rm -f reads_by_length.tsv
+seqkit grep -f seed_names.txt reads.fa -o seeds.fa || exit 4; seqkit stats -a -T seeds.fa > "$R/seeds_stats.tsv" || exit 4
 echo "seeds: $(grep -c '>' seeds.fa); shortest seed: $(seqkit fx2tab -n -l seeds.fa | sort -k2,2n | head -1 | cut -f2)"
 # 2 correction: all reads aligned to the seeds with BLASR (up to 24 alignments per read), consensus per seed with pbdagcon (coverage >= 4, length >= 500)
 /usr/bin/time -v blasr reads.fa seeds.fa -m 5 --bestn 24 --nCandidates 24 --minMatch 12 --maxLCPLength 15 --maxScore -1000 --nproc "$NT" --noSplitSubreads --out aln.m5 > "$LOGDIR/blasr.out" 2> "$LOGDIR/blasr.time"; brc=$?; echo "blasr exit $brc"; [ $brc = 0 ] || exit 2
@@ -37,7 +38,7 @@ for attempt in 1 2 3; do
   cp "$LOGDIR/pbdagcon.time" "$LOGDIR/pbdagcon_failed_attempt$attempt.time"
 done
 [ $prc = 0 ] || { echo "pbdagcon failed in three attempts; the corrected reads would be incomplete" >&2; exit 4; }
-seqkit stats -a -T corrected.fasta > "$R/corrected_stats.tsv"; cp corrected.fasta "$OUT/corrected.fasta"; cut -f1-9 "$R/corrected_stats.tsv"
+seqkit stats -a -T corrected.fasta > "$R/corrected_stats.tsv" || exit 4; cp corrected.fasta "$OUT/corrected.fasta" || exit 4; cut -f1-9 "$R/corrected_stats.tsv"
 # 3 assembly of the corrected reads with Canu (assembly only, corrected-read error limit 0.025)
 export PATH="$MODERN_BIN:$QC_BIN:$P0"
 /usr/bin/time -v canu -assemble -p canu -d "$OUT/canu_asm" genomeSize=$GS -pacbio-corrected "$OUT/corrected.fasta" useGrid=false maxThreads="$NT" maxMemory=60 stopOnLowCoverage=2 correctedErrorRate=0.025 > "$LOGDIR/canu_asm.out" 2> "$LOGDIR/canu_asm.time"; rc=$?; echo "canu exit $rc"

@@ -133,13 +133,15 @@ stage_run() {
   if [ -n "$DRYRUN" ]; then DRYRUN=1 bash scripts/submit_all.sh | tee logs/dryrun.txt | tail -3; return; fi
   bash scripts/submit_all.sh | tee logs/submit_all.txt | tail -2
   local s; s=$(awk '$1=="summary"{print $2}' jobs/submitted_by_submit_all.tsv); [ -n "$s" ] || die "the summary job was not submitted"
-  echo "all jobs are submitted; the last job (09_summary, job $s) runs when all others have finished"
+  echo "all jobs are submitted; the last job (09_summary, job $s) runs when all others have ended"
   if [ "${HW_MAIL_WHEN:-FAIL}" != NONE ]; then
-    # runs when the summary job has ended, whether it completed or not; ends with an error when the summary did not complete, so that the scheduler message says "COMPLETED" or "FAILED"
+    # runs when the summary job has ended; ends with an error when any job of the analysis (all jobs of jobs/submitted_by_submit_all.tsv, the summary included) did not complete,
+    # so that the scheduler message says "COMPLETED" or "FAILED"
+    local ids; ids=$(awk '{print $2}' jobs/submitted_by_submit_all.tsv | paste -sd, -)
     sbatch --parsable -J "${HW_FINISHED_JOB:-hw_run_finished}" --dependency=afterany:$s --account="$HW_ACCOUNT" --mail-type=BEGIN,END --mail-user="$HW_MAIL" \
            --time=00:02:00 --mem=100M --cpus-per-task=1 --output=/dev/null \
-           --wrap="sleep 20; st=\$(sacct -j $s -X -n -P -o State | head -1); [ \"\$st\" = COMPLETED ]" > /dev/null \
-      && echo "one message will be sent when the summary job has ended (job name ${HW_FINISHED_JOB:-hw_run_finished}): 'COMPLETED' if the whole analysis finished, 'FAILED' if not; a failed job is also reported by the scheduler"
+           --wrap="sleep 20; n=\$(sacct -j $ids -X -n -P -o State | grep -c -v '^COMPLETED\$'); [ \"\$n\" = 0 ]" > /dev/null \
+      && echo "one message will be sent when the summary job has ended (job name ${HW_FINISHED_JOB:-hw_run_finished}): 'COMPLETED' if all jobs of the analysis completed, 'FAILED' if any job failed or was cancelled; a failed job is also reported by the scheduler"
   fi
   echo "follow the run with:  squeue -u \$USER;  results will be in results/ (README, 'Run everything')"
 }

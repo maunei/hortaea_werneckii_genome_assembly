@@ -28,7 +28,7 @@ else echo "reads not found ($READS): the depth is skipped"; unset DEPTH_DIR; fi
 # When the screening script or its indexed databases are not present, the notice below is printed and the column reads 'not run'.
 SCREEN="${SCREEN_SCRIPT:-$HW/scripts/screen_contigs.sh}"
 if [ -f "$SCREEN" ]; then
-  "$PY" - <<PYEOF
+  "$PY" - <<PYEOF || exit 4
 import sys; sys.path.insert(0, "$HW/scripts"); from hw07_common import *
 ids = [l.split("\t")[0] for l in open("$IDS").read().splitlines()[1:]]
 a = read_fasta("$FASTA"); write_fasta("$TMP/the22.fa", {n: a[n] for n in ids})
@@ -42,5 +42,5 @@ PYEOF
 else
   echo "hook: scripts/screen_contigs.sh not present; the contaminant screen of the 22 sequences is reported as 'not run'"
 fi
-"$PY" "$HW/scripts/07_the22.py" "$FASTA" "$IDS" "$OUT" "$TMP" "$THREADS"
+"$PY" "$HW/scripts/07_the22.py" "$FASTA" "$IDS" "$OUT" "$TMP" "$THREADS" || exit 4
 hw_end the22

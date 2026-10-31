@@ -14,7 +14,7 @@ hw_start depth_unscreened
 # so that the effect of the screen on sequences of vector origin can be read. Needs the output of jobs/07_the22.sbatch.
 D="$WORK/07_comparator/hw2_unscreened"; mkdir -p "$D"
 DEPTH_DIR="$D" bash "$HW/scripts/07_depth.sh" hw2 "$WORK/asm/hw2/final.fasta" "$WORK/reads/pacbio/hq_subreads.fastq" "${SLURM_CPUS_PER_TASK:-16}" || exit 1
-"$PY" - <<PYEOF
+"$PY" - <<PYEOF || exit 4
 import csv
 ids = [l.split("\t")[0] for l in open("$RESULTS/07_comparator/genbank_files/the22_ids.tsv").read().splitlines()[1:]]
 def load(p): return {r["contig"]: r for r in csv.DictReader(open(p), delimiter="\t")}

@@ -58,8 +58,8 @@ s_telomeres()  { tm telomeres "$PY" "$SCR/06_telomeres.py" "$FASTA" "$RES/telome
 s_busco() {
   rm -rf "$TMP/busco_$ASM"
   ( cd "$TMP"; PATH="$BUSCO_BIN:$PATH"; tm busco busco -i "$FASTA" -l "$BUSCO_LINEAGE" -m genome -c "$THREADS" -o "busco_$ASM" --out_path "$TMP" --offline --force ) > "$LOGDIR/busco.log" 2>&1
-  cp "$(find "$TMP/busco_$ASM" -name 'short_summary*.txt' | head -1)" "$RES/busco_short_summary.txt"
-  cp "$(find "$TMP/busco_$ASM" -name full_table.tsv | head -1)" "$RES/busco_full_table.tsv"
+  cp "$(find "$TMP/busco_$ASM" -name 'short_summary*.txt' | sort | head -1)" "$RES/busco_short_summary.txt"
+  cp "$(find "$TMP/busco_$ASM" -name full_table.tsv | sort | head -1)" "$RES/busco_full_table.tsv"
   tm busco_summary "$PY" "$SCR/06_busco_summary.py" "$RES/busco_short_summary.txt" "$RES/busco_full_table.tsv" "$RES/busco"
 }
 s_readback_align() {

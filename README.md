@@ -496,7 +496,7 @@ Of the 22 extra sequences of Hw 2.0, 20 are found in Hw 2.1 with at least 90 % o
 
 Each step below can be run on its own, in the order given. Every code block is a sequence of commands to paste one after the other in the same shell session (the job numbers are kept in shell variables, so that a job starts only when the job it needs has finished). Steps 0 to 3 prepare the software, the data and the settings; steps 4 to 11 are the analysis.
 
-> **All at once.** After steps 0 to 3, the command `bash scripts/submit_all.sh` submits every job of steps 4 to 11 with its dependencies, including the final summary job. Nothing else is needed to obtain all the results of this report. `DRYRUN=1 bash scripts/submit_all.sh` prints the commands without running them; the printout is below.
+> **All at once.** After steps 0 to 3, the command `bash scripts/submit_all.sh` submits every job of steps 4 to 11 with its dependencies, including the final summary job (it starts when all other jobs have ended). Nothing else is needed to obtain all the results of this report. `DRYRUN=1 bash scripts/submit_all.sh` prints the commands without running them; the printout is below.
 
 <details><summary>Printout of DRYRUN=1 bash scripts/submit_all.sh: the commands that submit_all.sh runs, in order</summary>
 
@@ -600,8 +600,8 @@ sbatch --dependency=afterok:<acc_ctrl_canu_quiver>:<acc_hw2> --export=ALL,ASM_A=
 sbatch --dependency=afterok:<remove_ctrl_canu> --export=ALL,A_ASM=ctrl_canu_quiver,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
 sbatch --dependency=afterok:<acc_ctrl_flye_quiver>:<acc_hw2> --export=ALL,ASM_A=ctrl_flye_quiver,ASM_B=hw2 jobs/08_shared_differences.sbatch
 sbatch --dependency=afterok:<remove_ctrl_flye> --export=ALL,A_ASM=ctrl_flye_quiver,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
-sbatch --dependency=afterok:<trans_hw2>:<qc>:<trans_ctrl_canu_quiver>:<proc_r2>:<proc_r3>:<acc_proc_r1_raw>:<proc_r1>:<scr_hw2>:<acc_ctrl_canu>:<remove_r2>:<remove_r3>:<remove_r1>:<the22_ctrl_flye>:<pacbio>:<scr_proc_r1_raw>:<the22_ctrl_canu>:<polish_ctrl_flye>:<remove_ctrl_canu>:<trans_ctrl_flye_quiver>:<mito_ctrl_flye>:<mito_ctrl_canu>:<acc_ctrl_canu_quiver>:<polish_ctrl_canu>:<tests_ctrl_canu_quiver>:<shared_ctrl_canu>:<scr_ctrl_canu>:<acc_ctrl_flye>:<screen_reads>:<align_ctrl_flye>:<shared_ctrl_flye>:<compare_ctrl_canu_quiver>:<conv_miseq>:<conv_hiseq>:<tests_ctrl_canu>:<scr_ctrl_flye>:<trans_proc_r1_raw>:<compare_proc_r2>:<compare_proc_r3>:<compare_proc_r1>:<align_r1>:<align_r3>:<align_r2>:<mito_proc_r1>:<mito_proc_r2>:<mito_proc_r3>:<genbank>:<scr_ctrl_flye_quiver>:<tests_proc_r1_raw>:<trans_proc_r1>:<trans_proc_r3>:<trans_proc_r2>:<remove_ctrl_flye>:<trinity>:<tests_ctrl_flye>:<acc_hw2>:<align_ctrl_canu>:<deposited>:<tests_hw2>:<tests_proc_r1>:<tests_proc_r2>:<tests_proc_r3>:<depth_unscreened>:<conv_ill>:<shared_proc_r1_raw>:<compare_ctrl_flye>:<acc_proc_r1>:<acc_proc_r2>:<acc_proc_r3>:<shared_proc_r2>:<shared_proc_r3>:<shared_proc_r1>:<tests_ctrl_flye_quiver>:<compare_ctrl_flye_quiver>:<shared_ctrl_flye_quiver>:<the22>:<scr_proc_r3>:<scr_proc_r2>:<compare_ctrl_canu>:<scr_proc_r1>:<shared_ctrl_canu_quiver>:<ctrl_flye>:<the22_proc_r2>:<the22_proc_r3>:<the22_proc_r1>:<mito_hw2>:<acc_ctrl_flye_quiver>:<ctrl_canu>:<trans_ctrl_flye>:<polish_r3>:<polish_r2>:<polish_r1>:<scr_ctrl_canu_quiver>:<trans_ctrl_canu>:<check_inputs>:<dbindex>:<merge> jobs/09_summary.sbatch
-Everything is submitted; the last job (09_summary) runs when all others have finished and writes results/09_summary/ and results/assembly/.
+sbatch --dependency=afterany:<trans_hw2>:<qc>:<trans_ctrl_canu_quiver>:<proc_r2>:<proc_r3>:<acc_proc_r1_raw>:<proc_r1>:<scr_hw2>:<acc_ctrl_canu>:<remove_r2>:<remove_r3>:<remove_r1>:<the22_ctrl_flye>:<pacbio>:<scr_proc_r1_raw>:<the22_ctrl_canu>:<polish_ctrl_flye>:<remove_ctrl_canu>:<trans_ctrl_flye_quiver>:<mito_ctrl_flye>:<mito_ctrl_canu>:<acc_ctrl_canu_quiver>:<polish_ctrl_canu>:<tests_ctrl_canu_quiver>:<shared_ctrl_canu>:<scr_ctrl_canu>:<acc_ctrl_flye>:<screen_reads>:<align_ctrl_flye>:<shared_ctrl_flye>:<compare_ctrl_canu_quiver>:<conv_miseq>:<conv_hiseq>:<tests_ctrl_canu>:<scr_ctrl_flye>:<trans_proc_r1_raw>:<compare_proc_r2>:<compare_proc_r3>:<compare_proc_r1>:<align_r1>:<align_r3>:<align_r2>:<mito_proc_r1>:<mito_proc_r2>:<mito_proc_r3>:<genbank>:<scr_ctrl_flye_quiver>:<tests_proc_r1_raw>:<trans_proc_r1>:<trans_proc_r3>:<trans_proc_r2>:<remove_ctrl_flye>:<trinity>:<tests_ctrl_flye>:<acc_hw2>:<align_ctrl_canu>:<deposited>:<tests_hw2>:<tests_proc_r1>:<tests_proc_r2>:<tests_proc_r3>:<depth_unscreened>:<conv_ill>:<shared_proc_r1_raw>:<compare_ctrl_flye>:<acc_proc_r1>:<acc_proc_r2>:<acc_proc_r3>:<shared_proc_r2>:<shared_proc_r3>:<shared_proc_r1>:<tests_ctrl_flye_quiver>:<compare_ctrl_flye_quiver>:<shared_ctrl_flye_quiver>:<the22>:<scr_proc_r3>:<scr_proc_r2>:<compare_ctrl_canu>:<scr_proc_r1>:<shared_ctrl_canu_quiver>:<ctrl_flye>:<the22_proc_r2>:<the22_proc_r3>:<the22_proc_r1>:<mito_hw2>:<acc_ctrl_flye_quiver>:<ctrl_canu>:<trans_ctrl_flye>:<polish_r3>:<polish_r2>:<polish_r1>:<scr_ctrl_canu_quiver>:<trans_ctrl_canu>:<check_inputs>:<dbindex>:<merge> jobs/09_summary.sbatch
+Everything is submitted; the last job (09_summary) runs when all others have ended and writes results/09_summary/ and results/assembly/.
 ```
 
 </details>
@@ -709,7 +709,7 @@ The input files are downloaded from the archives and checked: the checksums of t
 
 ```
 F=$(sbatch --parsable jobs/01_fetch_inputs.sbatch)               # skip if the files are already in input/
-sbatch --dependency=afterok:$F jobs/01_check_inputs.sbatch       # checksums of the files and of the archive records
+sbatch --dependency=afterok:$F jobs/01_check_inputs.sbatch       # checksums of the files and of the archive records; the files of the NCBI record of Hw 2.0 that steps 07a to 07c read
 # when the download has finished:
 bash scripts/01_prepare_hw2.sh                                    # Hw 2.0 as $WORK/asm/hw2/final.fasta
 ```
@@ -1900,7 +1900,7 @@ $HW_WORK/screen_contigs/   (126 files, 840K)
 
 <details><summary>Step 11. Summary, assessment of the evaluations and validation</summary>
 
-When every job above has finished, the summary job writes the tables, the figures, the assessment of each evaluation, the checksums of the three runs, the time and memory of the jobs, the final assembly as files, and checks the results against the expected table.
+When every job above has ended, finished or failed, the summary job writes the tables, the figures, the assessment of each evaluation, the checksums of the three runs, the time and memory of the jobs, the final assembly as files, and compares the results with the first analysis. A job of the comparison with Hw 2.0 that failed does not prevent the summary or the release of the assembly: the summary uses the results that exist, and the message of the run says FAILED. To repeat a failed job, submit it again as shown in the section of its step (its line in `jobs/submitted_by_submit_all.tsv` gives its arguments and dependencies), then submit `jobs/09_summary.sbatch` again.
 
 **Commands, in the order in which they are run:**
 

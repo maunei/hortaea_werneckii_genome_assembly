@@ -13,5 +13,5 @@ hw_start screen_contigs
 # Contaminant screen of the contigs of one assembly. Parameters: ASM (name) and FASTA (path); example:
 #   sbatch --export=ALL,ASM=hw2,FASTA=$WORK/asm/hw2/final.fasta jobs/02_screen_contigs.sbatch
 : "${ASM:?set ASM}"; : "${FASTA:?set FASTA}"
-bash "$HW/scripts/screen_contigs.sh"
+bash "$HW/scripts/screen_contigs.sh" || exit 4
 hw_end screen_contigs

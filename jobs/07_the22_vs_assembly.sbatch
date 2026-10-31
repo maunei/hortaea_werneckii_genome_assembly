@@ -15,11 +15,11 @@ hw_start the22_vs_asm
 : "${ASM:?set ASM}"; FASTA="${FASTA:-$WORK/asm/$ASM/final.fasta}"; THREADS="${SLURM_CPUS_PER_TASK:-8}"
 OUT="${OUT:-$RESULTS/07_comparator/the22/vs_assemblies}"; TMP="$WORK/07_comparator/the22_vs_$ASM"; mkdir -p "$OUT" "$TMP"
 IDS="$RESULTS/07_comparator/genbank_files/the22_ids.tsv"; [ -s "$IDS" ] || { echo "run jobs/07_genbank_files.sbatch first" >&2; exit 1; }
-"$PY" - <<PYEOF
+"$PY" - <<PYEOF || exit 4
 import sys; sys.path.insert(0, "$HW/scripts"); from hw07_common import *
 ids = [l.split("\t")[0] for l in open("$IDS").read().splitlines()[1:]]
 a = read_fasta("$WORK/asm/hw2/final.fasta"); write_fasta("$TMP/the22.fa", {n: a[n] for n in ids})
 PYEOF
 EXCL=""; [ "$ASM" = hw2 ] && EXCL=exclude_self
-"$PY" "$HW/scripts/07_the22_align.py" "$ASM" "$FASTA" "$TMP/the22.fa" "$OUT" "$THREADS" $EXCL
+"$PY" "$HW/scripts/07_the22_align.py" "$ASM" "$FASTA" "$TMP/the22.fa" "$OUT" "$THREADS" $EXCL || exit 4
 hw_end the22_vs_asm

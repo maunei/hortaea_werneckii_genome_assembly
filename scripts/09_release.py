@@ -9,7 +9,9 @@ from pathlib import Path
 HW = Path(os.environ.get('HW', Path(__file__).resolve().parent.parent)); WORK = Path(os.environ['HW_WORK'])
 asm = sys.argv[1] if len(sys.argv) > 1 else 'proc_r1'; out = HW / 'results' / 'assembly'; out.mkdir(parents=True, exist_ok=True)
 scr = {r['contig']: r for r in csv.DictReader(gzip.open(HW / 'results/02_pacbio_reads/screen_contigs' / asm / f'{asm}_per_contig.tsv.gz', 'rt'), delimiter='\t')}
-mito = set(json.load(open(HW / 'results/07_comparator/mito' / asm / 'summary.json')).get('mitochondrial_contig_names', []))
+mp = HW / 'results/07_comparator/mito' / asm / 'summary.json'
+if mp.exists(): mito = set(json.load(open(mp)).get('mitochondrial_contig_names', []))
+else: mito = None; print(f'WARNING: {mp} not found (the mitochondrion check of {asm} did not finish): the column mitochondrial of Hw2.1_contigs.tsv is "not assessed"')
 def records(p):
     n = None; s = []
     for l in open(p):
@@ -30,5 +32,5 @@ with open(out / 'Hw2.1.fasta.gz', 'wb') as raw, gzip.GzipFile(filename='', mode=
     for name, s in recs:
         c = scr[name]; fa.write(f'>{name}\n{wrap(s)}\n'.encode())
         org = c['best_contaminant_organism'] if c['class'] not in ('fungal_match_only_kept', 'no_match_kept') else ''
-        t.write(f"{name}\t{len(s)}\t{c['class']}\t{org}\t{'yes' if name in mito else 'no'}\t{hashlib.md5(s.encode()).hexdigest()}\n")
+        t.write(f"{name}\t{len(s)}\t{c['class']}\t{org}\t{'not assessed' if mito is None else ('yes' if name in mito else 'no')}\t{hashlib.md5(s.encode()).hexdigest()}\n")
 print(asm, len(recs), 'contigs written to', out)

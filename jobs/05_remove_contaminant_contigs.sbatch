@@ -36,5 +36,5 @@ with open("$R/removed_contigs.tsv", "w") as w:
 print(n, "contigs before,", k, "after; removed:", sorted(excl))
 PYEOF
 mv "$OUT.tmp" "$OUT"
-"$QC_BIN/seqkit" stats -a -T "$IN" "$OUT" > "$R/assembly_stats_after_removal.tsv"; cut -f1-9,13,14 "$R/assembly_stats_after_removal.tsv"
+"$QC_BIN/seqkit" stats -a -T "$IN" "$OUT" > "$R/assembly_stats_after_removal.tsv" || exit 4; cut -f1-9,13,14 "$R/assembly_stats_after_removal.tsv"
 hw_end 05_remove_contigs

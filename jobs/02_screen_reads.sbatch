@@ -13,5 +13,5 @@ hw_start screen_reads
 # Contaminant screen of hq_subreads.fastq and filtered_subreads.fastq; writes hq_clean.fastq, filtered_clean.fastq and the marker READY_02.
 # Needs the databases (scripts/fetch_screen_databases.sh, jobs/02_screen_db_index.sbatch) and the marker READY_02A of the read-set step.
 export REQUIRE_MARKER="${REQUIRE_MARKER-$WORK/reads/pacbio/READY_02A}"
-bash "$HW/scripts/screen_reads.sh"
+bash "$HW/scripts/screen_reads.sh" || exit 4
 hw_end screen_reads

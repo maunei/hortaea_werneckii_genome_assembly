@@ -28,10 +28,10 @@ A = A.rename(columns={c: "other_contigs_" + c for c in A.columns if c != "sequen
 T = T.merge(A, on="sequence")
 
 # ---- 2. alignment to the mitochondrion record of NCBI
-nc = glob.glob(f"{INPUT}/hw2/ncbi_GCA_002127715.1/*_genomic.fna.gz")[0]
-rep = glob.glob(f"{INPUT}/hw2/ncbi_GCA_002127715.1/*_assembly_report.txt")[0]
-macc = [l.split("\t")[4] for l in open(rep, newline=None).read().splitlines() if not l.startswith("#") and l.split("\t")[7] == "non-nuclear"][0]
-write_fasta(f"{work}/ncbi_mito.fa", {macc: read_fasta(nc)[macc].upper()})
+nc = ncbi_hw2_file(INPUT, "genomic.fna.gz")
+rep = ncbi_hw2_file(INPUT, "assembly_report.txt")
+macc = ncbi_hw2_mito_accession(rep)
+write_fasta(f"{work}/ncbi_mito.fa", {macc: need_record(read_fasta(nc), macc, nc).upper()})
 paf = run([f"{QC}/minimap2", "-x", "asm20", "-c", "-N", "50", "-t", str(threads), f"{work}/ncbi_mito.fa", f"{work}/the22.fa"])
 open(f"{out}/the22_vs_ncbi_mito.paf", "w").write(paf); pr = read_paf(f"{out}/the22_vs_ncbi_mito.paf")
 mc, mi = [], []
@@ -142,7 +142,7 @@ else:
     T["contaminant_screen"] = "not run"
 T.to_csv(f"{out}/the22_table.tsv", sep="\t", index=False)
 # nuclear GC for context
-nuc = [n for n in allseq if n not in set(names) and n != "unitig_320"]
+_names = set(names); nuc = [n for n in allseq if n not in _names and n != "unitig_320"]
 gcn = sum(gc_fraction(allseq[n]) * len(allseq[n]) for n in nuc) / sum(len(allseq[n]) for n in nuc)
 summary = dict(sequences=len(T), total_bases=int(T.length.sum()), min_length=int(T.length.min()), max_length=int(T.length.max()),
                nuclear_gc_length_weighted=round(gcn, 4), gc_min=float(T.gc.min()), gc_max=float(T.gc.max()),

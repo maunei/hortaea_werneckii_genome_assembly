@@ -12,5 +12,5 @@ source "$HW/config/config.sh"; source "$HW/config/lib.sh"
 hw_start screen_selftest
 # Self-test with simulated control reads mixed into a sample of real reads (see scripts/screen_selftest.sh).
 # Run scripts/fetch_screen_test_genomes.sh first (needs internet).
-bash "$HW/scripts/screen_selftest.sh"
+bash "$HW/scripts/screen_selftest.sh" || exit 4
 hw_end screen_selftest

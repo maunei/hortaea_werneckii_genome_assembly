@@ -12,7 +12,7 @@ LEDGER="${LEDGER:-jobs/submitted_by_submit_all.tsv}"; : > "$LEDGER"
 declare -A ID
 S() {   # S key "dependency keys (space separated, may be empty)" sbatch-arguments...
   local key="$1" deps="$2"; shift 2; local dep=""
-  for d in $deps; do dep="$dep:${ID[$d]}"; done; [ -n "$dep" ] && dep="--dependency=afterok$dep"
+  for d in $deps; do dep="$dep:${ID[$d]}"; done; [ -n "$dep" ] && dep="--dependency=${DEPTYPE:-afterok}$dep"
   if [ -n "$DRYRUN" ]; then echo "sbatch $dep $*"; ID[$key]="<$key>"; return; fi
   local id; id=$(sbatch --parsable $dep "${SBATCH_COMMON[@]}" "$@" | cut -d';' -f1); ID[$key]="$id"; printf "%s\t%s\t%s\t%s\n" "$key" "$id" "${dep#--dependency=}" "$(basename "${@: -1}")" >> "$LEDGER"; echo "$key $id"
 }
@@ -73,7 +73,9 @@ for pair in proc_r1_raw:proc_r1 proc_r1:remove_r1 proc_r2:remove_r2 proc_r3:remo
   S mito_$a "$dep" --export=ALL,ASM=$a jobs/07_mito.sbatch
   S the22_$a "$dep" --export=ALL,ASM=$a jobs/07_the22_vs_assembly.sbatch
 done
-# last job: summary tables, figures and verdict, checksums of the three runs, time and memory, the released assembly, and the comparison with the first analysis
+# last job: summary tables, figures and verdict, checksums of the three runs, time and memory, the released assembly, and the comparison with the first analysis.
+# It starts when all other jobs have ended, whatever their state (afterany): a job of the comparison with Hw 2.0 that failed must not prevent the summary and the release of the assembly.
+# The summary lists what is missing; the message job of setup_and_run_all.sh reports FAILED when any job did not complete.
 ALL=""; for k in "${!ID[@]}"; do ALL="$ALL $k"; done
-S summary "$ALL" jobs/09_summary.sbatch
-echo "Everything is submitted; the last job (09_summary) runs when all others have finished and writes results/09_summary/ and results/assembly/."
+DEPTYPE=afterany S summary "$ALL" jobs/09_summary.sbatch
+echo "Everything is submitted; the last job (09_summary) runs when all others have ended and writes results/09_summary/ and results/assembly/."

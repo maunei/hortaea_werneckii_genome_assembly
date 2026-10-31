@@ -10,8 +10,8 @@ out, work, mm2 = sys.argv[1:4]
 os.makedirs(out, exist_ok=True); os.makedirs(work, exist_ok=True)
 INPUT = os.environ["INPUT"]
 GH = f"{INPUT}/hw2/github_Hortaea_werneckii"
-NC = glob.glob(f"{INPUT}/hw2/ncbi_GCA_002127715.1/*_genomic.fna.gz")[0]
-REP = glob.glob(f"{INPUT}/hw2/ncbi_GCA_002127715.1/*_assembly_report.txt")[0]
+NC = ncbi_hw2_file(INPUT, "genomic.fna.gz")
+REP = ncbi_hw2_file(INPUT, "assembly_report.txt")
 files = {  # label -> (path, description)
     "github_Hw2.fasta.gz": (f"{GH}/assemblies/Hw2/Hw2.fasta.gz", "complete file of the assemblies folder (comparator of the package)"),
     "genbank_Hw2.fasta": (f"{GH}/annotation/GenBank/Hw2.fasta", "file of the GenBank folder (a soft link to ../../assemblies/Hw2/Hw2.fasta)"),
@@ -37,6 +37,7 @@ for lab, (path, desc) in files.items():
 gh = seqs["github_Hw2.fasta.gz"]
 # rename NCBI accessions to unitig names for comparison
 ncbi_raw = seqs["ncbi_GCA_002127715.1"]
+need_record(ncbi_raw, mito_acc, NC)   # stops with a clear message when the wrong file was read
 seqs["ncbi_GCA_002127715.1"] = {acc2name.get(k, k): v for k, v in ncbi_raw.items()}
 
 # ---- per-contig table

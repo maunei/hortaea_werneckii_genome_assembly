@@ -114,10 +114,10 @@ for n in list(T[T["class"].isin(["mitochondrial", "candidate", "candidate_no_dep
     circ[n] = end_overlap(n)
 
 # ---- comparison with the mitochondrion record of NCBI
-nc_path = glob.glob(f"{INPUT}/hw2/ncbi_GCA_002127715.1/*_genomic.fna.gz")[0]
-rep = glob.glob(f"{INPUT}/hw2/ncbi_GCA_002127715.1/*_assembly_report.txt")[0]
-macc = [l.split("\t")[4] for l in open(rep, newline=None).read().splitlines() if not l.startswith("#") and l.split("\t")[7] == "non-nuclear"][0]
-ncm = read_fasta(nc_path)[macc]
+nc_path = ncbi_hw2_file(INPUT, "genomic.fna.gz")
+rep = ncbi_hw2_file(INPUT, "assembly_report.txt")
+macc = ncbi_hw2_mito_accession(rep)
+ncm = need_record(read_fasta(nc_path), macc, nc_path)
 write_fasta(f"{work}/ncbi_mito.fa", {macc: ncm.upper()})
 cmp_rows, ncbi_cmp = [], {}
 mt_names = list(mt.contig)

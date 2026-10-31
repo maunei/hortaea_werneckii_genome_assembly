@@ -31,7 +31,7 @@ AL="$WORK/aln/06_transcripts/$ASM"; mkdir -p "$AL" "$OUT"
 #   -c             write the base-level alignment (cigar) and the edit distance NM, which the identity is computed from
 #   --secondary=no only the best alignment of each part of a transcript (primary and supplementary pieces)
 "$QC_BIN/minimap2" --version
-"$QC_BIN/minimap2" -x splice -G "$MAX_INTRON" -u b -c --secondary=no -t "$CPUS" "$FASTA" "$TRANSCRIPTS" > "$AL/transcripts.paf" 2> "$LOGDIR/minimap2.log"
+"$QC_BIN/minimap2" -x splice -G "$MAX_INTRON" -u b -c --secondary=no -t "$CPUS" "$FASTA" "$TRANSCRIPTS" > "$AL/transcripts.paf" 2> "$LOGDIR/minimap2.log" || exit 4
 tail -3 "$LOGDIR/minimap2.log"
 echo "alignment records: $(wc -l < "$AL/transcripts.paf")"
 

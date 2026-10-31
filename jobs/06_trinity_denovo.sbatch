@@ -71,5 +71,5 @@ VERSION=$(ls "${TRINITY_BIN%/bin}/conda-meta" 2>/dev/null | grep -m1 -E '^trinit
 ELAPSED=$(grep 'Elapsed (wall clock)' "$LOGDIR/trinity.time" | sed 's/.*: //')                                   # h:mm:ss
 MAXRSS_GB=$(grep 'Maximum resident set size' "$LOGDIR/trinity.time" | awk '{printf "%.1f", $NF/1048576}')        # kilobytes to gigabytes
 "$PY" "$HW/scripts/06_fasta_stats.py" "$TRINITY_OUT/Trinity.fasta" "$TRINITY_RESULTS/trinity_assembly.json" \
-    "trinity_version=$VERSION" "run=$RUN" "read_pairs_used=$N_PAIRS" "max_memory_gb=$MAXMEM_GB" "cpus=$CPUS" "wall_time=$ELAPSED" "peak_memory_gb=$MAXRSS_GB"
+    "trinity_version=$VERSION" "run=$RUN" "read_pairs_used=$N_PAIRS" "max_memory_gb=$MAXMEM_GB" "cpus=$CPUS" "wall_time=$ELAPSED" "peak_memory_gb=$MAXRSS_GB" || exit 4
 hw_end 06_trinity_denovo
