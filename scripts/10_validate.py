@@ -79,7 +79,8 @@ else:
         lo, hi = float(r['low']), float(r['high']); inside = lo - 1e-12 <= v <= hi + 1e-12
         n_in += inside; n_out += (not inside)
         note = 'within the usual variation' if inside else 'larger than usual'
-        lines.append(f'[{"close" if inside else "larger than usual"}] {item}: {v:.6g}; first analysis {first:.6g}; difference {diff:+.3f} percent; usual variation {lo:.6g} to {hi:.6g}')
+        identical = abs(v - first) <= 1e-9 * max(1.0, abs(first))
+        lines.append(f'[{"same" if identical else ("close" if inside else "larger than usual")}] {item}: {v:.6g}; first analysis {first:.6g}; difference {diff:+.3f} percent; usual variation {lo:.6g} to {hi:.6g}')
         rows.append((item, r['group'], v, first, f'{diff:+.3f}', lo, hi, note))
     tot = n_in + n_out
     summ = [f'{n_in} of {tot} values are within the usual variation of the first analysis' + (f'; {n_out} {"value is" if n_out == 1 else "values are"} larger than usual (the data or the programs used differ from the first analysis: see the lines marked "larger than usual")' if n_out else '') + '.']

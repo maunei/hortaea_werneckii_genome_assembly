@@ -8,18 +8,20 @@ Sections marked with a triangle open on a click. They hold explanations that are
 
 ## Run everything: quick start
 
-What is needed: a computer cluster with the SLURM job scheduler (the program that queues and runs jobs), micromamba or conda, internet access for the downloads, and about 400 GB of free disk space (about 200 GB of working files, 85 GB of reference databases and 80 GB of input files; the software environments add about 15 GB in about 304,000 files). The time of the downloads depends on the speed of the network: about 35 minutes with a fast network, and more than six hours at 1 to 2 MB/s, in which case a download job reaches its time limit and the script submits it again. The analysis used 203 core-hours of processor time in the run reported here (section 5). From the submission of the first job to the end of the last job it takes about 5 hours (4 h 07 min to 5 h 19 min in five complete runs of a fresh clone, with the software, the databases and the input files already in place) on a computer with short queue waits; the longest single job, one run of the procedure, takes about 3 hours. Count on longer when the queue is busy.
+What is needed: a computer cluster with the SLURM job scheduler (the program that queues and runs jobs), micromamba or conda, internet access for the downloads, and about 400 GB of free disk space (about 200 GB of working files, 85 GB of reference databases and 80 GB of input files; the software environments add about 15 GB in about 304,000 files). A download job that reaches its time limit on a slow network is submitted again by the script, and continues with the files that are missing. The analysis used 203 core-hours of processor time in the run reported here (section 5). From the submission of the first analysis job to the end of the last job it takes about 4 to 5 hours on a computer with short queue waits (4 h 06 min in the complete run of section 7); the longest single job, one run of the procedure, takes about 3 hours. The installation of the software takes 2 to 5 hours and the downloads 35 minutes to 8 hours, depending on the network; the complete run of section 7, with a slow network, took 16 h 29 min. Count on longer when the queue is busy.
 
 1. **Get the repository** and go into its folder: `git clone https://github.com/maunei/hortaea_werneckii_genome_assembly.git` and `cd hortaea_werneckii_genome_assembly`.
 2. **Fill in `settings.yaml`.** It has one line for each value: the scheduler account, your e-mail address, how many messages you want, the software modules of your cluster (if any), and three folders for large files outside the repository. The work folder must be new and empty for each run. Nothing else has to be edited.
-3. **Run `bash setup_and_run_all.sh all`.** It checks the settings, creates the software environments, downloads the reference databases and the input files, checks that everything works from a compute node, and submits the whole analysis (97 jobs with their dependencies). Then wait.
+3. **Run `bash setup_and_run_all.sh all > run.log 2>&1 &`.** It checks the settings, creates the software environments, downloads the reference databases and the input files, checks that everything works from a compute node, and submits the whole analysis (97 jobs with their dependencies). The script waits for each stage, so it stays running in the background; `tail -f run.log` shows its messages and `squeue -u $USER` the jobs. If the script is stopped (for example when the login computer is restarted), run the same command again in the same folder: the stages that are finished are skipped, and a job that is still queued or running is waited for and not submitted twice.
 4. **When the analysis has finished** (one message arrives if you asked for messages, saying COMPLETED, or FAILED if a job of the analysis did not finish; `squeue -u $USER` shows nothing), the results are in `results/`: the assembly Hw 2.1 in `results/assembly/`, the verdict on the five evaluations in `results/09_summary/verdict.tsv` and the comparison with the first analysis in `results/10_validation/`.
 
 ```
 git clone https://github.com/maunei/hortaea_werneckii_genome_assembly.git
 cd hortaea_werneckii_genome_assembly
 # edit settings.yaml
-bash setup_and_run_all.sh all
+bash setup_and_run_all.sh all > run.log 2>&1 &
+tail -f run.log        # the messages of the script (Ctrl-C stops tail, not the run)
+squeue -u $USER        # the jobs
 ```
 
 <details><summary>The stages one by one (to run a part, or to repeat after a problem)</summary>
@@ -29,7 +31,7 @@ The command is `bash setup_and_run_all.sh STAGE`. Every stage can be repeated: w
 | Stage | What it does |
 |---|---|
 | `settings` | checks `settings.yaml` (nothing left at the example values, folders given as absolute paths), creates the three folders and writes `config/local.sh`, the file from which all jobs read the values |
-| `software` | creates the ten software environments from the lock files (step 1), in a job of about 2 h 15 min; skipped when the ten environments are complete; a job that reaches its time limit is submitted again, up to 3 times |
+| `software` | creates the ten software environments from the lock files (step 1), in a job of 2 to 5 hours depending on the network; skipped when the ten environments are complete; a job that reaches its time limit is submitted again, up to 3 times |
 | `databases` | downloads and indexes the reference databases (step 2); skipped when they are present; if a download job reaches its time limit (slow network) it is submitted again, up to five times, and continues with the files that are missing |
 | `inputs` | downloads the input files (step 3), or links them from the folder `input_source` of `settings.yaml` when that is given; skipped when every file of `input/CHECKSUMS.md5` is present; a download job that reaches its time limit is submitted again, up to five times |
 | `check` | checks the folders, programs, databases and input files, refuses a work folder that holds the files of an earlier run, runs a one-minute job on a compute node that tests them, and prints how many jobs the run will submit |
@@ -2012,11 +2014,21 @@ results/10_validation/   (2 files)
 
 ## 7. Validation
 
-The tests listed below were made with the version of the workflow in this repository, step by step: the installation of the software from an empty folder, the downloads of the databases and of the input files from empty folders, and the whole analysis from a fresh clone with the software, databases and input files of the run reported here. The comparison of the results with the first analysis is made by the workflow itself (step 10); it reports how close the values are and never makes a run FAILED.
+The workflow was tested step by step and as a whole: the installation of the software from an empty folder, the downloads of the databases and of the input files from empty folders, and one complete run of `bash setup_and_run_all.sh all` in which every stage started from nothing. The comparison of the results with the first analysis is made by the workflow itself (step 10); it reports how close the values are and never makes a run FAILED.
 
-<details><summary>Complete run from empty folders: not yet made</summary>
+<details><summary>Complete run from empty folders (31 October to 1 November 2026)</summary>
 
-A complete run with `bash setup_and_run_all.sh all` in which every stage starts from nothing is still to be made: a new installation of the software, new downloads of the databases and of the input files, and then the analysis. The date, the version of the repository, the time it took and the result of the validation of that run will be added here.
+A fresh clone of the repository (commit 67cb172) with new, empty folders for the software, the databases, the input files and the work files. The later commits changed the documentation, added the files for the license and for citing, and changed one log message, the label of identical values in the validation report and the restart of the script; the analysis was not changed.
+
+| Stage | Time |
+|---|---|
+| Installation of the software (10 environments) | 4 h 40 min |
+| Download and index of the reference databases | 2 h 58 min |
+| Download of the input files (80 GB, md5 checked) | 4 h 38 min |
+| Analysis (first job to last job, 188 core-hours) | 4 h 06 min |
+| Whole run | 16 h 29 min |
+
+The downloads ran at about 4 MB/s and account for most of the time. Result: all 127 jobs completed and the message of the run said COMPLETED. The assembly has 169 contigs, 50,019,054 bases and an N50 of 581,225; the checksum of the file `results/assembly/Hw2.1.fasta.gz` is `f39e8fcf5f7f6c65d2378634ea97cf5f` and the checksum of its sequences is `befff43029a2e610b0bfffafd7fdaa15` in the three runs of the procedure. The verdicts on the five evaluations are better, not worse (better in part), better, better and better. All 149 values compared with the first analysis are within the usual variation. The 668 input files agree with `input/CHECKSUMS.md5` and the 19 archive files with the archive, the package lists of the ten software environments are identical to those of the first analysis, and the Swiss-Prot download held 38,309 proteins (38,451 in the first analysis).
 
 </details>
 
@@ -2166,3 +2178,18 @@ The programs are not part of the workflow. `envs/software.md` lists the ten envi
 15. Chen, S. et al. fastp: an ultra-fast all-in-one FASTQ preprocessor. *Bioinformatics* 34, i884-i890 (2018). https://doi.org/10.1093/bioinformatics/bty560
 16. Ewels, P. et al. MultiQC: summarize analysis results for multiple tools and samples in a single report. *Bioinformatics* 32, 3047-3048 (2016). https://doi.org/10.1093/bioinformatics/btw354
 17. Pedersen, B. S. and Quinlan, A. R. Mosdepth: quick coverage calculation for genomes and exomes. *Bioinformatics* 34, 867-868 (2018). https://doi.org/10.1093/bioinformatics/btx699
+
+## 12. How to cite
+
+If you use this workflow or the assembly Hw 2.1, please cite this repository and the paper that produced the sequencing reads. GitHub shows a button "Cite this repository" from the file `CITATION.cff`.
+
+1. Neira, M. (2026). *Hortaea werneckii genome assembly Hw 2.1: a reproducible workflow.* Software, version 1.0. https://github.com/maunei/hortaea_werneckii_genome_assembly
+2. Sinha, S. et al. Insight into the recent genome duplication of the halophilic yeast *Hortaea werneckii*: combining an improved genome with gene expression and chromatin structure. *G3* 7, 2015-2022 (2017). https://doi.org/10.1534/g3.117.040691
+
+## 13. License
+
+MIT License. Copyright (c) 2026 Mauricio Neira. The software may be used, copied, modified and distributed provided that the copyright notice and the license text (file `LICENSE`) are kept.
+
+## 14. Acknowledgements
+
+The analysis was developed and tested on the high-performance computing resources of the Digital Research Alliance of Canada (alliancecan.ca).

@@ -27,7 +27,8 @@ NEED=$(awk -v c="$SEEDCOV" -v g="$GS" 'BEGIN{printf "%d", c*g}')
 seqkit fx2tab -n -l reads.fa | sort -k2,2nr -T "$T" > reads_by_length.tsv || exit 4   # written to a file first: a pipe closed early by awk gives "Broken pipe" messages
 awk -v need="$NEED" '{c+=$2; print $1; if(c>=need){exit}}' reads_by_length.tsv > seed_names.txt || exit 4; rm -f reads_by_length.tsv
 seqkit grep -f seed_names.txt reads.fa -o seeds.fa || exit 4; seqkit stats -a -T seeds.fa > "$R/seeds_stats.tsv" || exit 4
-echo "seeds: $(grep -c '>' seeds.fa); shortest seed: $(seqkit fx2tab -n -l seeds.fa | sort -k2,2n | head -1 | cut -f2)"
+seqkit fx2tab -n -l seeds.fa | sort -k2,2n > seeds_by_length.tsv || exit 4
+echo "seeds: $(grep -c '>' seeds.fa); shortest seed: $(head -1 seeds_by_length.tsv | cut -f2)"; rm -f seeds_by_length.tsv
 # 2 correction: all reads aligned to the seeds with BLASR (up to 24 alignments per read), consensus per seed with pbdagcon (coverage >= 4, length >= 500)
 /usr/bin/time -v blasr reads.fa seeds.fa -m 5 --bestn 24 --nCandidates 24 --minMatch 12 --maxLCPLength 15 --maxScore -1000 --nproc "$NT" --noSplitSubreads --out aln.m5 > "$LOGDIR/blasr.out" 2> "$LOGDIR/blasr.time"; brc=$?; echo "blasr exit $brc"; [ $brc = 0 ] || exit 2
 sort -k6,6 -T "$T" --parallel="$NT" aln.m5 > aln.sorted.m5; rm -f aln.m5

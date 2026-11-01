@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use this workflow or the assembly Hw 2.1, please cite it as below and the paper that produced the sequencing reads."
+title: "Hortaea werneckii genome assembly Hw 2.1: a reproducible workflow"
+type: software
+version: "1.0"
+date-released: "2026-11-01"
+license: MIT
+repository-code: "https://github.com/maunei/hortaea_werneckii_genome_assembly"
+authors:
+  - family-names: Neira
+    given-names: Mauricio
+references:
+  - type: article
+    authors:
+      - family-names: Sinha
+        given-names: S.
+    title: "Insight into the recent genome duplication of the halophilic yeast Hortaea werneckii: combining an improved genome with gene expression and chromatin structure"
+    journal: "G3: Genes, Genomes, Genetics"
+    year: 2017
+    volume: 7
+    issue: 7
+    start: 2015
+    end: 2022
+    doi: "10.1534/g3.117.040691"

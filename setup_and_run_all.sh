@@ -60,14 +60,22 @@ no_old_work() {
   work_has_old_run && die "work_dir ($WORK) already holds the files of an earlier run, but results/ of this clone is empty. The steps would be skipped as 'already done' and results/ would stay incomplete. Use a new, empty folder as work_dir in settings.yaml (then run the stage settings again)."
   return 0
 }
+my_job() {   # my_job NAME: number of a job of that name that is queued or running and was submitted from this folder (empty when there is none): a stage that is started again waits for it instead of submitting a second one
+  local id wd here; here=$(readlink -f "$PWD")
+  squeue -u "$USER" -h -n "$1" -t PD,R,CF -o "%i %Z" 2>/dev/null | while read -r id wd; do [ "$(readlink -f "$wd")" = "$here" ] && { echo "$id"; break; }; done
+}
 stage_software() {
   say "software: environments in $ENVS"
   if CHECK=1 bash scripts/make_environments.sh > /dev/null 2>&1; then echo "all ten environments are complete: nothing to do"; return; fi
   mkdir -p logs
   local s st attempt   # the installation (about 2 h 15 min) is a job; a job that reaches its time limit is submitted again (complete environments are kept), up to 3 times
   for attempt in 1 2 3; do
-    s=$(sbatch --parsable "${SBATCH_COMMON[@]}" jobs/01_software.sbatch | cut -d';' -f1) || die "could not submit the installation of the software"
-    echo "attempt $attempt: installation job $s; waiting (checks every 30 s)"
+    s=$(my_job hw_01_software)
+    if [ -n "$s" ]; then echo "attempt $attempt: installation job $s is already queued or running (started earlier); waiting for it"
+    else
+      s=$(sbatch --parsable "${SBATCH_COMMON[@]}" jobs/01_software.sbatch | cut -d';' -f1) || die "could not submit the installation of the software"
+      echo "attempt $attempt: installation job $s; waiting (checks every 30 s)"
+    fi
     st=$(job_state "$s")
     [ "$st" = COMPLETED ] && break
     [ "$st" = TIMEOUT ] || die "the installation of the software ended with state $st; read the log in logs/ (job $s)"
@@ -84,8 +92,10 @@ stage_databases() {
   # the downloads can resume (finished files are kept), so a job that reaches its time limit on a slow network is submitted again, up to 5 times
   local f i attempt st
   for attempt in 1 2 3 4 5; do
-    f=$(sbatch --parsable "${SBATCH_COMMON[@]}" jobs/02_fetch_databases.sbatch | cut -d';' -f1) || die "could not submit the download"
-    i=$(sbatch --parsable --dependency=afterok:$f "${SBATCH_COMMON[@]}" jobs/02_screen_db_index.sbatch | cut -d';' -f1) || die "could not submit the index job"
+    f=$(my_job hw_fetch_databases); i=""
+    if [ -n "$f" ]; then i=$(my_job hw_screen_dbindex); echo "attempt $attempt: download job $f is already queued or running (started earlier); waiting for it"
+    else f=$(sbatch --parsable "${SBATCH_COMMON[@]}" jobs/02_fetch_databases.sbatch | cut -d';' -f1) || die "could not submit the download"; fi
+    [ -n "$i" ] || i=$(sbatch --parsable --dependency=afterok:$f "${SBATCH_COMMON[@]}" jobs/02_screen_db_index.sbatch | cut -d';' -f1) || die "could not submit the index job"
     echo "attempt $attempt: download job $f, index job $i; waiting (checks every 30 s)"
     st=$(job_state "$f")
     if [ "$st" = COMPLETED ]; then wait_jobs "$i" "the index of the databases"; return; fi
@@ -107,8 +117,12 @@ stage_inputs() {
   [ -z "$INPUT_SOURCE" ] || die "input_source does not hold every file of input/CHECKSUMS.md5 (first missing: $(inputs_missing))"
   local f attempt st   # a job that reaches its time limit on a slow network is submitted again (finished files are kept), up to 5 times
   for attempt in 1 2 3 4 5; do
-    f=$(sbatch --parsable "${SBATCH_COMMON[@]}" jobs/01_fetch_inputs.sbatch | cut -d';' -f1) || die "could not submit the download"
-    echo "attempt $attempt: download job $f; waiting (checks every 30 s)"
+    f=$(my_job hw_01_fetch_inputs)
+    if [ -n "$f" ]; then echo "attempt $attempt: download job $f is already queued or running (started earlier); waiting for it"
+    else
+      f=$(sbatch --parsable "${SBATCH_COMMON[@]}" jobs/01_fetch_inputs.sbatch | cut -d';' -f1) || die "could not submit the download"
+      echo "attempt $attempt: download job $f; waiting (checks every 30 s)"
+    fi
     st=$(job_state "$f")
     [ "$st" = COMPLETED ] && break
     [ "$st" = TIMEOUT ] || die "the download of the input files ended with state $st; read the log in logs/ (job $f)"
@@ -130,6 +144,7 @@ stage_check() {
 stage_run() {
   say "run"
   [ -n "$DRYRUN" ] || no_old_work
+  [ -n "$DRYRUN" ] || { local q; q=$(my_job hw_09_summary); [ -z "$q" ] || die "the analysis is already submitted from this folder (summary job $q is waiting in the queue); wait for it, and follow it with: squeue -u \$USER"; }
   if [ -n "$DRYRUN" ]; then DRYRUN=1 bash scripts/submit_all.sh | tee logs/dryrun.txt | tail -3; return; fi
   bash scripts/submit_all.sh | tee logs/submit_all.txt | tail -2
   local s; s=$(awk '$1=="summary"{print $2}' jobs/submitted_by_submit_all.tsv); [ -n "$s" ] || die "the summary job was not submitted"
