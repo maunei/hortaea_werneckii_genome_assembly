@@ -47,13 +47,14 @@ worker() {
 }
 export -f worker
 log "downloading genomes ($JOBS in parallel)"
+rm -f "$T/failed.txt"
 tail -n +2 "$SEL" | awk -F'\t' '{print $1"\t"$2"\t"$9}' \
-  | xargs -P "$JOBS" -L 1 bash -c 'worker "$0" "$1" "$2" "'"$T"'"' 
+  | xargs -P "$JOBS" -L 1 bash -c 'worker "$1" "$2" "$3" "$4"' _ "$T"
 if [ -s "$T/failed.txt" ]; then log "some genomes failed:"; cat "$T/failed.txt"; exit 1; fi
 
 # 3. concatenate into the parts (gzip members can be joined)
 log "building parts"
-rm -f "$S"/part_*.fa.gz.tmp
+rm -f "$S"/*.fa.gz.tmp
 # bacteria split into two parts of similar size (by cumulative genome size, in table order)
 awk -F'\t' 'NR>1 && $2=="bacteria" && $10=="main"{s+=$8; a[++n]=$1; z[n]=$8} END{h=s/2; c=0; for(i=1;i<=n;i++){c+=z[i]; print a[i]"\t"(c<=h?1:2)}}' "$SEL" > "$T/bact_split.tsv"
 : > "$S/bacteria_1.fa.gz.tmp"; : > "$S/bacteria_2.fa.gz.tmp"; : > "$S/fungi.fa.gz.tmp"; : > "$S/other.fa.gz.tmp"

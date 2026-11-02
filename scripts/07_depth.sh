@@ -8,6 +8,7 @@
 # Output: $WORK/07_comparator/<ASM>/depth.regions.bed.gz (window means), depth.per_contig.tsv (mean depth per contig, all reads and reads of mapping quality >= 20), reads_vs_asm.bam.
 # An existing result is kept (set FORCE=1 to recompute), so that several scripts can share the same alignment.
 HW="${HW:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"; source "$HW/config/config.sh"
+set -o pipefail   # a failure of minimap2 must not be hidden by the sort that follows it
 ASM="$1"; FASTA="$2"; READS="$3"; THREADS="${4:-${SLURM_CPUS_PER_TASK:-8}}"
 D="${DEPTH_DIR:-$WORK/07_comparator/$ASM}"; mkdir -p "$D"
 if [ -s "$D/depth.per_contig.tsv" ] && [ -z "$FORCE" ]; then echo "depth already computed: $D"; exit 0; fi
@@ -17,7 +18,7 @@ if [ -s "$D/depth.per_contig.tsv" ] && [ -z "$FORCE" ]; then echo "depth already
 "$QC_BIN/mosdepth" -t 4 -n --by 1000 --flag 3844 "$D/depth" "$D/reads_vs_asm.bam" || exit 4
 # second count with reads of mapping quality 20 or more only (unique placements; reads of repeated regions have quality 0)
 "$QC_BIN/mosdepth" -t 4 -n --by 1000 --flag 3844 --mapq 20 "$D/depth_mapq20" "$D/reads_vs_asm.bam" || exit 4
-"$QC_BIN/samtools" flagstat -@ 4 "$D/reads_vs_asm.bam" > "$D/flagstat.txt"
+"$QC_BIN/samtools" flagstat -@ 4 "$D/reads_vs_asm.bam" > "$D/flagstat.txt" || exit 4
 # mean depth per contig = total / length from the mosdepth summaries; contigs without any aligned read are listed with depth 0
 awk '/^>/{if(n!="")print n"\t"l; n=substr($1,2); l=0; next}{l+=length($0)} END{if(n!="")print n"\t"l}' "$FASTA" > "$D/asm.lengths"
 awk 'BEGIN{OFS="\t"; print "contig","length","mean_depth","mean_depth_mapq20"}

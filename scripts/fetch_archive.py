@@ -23,13 +23,25 @@ def md5(fn):
 rows = list(csv.DictReader(open(man), delimiter='\t')); rep = []
 for r in rows:
     d = os.path.join(dest, r['run']); os.makedirs(d, exist_ok=True); fn = os.path.join(d, r['name']); size = int(r['size']); t = time.time()
-    if os.path.exists(fn) and os.path.getsize(fn) == size and os.path.exists(fn + '.md5ok'):
-        rep.append((r['run'], r['name'], size, r['md5'], r['md5'], 0, 'already verified')); print(r['name'], 'already verified', flush=True); continue
-    with open(fn, 'wb') as fh: fh.truncate(size)
+    if os.path.exists(fn) and os.path.getsize(fn) == size:
+        if os.path.exists(fn + '.md5ok'):
+            rep.append((r['run'], r['name'], size, r['md5'], r['md5'], 0, 'already verified')); print(r['name'], 'already verified', flush=True); continue
+        got = md5(fn)
+        if got == r['md5']:
+            try: open(fn + '.md5ok', 'w').write(got + '\n')
+            except OSError: pass
+            rep.append((r['run'], r['name'], size, r['md5'], got, round(time.time() - t), 'already verified')); print(r['name'], 'verified existing file', flush=True); continue
+    if os.path.islink(fn): os.unlink(fn)   # never follow a symlink into input_source and truncate the shared source file
+    part = fn + '.part'
+    with open(part, 'wb') as fh: fh.truncate(size)
     ch = [(o, min(o + CH, size) - 1) for o in range(0, size, CH)]
-    with ThreadPoolExecutor(workers) as ex: list(ex.map(lambda c: get(r['url'], c[0], c[1], fn), ch))
-    got = md5(fn); ok = got == r['md5']
-    if ok: open(fn + '.md5ok', 'w').write(got + '\n')
+    with ThreadPoolExecutor(workers) as ex: list(ex.map(lambda c: get(r['url'], c[0], c[1], part), ch))
+    got = md5(part); ok = got == r['md5']
+    if ok:
+        os.replace(part, fn)
+        open(fn + '.md5ok', 'w').write(got + '\n')
+    else:
+        os.remove(part)
     rep.append((r['run'], r['name'], size, r['md5'], got, round(time.time() - t), 'md5 ok' if ok else 'MD5 MISMATCH'))
     print(r['name'], size, round(time.time() - t), 's', 'md5 ok' if ok else 'MD5 MISMATCH', flush=True)
 with open(os.path.join(dest, 'fetch_report.tsv'), 'a') as o:

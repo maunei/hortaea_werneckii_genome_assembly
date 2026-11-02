@@ -4,7 +4,7 @@
 
 One job per assembly carries out four of the five evaluations with the same programs, settings and thresholds for every assembly: contiguity (evaluation 1), gene-space completeness (evaluation 2), structural correctness against the PacBio reads (evaluation 3) and redundancy and collapse (evaluation 4). Evaluation 5, base accuracy from the Illumina reads, belongs to another step; the comparison of two assemblies with each other, the transcripts assembled without a genome and the mitochondrial genome also belong to other steps. The job writes one table per measure and a file `summary.json` with fixed key names, so that the later steps (the noise scale, the decision table, the figures) read numbers from files and never retype them.
 
-The job is `jobs/06_tests.sbatch`. It takes the assembly name (`ASM`) and the FASTA file (`FASTA`) and nothing else is needed. It uses 16 cores and a few gigabytes of memory, and the steps are independent of each other, so an interrupted job can be submitted again: finished steps are skipped (a marker file per step is kept with the large files) unless `FORCE=1` is set.
+The job is `jobs/06_tests.sbatch`. It takes the assembly name (`ASM`) and the FASTA file (`FASTA`) and nothing else is needed. It uses 16 cores and a few gigabytes of memory, and the steps are independent of each other, so an interrupted job can be submitted again: finished steps are skipped (a marker file per step is kept with the large files) unless `FORCE=1` is set. The marker of a step does not record the assembly or the reads it was made from: set `FORCE=1` after changing either.
 
 ### Reference data (fetched once, used offline)
 

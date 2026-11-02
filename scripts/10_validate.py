@@ -57,7 +57,8 @@ else:
     out = Path(sys.argv[3]) if len(sys.argv) > 3 else Path(res) / '10_validation'; out.mkdir(parents=True, exist_ok=True)
     M, _ = read_measures(res); counts = read_counts(res); SEQ = read_seq_md5(res)
     rows = []; lines = []; n_in = n_out = n_na = 0; asm_same = []; cnt_same = []
-    for r in csv.DictReader(open(HW / 'validation' / 'expected.tsv'), delimiter='\t'):
+    _rows_all = list(csv.DictReader(open(HW / 'validation' / 'expected.tsv'), delimiter='\t'))
+    for r in _rows_all:
         item = r['item']; first = float(r['expected']) if r['group'] != 'checksum' else r['expected']
         if r['group'] == 'checksum':
             v = SEQ.get(item.split(':')[1])
@@ -69,7 +70,7 @@ else:
         else:
             m, a = item.split(':')
             if a == 'procedure':
-                runs = [M[(m, x)] for x in ('proc_r1', 'proc_r2', 'proc_r3') if (m, x) in M]; v = sum(runs) / len(runs) if runs else None
+                runs = [M[(m, x)] for x in ('proc_r1', 'proc_r2', 'proc_r3') if (m, x) in M]; v = sum(runs) / 3 if len(runs) == 3 else None   # the mean of all three runs, or not available
             else: v = M.get((m, a))
         if v is None: n_na += 1; lines.append(f'[not available] {item}'); rows.append((item, r['group'], '', first, '', '', '', 'not available')); continue
         diff = 100 * (v - first) / first if first else 0.0
@@ -84,6 +85,8 @@ else:
         rows.append((item, r['group'], v, first, f'{diff:+.3f}', lo, hi, note))
     tot = n_in + n_out
     summ = [f'{n_in} of {tot} values are within the usual variation of the first analysis' + (f'; {n_out} {"value is" if n_out == 1 else "values are"} larger than usual (the data or the programs used differ from the first analysis: see the lines marked "larger than usual")' if n_out else '') + '.']
+    n_chk = sum(1 for r in _rows_all if r['group'] == 'checksum')
+    if asm_same and len(asm_same) < n_chk: summ.append(f'The checksum of the sequences is available for only {len(asm_same)} of {n_chk} runs of the procedure.')
     if asm_same: summ.append('The sequences of the assembly are ' + ('identical to those of the first analysis (same checksum) in every run of the procedure.' if all(asm_same) else 'different from those of the first analysis (different checksum): the program versions or the data differ.'))
     if cnt_same: summ.append('The numbers of reads are ' + ('the same as in the first analysis.' if all(cnt_same) else 'different from the first analysis.'))
     if n_na: summ.append(f'{n_na} values are not available (the steps that make them have not been run).')

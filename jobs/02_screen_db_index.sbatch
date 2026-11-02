@@ -21,4 +21,9 @@ done
 # number of sequences and bases per part (a check of the download)
 "$SCREEN_BIN/seqkit" stats -T -j "${SLURM_CPUS_PER_TASK:-16}" "$SCREEN_DB"/*.fa.gz > "$SCREEN_DB/parts_stats.tsv" || exit 4; cat "$SCREEN_DB/parts_stats.tsv"
 ls -l "$SCREEN_DB"/*.mmi
+# small descriptors of the database for results/ (sequences and bases per part, RefSeq release, table linking every key to its organism)
+R="$RESULTS/02_pacbio_reads/screen_db"; mkdir -p "$R" || exit 5
+sed 's#[^\t]*/##' "$SCREEN_DB/parts_stats.tsv" > "$R/parts_stats.tsv" || exit 5
+cp "$SCREEN_DB/refseq_release.txt" "$R/" || exit 5
+gzip -c "$SCREEN_DB/screen_manifest.tsv" > "$R/screen_manifest.tsv.gz" || exit 5
 hw_end screen_dbindex

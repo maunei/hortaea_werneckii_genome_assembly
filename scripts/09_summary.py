@@ -38,7 +38,7 @@ M = [
  ('readback80', 3, 'PacBio reads aligned over 80 % of their length (%)', '06_tests/{a}/summary.json', 'readback.frac_reads_aligned_ge80pct', True, '{:.2%}'),
  ('readback_pieces', 3, 'PacBio reads aligned in pieces (%)', '06_tests/{a}/summary.json', 'readback.frac_reads_in_pieces', False, '{:.2%}'),
  ('unspanned', 3, 'Bases not spanned by any read across a junction', '06_tests/{a}/summary.json', 'readback.unspanned_bases', False, '{:,.0f}'),
- ('discordant', 3, 'Interior junctions with discordant read pairs', '06_tests/{a}/summary.json', 'readback.discordant_junction_clusters_interior_ge_min_reads', False, '{:,.0f}'),
+ ('discordant', 3, 'Interior junctions with split reads', '06_tests/{a}/summary.json', 'readback.discordant_junction_clusters_interior_ge_min_reads', False, '{:,.0f}'),
  ('adjud_for_new', 3, 'Disagreements with Hw 2.0 decided for this assembly (proportion of decided)', '07_compare/{a}_vs_hw2/summary.json', 'fraction_of_decided_for_A.proportion', True, '{:.1%}'),
  ('depth_ok', 4, 'Bases in windows at 0.5 to 1.5 times the median PacBio depth (%)', '06_tests/{a}/summary.json', 'depth.frac_0_5_to_1_5', True, '{:.2%}'),
  ('false_dup', 4, 'Bases with a best partner at 98 % identity or more (%)', '06_tests/{a}/summary.json', 'redundancy.false_duplication_fraction', False, '{:.2%}'),
@@ -47,7 +47,7 @@ M = [
  ('diff_specific', 5, 'Specific differences per Mb (all)', '08_illumina_accuracy/shared/{a}_vs_hw2/summary.json', 'assemblies.{a}.specific_per_mb_callable.all', False, '{:.1f}'),
  ('diff_specific_snv', 5, 'Specific single-base differences per Mb', '08_illumina_accuracy/shared/{a}_vs_hw2/summary.json', 'assemblies.{a}.specific_per_mb_callable.snv', None, '{:.1f}'),
  ('diff_specific_indel', 5, 'Specific insertions and deletions per Mb', '08_illumina_accuracy/shared/{a}_vs_hw2/summary.json', None, None, '{:.1f}'),
- ('mapped', 5, 'Illumina read pairs mapped (%)', '08_illumina_accuracy/{a}/summary.json', 'mapping.percent_mapped', None, '{:.2f}'),
+ ('mapped', 5, 'Illumina reads mapped (%)', '08_illumina_accuracy/{a}/summary.json', 'mapping.percent_mapped', None, '{:.2f}'),
 ]
 def value(a, m):
     mid, line, label, tmpl, key, hib, fmt = m
@@ -99,13 +99,17 @@ def adj_state():
     if all(v['hi'] < 0.5 for v in adj.values()): return 'worse'
     if all(v['hi'] < 0.5 or v['lo'] > 0.5 for v in adj.values()) and len({v['lo'] > 0.5 for v in adj.values()}) > 1: return 'mixed between runs'
     return 'interval includes one half'
-S = {r['measure']: r.get('state') for r in rows}
+S = {r['measure']: r.get('state') for r in rows}; NRUNS = {r['measure']: r['runs'] for r in rows}
+REPLICATES = 3   # the procedure is run three times (r1, r2, r3); a verdict needs all of them and every measure of its line
 def line_verdict(line):
     keys = {1: ['n50', 'ng50', 'aun', 'l50'], 2: ['busco_complete', 'transcripts'], 4: ['false_dup', 'depth_ok'], 5: ['diff_specific']}
+    if len(runs) < REPLICATES: return f'incomplete (only {len(runs)} of {REPLICATES} runs of the procedure have results)', {}
     if line == 3:
+        if len(adj) < len(runs): return f'incomplete (the comparison with Hw 2.0 is missing for {len(runs) - len(adj)} of {len(runs)} runs)', {}
         s = adj_state(); return s, {'adjudication': s}
     sts = {k: S.get(k) for k in keys[line] if S.get(k) is not None}
-    if not sts: return None, sts
+    miss = [k for k in keys[line] if S.get(k) is None or NRUNS.get(k, 0) < REPLICATES]   # a measure of the line that is missing for Hw 2.0 or for one of the runs
+    if miss: return 'incomplete (missing measures: ' + ', '.join(miss) + ')', sts
     v = set(sts.values())
     if 'worse' in v: res = 'worse'
     elif v == {'better'}: res = 'better'
@@ -117,7 +121,8 @@ for line in (1, 2, 3, 4, 5):
     res, sts = line_verdict(line); verdict[line] = dict(verdict=res, measures=sts)
 better_lines = [l for l, v in verdict.items() if v['verdict'] and v['verdict'].startswith('better')]
 worse_lines = [l for l, v in verdict.items() if v['verdict'] == 'worse' or (l == 3 and v['verdict'] in ('worse', 'mixed between runs'))]
-overall = ('The new assembly is better than Hw 2.0 by the rules of the plan' if (verdict[1]['verdict'] == 'better' and len(better_lines) >= 2 and not worse_lines)
+incomplete = [l for l, v in verdict.items() if (v['verdict'] or '').startswith('incomplete')]
+overall = ('The verdict cannot be given: line(s) ' + ', '.join(map(str, incomplete)) + ' incomplete (see verdict.tsv); the lines that have results are reported as they are' if incomplete else 'The new assembly is better than Hw 2.0 by the rules of the plan' if (verdict[1]['verdict'] == 'better' and len(better_lines) >= 2 and not worse_lines)
            else 'The rules for "better" are not all met; the lines are reported as they are')
 with open(OUT / 'noise_scale.tsv', 'w') as w:
     w.write('measure\tline\truns\tmean\tmin\tmax\tnoise_range\thw2\tdifference\tstate\n')

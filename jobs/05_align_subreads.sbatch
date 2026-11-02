@@ -18,10 +18,19 @@ hw_start 05_align
 RAW=${RAW:?set RAW}; OUTNAME=${OUTNAME:?set OUTNAME}; NT=${THREADS:-${SLURM_CPUS_PER_TASK:-16}}
 RUNS=(SRR5086620 SRR5086623 SRR5086626 SRR5086627 SRR5086628); RUN="${RUNS[$SLURM_ARRAY_TASK_ID]}"
 T="$WORK/polish/$OUTNAME"; mkdir -p "$T"; cd "$T"; IN="$WORK/asm/$RAW/final.fasta"; [ -s "$IN" ] || { echo "no assembly $IN"; exit 2; }
-cp "$IN" ref.fa.tmp.$RUN && { [ -s ref.fa ] || mv ref.fa.tmp.$RUN ref.fa; }; rm -f ref.fa.tmp.$RUN
-( flock 9; [ -s ref.fa.fai ] || "$QC_BIN/samtools" faidx ref.fa ) 9> ref.lock
+(
+  flock 9 || exit 2
+  if [ ! -s ref.fa ] || [ "$IN" -nt ref.fa ]; then
+    cp "$IN" "ref.fa.tmp.$RUN" && mv "ref.fa.tmp.$RUN" ref.fa && rm -f ref.fa.fai || exit 2
+  fi
+  [ -s ref.fa.fai ] || "$QC_BIN/samtools" faidx ref.fa || exit 2
+) 9> ref.lock || exit 2
 # reads that passed the screen: the high-quality subreads of this run without the reads excluded by the screen (step 02b)
-awk 'NR%4==1{print substr($1,2)}' "$WORK/pacbio_bam/$RUN/$RUN.hq_subreads.fastq" | grep -vxFf "$RESULTS/02_pacbio_reads/screen/hq_excluded_reads.txt" > "$RUN.names.txt"
+EXCL="$RESULTS/02_pacbio_reads/screen/hq_excluded_reads.txt"
+[ -f "$EXCL" ] || { echo "missing excluded-reads list $EXCL" >&2; exit 2; }
+awk 'NR%4==1{print substr($1,2)}' "$WORK/pacbio_bam/$RUN/$RUN.hq_subreads.fastq" > "$RUN.all_names.txt" || exit 2
+{ grep -vxFf "$EXCL" "$RUN.all_names.txt" > "$RUN.names.txt"; grc=$?; [ "$grc" -le 1 ]; } || exit 2
+rm -f "$RUN.all_names.txt"
 "$QC_BIN/samtools" view -h -b -N "$RUN.names.txt" -o "$RUN.subreads.clean.bam" "$WORK/pacbio_bam/$RUN/$RUN.subreads.bam" || exit 2
 export LD_LIBRARY_PATH="$LEGACY_LIBS:$LD_LIBRARY_PATH"; export PATH="$LEGACY_BIN:$PATH"
 pbindex "$RUN.subreads.clean.bam" || exit 2

@@ -1,6 +1,6 @@
 # Hw 2.1: a new and improved genome assembly of the black yeast Hortaea werneckii from the published PacBio reads, with a reproducible workflow
 
-This workflow (assisted by claude-science with Sonnet 5.5 model) assembles the genome of the black yeast *Hortaea werneckii* (strain EXF-2000) from the PacBio reads of Sinha et al. (2017), using a procedure that gives a new assembly, here called **Hw 2.1**, and evaluates Hw 2.1 against the published assembly of the same study, **Hw 2.0**. Both assemblies come from the same sequencing data. The workflow contains the scripts, the settings, the evaluations and the results, so that every step can be repeated and understood.
+This workflow (assisted by claude-science/Sonnet 5.5 model and independent code revisions by codex/GPT-6.1-Sol and anti-gravity/Gemini 4 Argon) assembles the genome of the black yeast *Hortaea werneckii* (strain EXF-2000) from the PacBio reads of Sinha et al. (2017), using a procedure that gives a new assembly, here called **Hw 2.1**, and evaluates Hw 2.1 against the published assembly of the same study, **Hw 2.0**. Both assemblies come from the same sequencing data. The workflow contains the scripts, the settings, the evaluations and the results, so that every step can be repeated and understood.
 
 **To get only the assembly Hw 2.1,** without running anything, download it from the release page of this repository (https://github.com/maunei/hortaea_werneckii_genome_assembly/releases/tag/v1.0): `curl -L -O https://github.com/maunei/hortaea_werneckii_genome_assembly/releases/download/v1.0/Hw2.1.fasta.gz` (15 MB; 169 contigs, 50.0 Mb). The checksums of the file are `f39e8fcf5f7f6c65d2378634ea97cf5f` (`md5sum Hw2.1.fasta.gz`) and `fc14171e978444dbdac9bb78d36e2a71d9eca3b1db24e00b102f5ea685966bf2` (`sha256sum Hw2.1.fasta.gz`; one of the two is enough), and the checksum of its sequences, which does not depend on the names of the contigs, is `befff43029a2e610b0bfffafd7fdaa15`. The file is not part of the repository: `git clone` does not download it, and a run of the workflow writes its own copy to `results/assembly/` without touching the file of the release. To obtain the assembly by running the workflow, follow the quick start below.
 
@@ -10,7 +10,7 @@ Sections marked with a triangle open on a click. They hold explanations that are
 
 ## Run everything: quick start
 
-What is needed: a computer cluster with the SLURM job scheduler, micromamba or conda, internet access for the downloads, and about 400 GB of free disk space (about 200 GB of working files, 85 GB of reference databases and 80 GB of input files; the software environments add about 15 GB in about 304,000 files). A download job that reaches its time limit on a slow network is submitted again by the script, and continues with the files that are missing. The analysis used 203 core-hours of processor time in the run reported here (section 5). From the submission of the first analysis job to the end of the last job it takes about 4 to 5 hours on a computer with short queue waits (4 h 06 min in the complete run of section 7); the longest single job, one run of the procedure, takes about 3 hours. The installation of the software takes 2 to 5 hours and the downloads 35 minutes to 8 hours, depending on the network; the complete run of section 7, with a slow network, took 16 h 29 min. Count on longer when the queue is busy.
+What is needed: a computer cluster with the SLURM job scheduler, micromamba or conda, internet access for the downloads, and about 400 GB of free disk space (about 200 GB of working files, 85 GB of reference databases and 80 GB of input files; the software environments add about 15 GB in about 304,000 files). A download job that reaches its time limit on a slow network is submitted again by the script, and continues with the files that are missing. The analysis used 243 core-hours of processor time in the run reported here (section 5). From the submission of the first analysis job to the end of the last job it takes about 4 to 5 hours on a computer with short queue waits (4 h 06 min in the complete run of section 7); the longest single job, one run of the procedure, takes about 3 hours. The installation of the software takes 2 to 5 hours and the downloads 35 minutes to 8 hours, depending on the network; the complete run of section 7, with a slow network, took 16 h 29 min. Count on longer when the queue is busy.
 
 1. **Get the repository** and go into its folder: `git clone https://github.com/maunei/hortaea_werneckii_genome_assembly.git` and `cd hortaea_werneckii_genome_assembly`.
 2. **Fill in `settings.yaml`.** It has one line for each value: the scheduler account, your e-mail address, how many messages you want, the software modules of your cluster (if any), and three folders for large files outside the repository. The work folder must be new and empty for each run. Nothing else has to be edited.
@@ -275,7 +275,7 @@ Both controls are then polished with Quiver and their contaminant contigs are re
 
 <details><summary>Three runs of the procedure: the noise scale</summary>
 
-Programs that use several threads can give different results from the same input when the number of threads changes. The procedure is therefore run three times from the same reads with different thread settings (16, 12 and 8 threads for the correction and the assembly; 32, 24 and 16 threads for the polishing). The runs are `proc_r1`, `proc_r2` and `proc_r3`. For every measure, the range over the three runs is the **noise scale**: the variation the procedure shows when nothing but the thread count changes. A difference between Hw 2.1 and Hw 2.0 is counted as real only when it is larger than this range. Hw 2.0 is a single run, so its own variation is unknown.
+Programs that use several threads can give different results from the same input when the number of threads changes. The procedure is therefore run three times from the same reads with different thread settings (16, 12 and 8 threads for the correction and the assembly; 32, 24 and 16 threads for the polishing). The runs are `proc_r1`, `proc_r2` and `proc_r3`. For every measure, the range over the three runs is the **noise scale**: the variation the procedure shows when nothing but the thread count changes. A difference between Hw 2.1 and Hw 2.0 is called larger than the noise only when it exceeds this range; this is a descriptive rule that measures the repeatability of the computation, not a statistical test. Hw 2.0 is a single run, so its own variation is unknown.
 
 </details>
 
@@ -339,7 +339,7 @@ The criterion for evaluation 3 asks that the Wilson interval excludes 50 percent
 <details><summary>Redundancy and collapse, and the accuracy of the bases</summary>
 
 - **Depth.** The PacBio reads are aligned to the assembly, and the assembly is cut into consecutive windows of 1 kb (1,000 bases). The depth of a window is the average number of reads that cover its bases. The median depth is the middle value of the depths of all windows (each window counted by its length). Every window is then expressed relative to the median: its depth divided by the median. A window with a relative depth of 1 has the typical depth. Where two copies of a region were merged into one contig, the reads of both copies pile up and the relative depth is about 2; where a region is present twice by error, the reads are shared between the two copies and the relative depth of each is about 0.5. **The measure** is the proportion of the assembly that lies in windows with a relative depth between 0.5 and 1.5: the total length of those windows divided by the total length of all windows. For example, 97.9 percent means that 97.9 of every 100 bases of the assembly lie in windows with a typical depth.
-- **False duplication.** The contigs are aligned to each other, so that every stretch of the assembly that resembles another stretch is found. An alignment is a block: a stretch of one contig matched to a stretch of another contig (a contig is not aligned to itself). Only blocks of at least 1,000 aligned positions are kept (the aligned positions are the columns of the alignment: each column pairs one base of the first stretch with one base of the second). The identity of a block is the proportion of its columns in which the two stretches carry the same base. A base of the assembly can lie in several blocks. Among the blocks that cover it, the one with the highest identity is the base's best block, and the stretch on the other side of that block is its partner stretch. The measure is then a proportion of the assembly: the bases whose best block has an identity of 98 percent or more are counted as **false duplication** (the same region present twice), and the measure is their number divided by the number of bases of the assembly. Bases whose best block has an identity of 80 to 95 percent are real similar copies of this genome, not errors. The unit is the base, so that the result is a proportion of the length of the assembly; a base does not have a partner of its own, it takes the partner of the block it lies in.
+- **False duplication.** The contigs are aligned to each other, so that every stretch of the assembly that resembles another stretch is found. An alignment is a block: a stretch of one contig matched to a stretch of another contig (a contig is not aligned to itself). Only blocks of at least 1,000 aligned positions are kept (the aligned positions are the columns of the alignment: each column pairs one base of the first stretch with one base of the second). The identity of a block is the proportion of its columns in which the two stretches carry the same base. A base of the assembly can lie in several blocks. Among the blocks that cover it, the one with the highest identity is the base's best block, and the stretch on the other side of that block is its partner stretch. The measure is then a proportion of the assembly: the bases whose best block has an identity of 98 percent or more are counted as **false duplication** (the same region present twice; identity alone cannot separate such an error from a recent real duplicate, so this is a proxy), and the measure is their number divided by the number of bases of the assembly. Bases whose best block has an identity of 80 to 95 percent are real similar copies of this genome, not errors. The unit is the base, so that the result is a proportion of the length of the assembly; a base does not have a partner of its own, it takes the partner of the block it lies in.
 - **Accuracy of the bases.** The Illumina reads of 2013 are aligned to the assembly. A position is a *difference* when at least 90 percent of the reads that cover it (at least 10 reads, mapping quality 30, base quality 25) carry another base, or an insertion or a deletion, instead of the assembly base. Only *callable* positions are used: depth of 10 reads or more and at most twice the median depth. The number of differences is divided by the number of callable megabases (Mb, million bases): 20 per Mb, for example, means 20 differences in each million callable bases, about one difference every 50,000 bases. It does not mean that part of the assembly lacks reads.
 - **Shared and specific differences.** The Illumina reads come from another culture of the strain, sequenced at another time. A position where they disagree with Hw 2.0 and with Hw 2.1 in the same way (the same sequence context and the same base) is a *shared* difference: it cannot be blamed on either assembly procedure, and is probably a real difference between the cultures or a systematic error of the PacBio data that both assemblies carry. Differences found in only one assembly are *specific*, and only these are compared.
 
@@ -378,7 +378,7 @@ The noise scale is the range of a measure over the three runs of the procedure (
 | 3. Structure | PacBio reads aligned over 80 % of their length | 69.83 % | 70.25 % | slightly better | 68.58 % | 66.26 % |
 |  | PacBio reads aligned in pieces | 9.52 % | 8.70 % | better | 10.22 % | 12.15 % |
 |  | Bases not spanned by any read across a junction | 1,949 | 55 | better | 4,564 | 710,611 |
-|  | Interior junctions with discordant read pairs | 10,264 | 9,975 | better | 10,299 | 11,008 |
+|  | Interior junctions with split reads | 10,264 | 9,975 | better | 10,299 | 11,008 |
 |  | Disagreements with Hw 2.0 decided for this assembly (proportion of decided) | - | 95.9 % | better: the reads support Hw 2.1 at 377 of 393 decided disagreements (95.9 %; 95 % Wilson interval 93.5 to 97.5) | 15.6 % | 22.7 % |
 | 4. Redundancy and collapse | Bases in windows at 0.5 to 1.5 times the median PacBio depth | 97.52 % | 97.89 % | slightly better | 97.40 % | 71.27 % |
 |  | Bases with a best partner at 98 % identity or more | 1.68 % | 1.12 % | better | 1.39 % | 16.56 % |
@@ -387,7 +387,7 @@ The noise scale is the range of a measure over the three runs of the procedure (
 |  | Specific differences per Mb (all) | 72.1 | 19.5 | better | 53.2 | 537.8 |
 |  | Specific single-base differences per Mb | 4.7 | 4.3 | better | 6.0 | 240.6 |
 |  | Specific insertions and deletions per Mb | 67.4 | 15.1 | better | 47.2 | 297.2 |
-|  | Illumina read pairs mapped (%) | 94.26 | 94.47 | slightly better | 93.59 | 92.90 |
+|  | Illumina reads mapped (%) | 94.26 | 94.47 | slightly better | 93.59 | 92.90 |
 
 Hw 2.1 is the final assembly of the procedure; the three runs gave the same contigs, so one value is shown. The two last columns are the control assemblies made with Canu and Flye at default settings from the same reads, polished in the same way (section 2). "Assessment" says how Hw 2.1 compares with Hw 2.0 on each measure, taking into account in which direction a measure is better (for example fewer contigs, longer N50, less false duplication); "slightly" marks a change of less than 1 percent; measures without a direction of better are marked as descriptive.
 
@@ -432,7 +432,7 @@ Six key measures, one panel each. In every panel each row is one assembly and th
 - The two assemblies disagree at 431 places. At 377 the PacBio reads support the arrangement of Hw 2.1, at 16 the arrangement of Hw 2.0, and 38 are not decided. Of the decided places, 95.9 % go to Hw 2.1 (95 % Wilson interval 93.5 to 97.5 %).
 - Most of the disagreements are joins that Hw 2.1 makes and Hw 2.0 does not (386), as expected from its longer contigs; the reads support 372 of them.
 - Read-back: 70.25 % of the PacBio reads align over at least 80 % of their length (Hw 2.0: 69.83 %); 8.70 % align in pieces (Hw 2.0: 9.52 %).
-- Bases inside contigs that no read crosses: 55 (Hw 2.0: 1,949); junctions with discordant read pairs: 9,975 (Hw 2.0: 10,264).
+- Bases inside contigs that no read crosses: 55 (Hw 2.0: 1,949); junctions with split reads: 9,975 (Hw 2.0: 10,264).
 
 ### Evaluation 4. Redundancy and collapse: better
 
@@ -494,7 +494,7 @@ Of the 22 extra sequences of Hw 2.0, 20 are found in Hw 2.1 with at least 90 % o
 
 - The corrected reads of the three runs (16, 12 and 8 threads) are the same set of reads (compared as sets: only the order in the file differs).
 - The raw assemblies are the same, and the polished assemblies have the same contigs (only the order of contigs in the file differs).
-- The measures of the evaluations differ between the runs only in the fifth decimal or later (largest range relative to the mean: 0.020 percent, in the number of junctions with discordant read pairs). The noise scale is therefore practically zero and a difference of any size counts under the criteria; the size of each difference is given so that small differences can be recognised (for example the proportion of bases at the expected depth).
+- The measures of the evaluations differ between the runs only in the fifth decimal or later (largest range relative to the mean: 0.020 percent, in the number of junctions with split reads). The noise scale is therefore practically zero and a difference of any size counts under the criteria; the size of each difference is given so that small differences can be recognised (for example the proportion of bases at the expected depth).
 
 ## 5. Running the workflow step by step
 
@@ -785,7 +785,7 @@ sbatch --dependency=afterok:$M jobs/02_compare_deposited.sbatch                 
 
 **Expected output:** `results/02_pacbio_reads/merged_seqkit_stats.tsv` (reads and bases of the two sets) and `deposited_fastq_comparison.json`.
 
-Time in the run reported here: the longest job took 0.1 hours of elapsed time; all jobs of the step together used 0.0 core-hours of processor time; the largest peak memory was 8 GB.
+Time in the run reported here: the longest job took 0.1 hours of elapsed time; all jobs of the step together used 0.3 core-hours of processor time; the largest peak memory was 12 GB.
 
 <details><summary>Explanation, settings and details of this step</summary>
 
@@ -1213,7 +1213,7 @@ done
 
 **Expected output:** the final assemblies `$WORK/asm/proc_r1/final.fasta` (Hw 2.1), `proc_r2`, `proc_r3`, `ctrl_canu_quiver` and `ctrl_flye_quiver`; `results/05_polish/<name>/` with the number of changes made by Quiver and the list of removed contigs.
 
-Time in the run reported here: the longest job took 0.5 hours of elapsed time; all jobs of the step together used 34 core-hours of processor time; the largest peak memory was 28 GB.
+Time in the run reported here: the longest job took 0.5 hours of elapsed time; all jobs of the step together used 74 core-hours of processor time; the largest peak memory was 28 GB.
 
 <details><summary>Explanation, settings and details of this step</summary>
 
@@ -1285,7 +1285,7 @@ The RNA-seq reads are assembled into transcripts once, without any genome; the s
 **Commands, in the order in which they are run:**
 
 ```
-T=$(sbatch --parsable --dependency=afterok:$C2 jobs/06_trinity_denovo.sbatch)
+T=$(sbatch --parsable --dependency=afterok:$C1:$C2 jobs/06_trinity_denovo.sbatch)
 ```
 
 **Expected output:** `$WORK/trinity/Trinity.fasta` and `results/06_transcripts/trinity_assembly.json`.
@@ -1330,10 +1330,10 @@ sbatch $(dep $G $MH) jobs/07_depth_unscreened.sbatch                            
 # (b) every assembly: evaluations 1 to 4, transcripts, evaluation 5 (accuracy), contig screen
 declare -A ACC
 for ASM in hw2 proc_r1 proc_r2 proc_r3 ctrl_canu_quiver ctrl_flye_quiver; do
-  sbatch $(dep ${R[$ASM]}) --export=ALL,ASM=$ASM jobs/06_tests.sbatch
+  sbatch $(dep ${R[$ASM]} $C2 $S) --export=ALL,ASM=$ASM jobs/06_tests.sbatch
   sbatch $(dep ${R[$ASM]} $T) --export=ALL,ASM=$ASM jobs/06_transcript_alignment.sbatch
   ACC[$ASM]=$(sbatch --parsable $(dep ${R[$ASM]} $C3) --export=ALL,ASM=$ASM,FASTA=$WORK/asm/$ASM/final.fasta jobs/08_illumina_accuracy.sbatch)
-  sbatch $(dep ${R[$ASM]}) --export=ALL,ASM=$ASM,FASTA=$WORK/asm/$ASM/final.fasta jobs/02_screen_contigs.sbatch
+  sbatch $(dep ${R[$ASM]} $I) --export=ALL,ASM=$ASM,FASTA=$WORK/asm/$ASM/final.fasta jobs/02_screen_contigs.sbatch
 done
 
 # (c) comparison of each assembly with Hw 2.0; mitochondrion and the 22 sequences in the new assemblies
@@ -1343,7 +1343,7 @@ for ASM in proc_r1 proc_r2 proc_r3 ctrl_canu_quiver ctrl_flye_quiver; do
 done
 for ASM in proc_r1 proc_r2 proc_r3; do
   sbatch $(dep ${R[$ASM]}) --export=ALL,ASM=$ASM jobs/07_mito.sbatch
-  sbatch $(dep ${R[$ASM]}) --export=ALL,ASM=$ASM jobs/07_the22_vs_assembly.sbatch
+  sbatch $(dep ${R[$ASM]} $G) --export=ALL,ASM=$ASM jobs/07_the22_vs_assembly.sbatch
 done
 ```
 
@@ -1357,7 +1357,7 @@ Time in the run reported here: the longest job took 0.5 hours of elapsed time; a
 
 One job per assembly carries out four of the five evaluations with the same programs, settings and thresholds for every assembly: contiguity (evaluation 1), gene-space completeness (evaluation 2), structural correctness against the PacBio reads (evaluation 3) and redundancy and collapse (evaluation 4). Evaluation 5, base accuracy from the Illumina reads, belongs to another step; the comparison of two assemblies with each other, the transcripts assembled without a genome and the mitochondrial genome also belong to other steps. The job writes one table per measure and a file `summary.json` with fixed key names, so that the later steps (the noise scale, the decision table, the figures) read numbers from files and never retype them.
 
-The job is `jobs/06_tests.sbatch`. It takes the assembly name (`ASM`) and the FASTA file (`FASTA`) and nothing else is needed. It uses 16 cores and a few gigabytes of memory, and the steps are independent of each other, so an interrupted job can be submitted again: finished steps are skipped (a marker file per step is kept with the large files) unless `FORCE=1` is set.
+The job is `jobs/06_tests.sbatch`. It takes the assembly name (`ASM`) and the FASTA file (`FASTA`) and nothing else is needed. It uses 16 cores and a few gigabytes of memory, and the steps are independent of each other, so an interrupted job can be submitted again: finished steps are skipped (a marker file per step is kept with the large files) unless `FORCE=1` is set. The marker of a step does not record the assembly or the reads it was made from: set `FORCE=1` after changing either.
 
 **Reference data (fetched once, used offline)**
 
@@ -1904,7 +1904,7 @@ $HW_WORK/screen_contigs/   (126 files, 840K)
 
 <details><summary>Step 11. Summary, assessment of the evaluations and validation</summary>
 
-When every job above has ended, finished or failed, the summary job writes the tables, the figures, the assessment of each evaluation, the checksums of the three runs, the time and memory of the jobs, the final assembly as files, and compares the results with the first analysis. A job of the comparison with Hw 2.0 that failed does not prevent the summary or the release of the assembly: the summary uses the results that exist, and the message of the run says FAILED. To repeat a failed job, submit it again as shown in the section of its step (its line in `jobs/submitted_by_submit_all.tsv` gives its arguments and dependencies), then submit `jobs/09_summary.sbatch` again.
+When every job above has ended, finished or failed, the summary job writes the tables, the figures, the assessment of each evaluation, the checksums of the three runs, the time and memory of the jobs, the final assembly as files, and compares the results with the first analysis. A job of the comparison with Hw 2.0 that failed does not prevent the summary or the release of the assembly: the summary uses the results that exist (an evaluation that lacks results, or lacks one of the three runs of the procedure, gets the verdict "incomplete"), and the message of the run says FAILED. To repeat a failed job, submit it again as shown in the section of its step (its line in `jobs/submitted_by_submit_all.tsv` gives its arguments and dependencies), then submit `jobs/09_summary.sbatch` again.
 
 **Commands, in the order in which they are run:**
 
@@ -1932,7 +1932,7 @@ Hw 2.1 is called better than Hw 2.0 when it is better in evaluation 1 and in at 
 
 **Noise scale**
 
-The three polished runs of the procedure (`proc_r1`, `proc_r2`, `proc_r3`) were made from the same reads with different thread settings. For every measure the **noise scale** is the range (largest minus smallest value) over the three runs: the variation the procedure shows when nothing but the thread count changes. A difference between Hw 2.1 and Hw 2.0 counts as real only when it is larger than this range. In the run reported here the three runs are identical, so the noise scale is practically zero.
+The three polished runs of the procedure (`proc_r1`, `proc_r2`, `proc_r3`) were made from the same reads with different thread settings. For every measure the **noise scale** is the range (largest minus smallest value) over the three runs: the variation the procedure shows when nothing but the thread count changes. A difference between Hw 2.1 and Hw 2.0 is called larger than the noise only when it exceeds this range; this is a descriptive rule that measures the repeatability of the computation, not a statistical test. In the run reported here the three runs are identical, so the noise scale is practically zero.
 
 **Further tables**
 
@@ -2011,7 +2011,8 @@ results/10_validation/   (2 files)
 - **Comparison with the authors' filtered reads.** The set of filtered subreads made here differs from the file the authors deposited only in the end coordinate of the last subread of 65,233 reads (one base) and one extra well. The set made here is used because it can be rebuilt from the raw files.
 - **The Illumina reads come from another culture** of the strain than the PacBio reads and were sequenced at another time; this is why differences shared by both assemblies are set aside.
 - **Not covered.** A gene annotation of Hw 2.1; the nucleosome-positioning data (MNase-seq) of the study; other strains or species.
-- **Downloaded data can differ from the first analysis.** The download of the databases and of the input files was repeated from empty folders: the input files, the contaminant-screen collection (RefSeq release 237), the BUSCO lineage and the small reference sequences were identical to those of the first analysis. The Swiss-Prot proteins are fetched from UniProt, which changes them from month to month (38,451 proteins in the first analysis, 38,309 in a later download), so the proportion of proteins found whole can move by about 0.2 percent. Each download is recorded with its source and date in `envs/databases.tsv`.
+- **Downloaded data can differ from the first analysis.** The download of the databases and of the input files was repeated from empty folders: the input files, the contaminant-screen collection (RefSeq release 237), the BUSCO lineage and the small reference sequences were identical to those of the first analysis. The viral genomes and UniVec of the screen collection, like the Swiss-Prot proteins, are taken from sources that are updated, so they can differ in a later download. The Swiss-Prot proteins are fetched from UniProt, which changes them from month to month (38,451 proteins in the first analysis, 38,309 in a later download), so the proportion of proteins found whole can move by about 0.2 percent. Each download is recorded with its source and date in `envs/databases.tsv`.
+- **What the evaluations show and do not show.** They measure how well each assembly agrees with the PacBio reads (the reads the assembly was made from), the RNA-seq reads, the Swiss-Prot proteins, the Illumina reads of 2013 and Hw 2.0. They do not prove that every join is correct, nor that similar copies of a region are kept apart rather than merged. Most of the disagreements with Hw 2.0 that the reads decide are joins of contigs that Hw 2.0 leaves apart; the interior rearrangements are few and most of them are not decided by the reads. Counting alignments within a contig, as well as between contigs, changes the proportion of bases with a partner at 98 percent identity or more by less than 0.1 percentage point. The rates of single-base differences that lie alone are based on few events: only the total rate of specific differences is claimed.
 - **One computer and one set of program versions.** The reproducibility shown is that of three runs on one computer; the versions are in the section on software, and the environments can be recreated from the lock files.
 
 ## 7. Validation
@@ -2058,6 +2059,7 @@ envs/                       software notes, versions by step, databases, lock fi
 input/                      input files, their checksums and the download lists (PacBio, RNA-seq, Illumina 2013, Hw 2.0)
 results/                    tables, figures and summary files by step; results/assembly/ holds Hw 2.1
 validation/                 expected.tsv: the values of the first analysis with the variation that is usual for each
+tests/                      tests of the scripts that need no cluster run (bash tests/run_tests.sh; see tests/README.md)
 logs/                       logs of every job (scheduler output, program output, time and memory)
 ```
 

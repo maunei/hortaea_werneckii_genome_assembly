@@ -47,10 +47,16 @@ FAILED=""
 tm() { local n="$1"; shift; local t; t="$(mktemp -p "$TMP")"; "$TIMEV" -f '%e %M' -o "$t" "$@"; local rc=$?
   read -r s k < <(tail -n 1 "$t"); printf '%s\t%s\t%s\n' "$n" "$s" "$(awk -v k="$k" 'BEGIN{printf "%.2f", k/1048576}')" >> "$RES/timings.tsv"; return $rc; }
 # step NAME FUNCTION   runs FUNCTION in its own shell; skips it when its marker exists; a failure is recorded and the other steps go on
-step() { local n="$1" fn="$2"
+step() { local n="$1" fn="$2" rc
   if [ -e "$BIG/steps/$n.done" ] && [ "$FORCE" != 1 ]; then echo "[$(date)] step $n: already done, skipped"; return; fi
   echo "[$(date)] step $n: start"; local t0=$SECONDS
-  ( set -euo pipefail; "$fn" ) && { touch "$BIG/steps/$n.done"; echo "[$(date)] step $n: done in $((SECONDS - t0)) s"; } || { FAILED="$FAILED $n"; rm -f "$BIG/steps/$n.done"; echo "[$(date)] step $n: FAILED"; }
+  ( set -euo pipefail; "$fn" )
+  rc=$?
+  if [ "$rc" -eq 0 ]; then
+    touch "$BIG/steps/$n.done"; echo "[$(date)] step $n: done in $((SECONDS - t0)) s"
+  else
+    FAILED="$FAILED $n"; rm -f "$BIG/steps/$n.done"; echo "[$(date)] step $n: FAILED (exit $rc)"
+  fi
 }
 
 s_contiguity() { tm contiguity "$PY" "$SCR/06_contiguity.py" "$FASTA" "$GENOME_SIZE" "$RES/contiguity"; }

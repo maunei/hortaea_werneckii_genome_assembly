@@ -25,11 +25,14 @@ inp = os.environ['INPUT']; res = os.environ['RESULTS'] + '/01_inputs'
 md5 = {}
 for l in open(inp + '/CHECKSUMS.md5'):
     h, p = l.rstrip('\n').split('  ', 1); md5[p.lstrip('./')] = h
+bad = set()   # files that failed the check of part (1): a file that is damaged on disk is not 'ok' even when its checksum in the list is the archive checksum
+for l in open(res + '/checksums_failed.txt'):
+    if l.rstrip().endswith(': FAILED'): bad.add(l.rstrip()[:-len(': FAILED')].lstrip('./'))
 rows = []
 for man, sub, layout in (('pacbio_files.tsv', 'pacbio', 'run/name'), ('rna_sra_files.tsv', 'rnaseq', 'run/run'), ('illumina2013_sra_files.tsv', 'illumina2013', 'run/run')):
     for r in csv.DictReader(open(f'{inp}/manifests/{man}'), delimiter='\t'):
-        p = f"{sub}/{r['run']}/{r['name']}" if layout == 'run/name' else f"{sub}/{r['run']}/{r['name']}"
-        got = md5.get(p); rows.append((sub, r['run'], r['name'], r['size'], r['md5'], got or 'missing', 'ok' if got == r['md5'] else 'DIFFERENT'))
+        p = f"{sub}/{r['run']}/{r['name']}"
+        got = md5.get(p); rows.append((sub, r['run'], r['name'], r['size'], r['md5'], got or 'missing', 'ok' if got == r['md5'] and p not in bad else 'DIFFERENT'))
 with open(res + '/archive_check.tsv', 'w') as w:
     w.write('group\trun\tfile\tsize\tmd5_archive\tmd5_found\tstatus\n')
     for x in rows: w.write('\t'.join(map(str, x)) + '\n')

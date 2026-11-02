@@ -16,7 +16,7 @@ Hw 2.1 is called better than Hw 2.0 when it is better in evaluation 1 and in at 
 
 ### Noise scale
 
-The three polished runs of the procedure (`proc_r1`, `proc_r2`, `proc_r3`) were made from the same reads with different thread settings. For every measure the **noise scale** is the range (largest minus smallest value) over the three runs: the variation the procedure shows when nothing but the thread count changes. A difference between Hw 2.1 and Hw 2.0 counts as real only when it is larger than this range. In the run reported here the three runs are identical, so the noise scale is practically zero.
+The three polished runs of the procedure (`proc_r1`, `proc_r2`, `proc_r3`) were made from the same reads with different thread settings. For every measure the **noise scale** is the range (largest minus smallest value) over the three runs: the variation the procedure shows when nothing but the thread count changes. A difference between Hw 2.1 and Hw 2.0 is called larger than the noise only when it exceeds this range; this is a descriptive rule that measures the repeatability of the computation, not a statistical test. In the run reported here the three runs are identical, so the noise scale is practically zero.
 
 ### Further tables
 

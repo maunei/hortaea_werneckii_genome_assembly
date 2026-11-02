@@ -73,6 +73,7 @@ stage callable
 rm -f chunk_*.bed chunk_*.vcf.gz
 NCH=$("$PY" "$HW/scripts/08_illumina_accuracy.py" chunks --callable callable.bed --prefix chunk_ --n "$THREADS")
 call_chunk() {
+  set -euo pipefail
   local b="$1"; local o="${b%.bed}.vcf.gz"
   bcftools mpileup -f ref.fa -q "$MIN_MAPQ" -Q "$MIN_BASEQ" -d 1000 -L 1000 -a FORMAT/AD,FORMAT/DP -R "$b" -Ou sorted.bam 2> "${b%.bed}.mpileup.log" \
     | bcftools call -m -v --ploidy 1 -Ou 2> "${b%.bed}.call.log" \
@@ -80,7 +81,7 @@ call_chunk() {
     | bcftools view -i "QUAL>=$MIN_QUAL" -Oz -o "$o"
 }
 export -f call_chunk; export MIN_MAPQ MIN_BASEQ MIN_QUAL
-ls chunk_*.bed | xargs -P "$THREADS" -I{} bash -c 'call_chunk {}'
+ls chunk_*.bed | xargs -P "$THREADS" -I{} bash -c 'call_chunk "$1"' _ {}
 bcftools concat -Oz -o calls.vcf.gz chunk_*.vcf.gz
 bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t%QUAL\t[%AD]\t[%DP]\n' calls.vcf.gz > calls.tsv
 echo "calls (QUAL>=$MIN_QUAL, before the filter on the fraction of reads): $(wc -l < calls.tsv)"

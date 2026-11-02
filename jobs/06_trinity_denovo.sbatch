@@ -27,8 +27,9 @@ CPUS="${SLURM_CPUS_PER_TASK:-16}"
 if [ -z "${SKIP_MARKER:-}" ] && [ ! -e "$RNA_DIR/READY_03" ]; then echo "ERROR: $RNA_DIR/READY_03 is missing; run step 03 first" >&2; exit 2; fi
 for m in 1 2; do [ -s "$RNA_DIR/${RUN}_${m}.fastq.gz" ] || { echo "ERROR: $RNA_DIR/${RUN}_${m}.fastq.gz is missing" >&2; exit 2; }; done
 
-# Node-local disk: Trinity writes very many small files, which is slow and wasteful on the shared file system.
-T="$(mktemp -d "${SLURM_TMPDIR:-${TMPDIR:-/tmp}}/hw06_trinity.XXXXXX")"
+# Node-local disk when provided by Slurm; otherwise use $WORK (never node /tmp, which may be a small RAM tmpfs).
+TMPBASE="${SLURM_TMPDIR:-$WORK/tmp_06}"; mkdir -p "$TMPBASE"
+T="$(mktemp -d "$TMPBASE/hw06_trinity.XXXXXX")"
 trap 'rm -rf "$T"' EXIT
 export PATH="$TRINITY_BIN:$QC_BIN:$PATH"          # Trinity must find its own Perl, Java, Jellyfish, Bowtie2 and Samtools first
 mkdir -p "$TRINITY_OUT" "$TRINITY_RESULTS"

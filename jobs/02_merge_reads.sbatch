@@ -17,7 +17,7 @@ hw_start 02_merge_reads
 O="$WORK/reads/pacbio"; R="$RESULTS/02_pacbio_reads"; mkdir -p "$O" "$R"; cd "$O"
 rm -f hq_subreads.fastq filtered_subreads.fastq READY_02A
 for RUN in SRR5086620 SRR5086623 SRR5086626 SRR5086627 SRR5086628; do
-  cat "$WORK/pacbio_bam/$RUN/$RUN.hq_subreads.fastq" >> hq_subreads.fastq; cat "$WORK/pacbio_bam/$RUN/$RUN.filtered_subreads.fastq" >> filtered_subreads.fastq
+  cat "$WORK/pacbio_bam/$RUN/$RUN.hq_subreads.fastq" >> hq_subreads.fastq || exit 3; cat "$WORK/pacbio_bam/$RUN/$RUN.filtered_subreads.fastq" >> filtered_subreads.fastq || exit 3
 done
 "$QC_BIN/seqkit" stats -a -T -j 4 hq_subreads.fastq filtered_subreads.fastq > "$R/merged_seqkit_stats.tsv" || exit 4
 cut -f1,4,5,8,9,13 "$R/merged_seqkit_stats.tsv"

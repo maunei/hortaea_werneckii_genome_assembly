@@ -31,19 +31,28 @@ MM="$QC_BIN/minimap2"; "$MM" --version
 # 1. Assembly A against assembly B. Both assemblies come from the same reads, so they differ by less than about one percent in the aligned parts:
 #    preset asm10 (up to about 1 percent divergence) rather than asm5 (up to about 0.1 percent), because assemblies that are not polished (the first run before polishing)
 #    carry more differences. -c writes the base-level alignment, --secondary=no keeps for each part of A only its best place in B.
-"$MM" -x "$PRESET" -c --secondary=no -t "$CPUS" "$FASTA_B" "$FASTA_A" > "$AL/A_to_B.paf" 2> "$LOGDIR/minimap2_asm.log"
+"$MM" -x "$PRESET" -c --secondary=no -t "$CPUS" "$FASTA_B" "$FASTA_A" > "$AL/A_to_B.paf" 2> "$LOGDIR/minimap2_asm.log" || exit 3
 echo "alignment records: $(wc -l < "$AL/A_to_B.paf")"
 
 # 2. The disagreements (definitions in the header of the script).
 "$PY" "$HW/scripts/07_find_disagreements.py" "$AL/A_to_B.paf" "$A_ASM" "$B_ASM" "$AL/events.tsv" --min-sv "$MIN_SV" --min-piece "$MIN_PIECE" --stats "$AL/alignment_stats.json" || exit 3
 
 # 3. The reads against each assembly (kept for later comparisons that use the same assembly and the same reads).
+#    Multiple 07_compare_adjudicate jobs share B_ASM=hw2, so cache construction is serialized per target file with flock.
 for X in A B; do
   if [ "$X" = A ]; then ASMX="$A_ASM"; FX="$FASTA_A"; else ASMX="$B_ASM"; FX="$FASTA_B"; fi
   C="$RD/${READS_TAG}_to_${ASMX}.tsv.gz"
-  if [ -s "$C" ] && [ "$C" -nt "$FX" ] && [ "$C" -nt "$READS" ] && [ -z "${FORCE:-}" ]; then echo "reusing $C"; continue; fi
-  "$MM" -x map-pb -c --secondary=no -t "$CPUS" "$FX" "$READS" 2> "$LOGDIR/minimap2_reads_$X.log" | "$PY" "$HW/scripts/07_compact_read_alignments.py" 200 500 | gzip > "$C.tmp" && mv "$C.tmp" "$C" || exit 4
-  echo "$C: $(zcat "$C" | wc -l) alignment records"
+  (
+    flock 9 || exit 4
+    if [ -s "$C" ] && [ "$C" -nt "$FX" ] && [ "$C" -nt "$READS" ] && [ -z "${FORCE:-}" ]; then echo "reusing $C"; exit 0; fi
+    set -euo pipefail
+    trap 'rm -f "$C.tmp.$$"' EXIT
+    "$MM" -x map-pb -c --secondary=no -t "$CPUS" "$FX" "$READS" 2> "$LOGDIR/minimap2_reads_$X.log" \
+      | "$PY" "$HW/scripts/07_compact_read_alignments.py" 200 500 \
+      | gzip > "$C.tmp.$$"
+    mv "$C.tmp.$$" "$C"
+  ) 9> "$C.lock" || exit 4
+  echo "$C: $(gzip -dc "$C" | wc -l) alignment records"
 done
 
 # 4. The reads decide.

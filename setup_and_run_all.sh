@@ -14,7 +14,10 @@ HW="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; cd "$HW" || exit 1
 STAGE="${1:-help}"; SETTINGS="${2:-$HW/settings.yaml}"
 die() { echo "ERROR: $*" >&2; exit 1; }
 say() { echo; echo "=== $*"; }
-yget() { awk -F: -v k="$1" '$1 == k { sub(/^[^:]*:[ \t]*/, ""); sub(/[ \t]+#.*$/, ""); sub(/[ \t]+$/, ""); gsub(/^"|"$/, ""); gsub(/^\047|\047$/, ""); print; exit }' "$SETTINGS"; }
+sbatch_id() {   # sbatch_id ARGS: submits a job and prints its number; fails (with the message of sbatch) when the job was not accepted
+  local out; out=$(sbatch --parsable "$@") || return 1; out="${out%%;*}"; [[ "$out" =~ ^[0-9]+$ ]] || return 1; echo "$out"
+}
+yget() { awk -F: -v k="$1" '$1 == k { sub(/^[^:]*:/, ""); sub(/(^|[ \t]+)#.*$/, ""); sub(/^[ \t]+/, ""); sub(/[ \t]+$/, ""); gsub(/^"|"$/, ""); gsub(/^\047|\047$/, ""); print; exit }' "$SETTINGS"; }
 
 stage_settings() {
   say "settings: $SETTINGS"
@@ -31,26 +34,42 @@ stage_settings() {
   mkdir -p "$(yget work_dir)" "$(yget envs_dir)" "$(yget dbs_dir)" || die "cannot create the folders of settings.yaml"
   {
     echo "# Written by setup_and_run_all.sh from settings.yaml. Not part of the repository; do not edit."
-    printf 'export HW_WORK="%s"\n' "$(yget work_dir)"; printf 'export HW_ENVS="%s"\n' "$(yget envs_dir)"; printf 'export HW_DBS="%s"\n' "$(yget dbs_dir)"
-    printf 'export HW_ACCOUNT="%s"\n' "$(yget account)"; printf 'export HW_MAIL="%s"\n' "$MAIL"; printf 'export HW_MAIL_WHEN="%s"\n' "$MAIL_WHEN"
-    printf 'export HW_MODULES="%s"\n' "$(yget modules)"; printf 'export HW_FINISHED_JOB="%s"\n' "$(yget finished_job_name)"
+    printf 'export HW_WORK=%q\n' "$(yget work_dir)"; printf 'export HW_ENVS=%q\n' "$(yget envs_dir)"; printf 'export HW_DBS=%q\n' "$(yget dbs_dir)"
+    printf 'export HW_ACCOUNT=%q\n' "$(yget account)"; printf 'export HW_MAIL=%q\n' "$MAIL"; printf 'export HW_MAIL_WHEN=%q\n' "$MAIL_WHEN"
+    printf 'export HW_MODULES=%q\n' "$(yget modules)"; printf 'export HW_FINISHED_JOB=%q\n' "$(yget finished_job_name)"
   } > config/local.sh
   echo "account $(yget account) | mail: $MAIL_WHEN | work $(yget work_dir) | environments $(yget envs_dir) | databases $(yget dbs_dir)"
   echo "written: config/local.sh"
 }
 load() { [ -f config/local.sh ] || die "config/local.sh does not exist: run  bash setup_and_run_all.sh settings"; unset HW RESULTS WORK ENVS DBS INPUT LOGS_BASE; source config/config.sh; INPUT_SOURCE="$(yget input_source)"; }
+squeue_wait() {   # squeue_wait "id[,id...]": polls until jobs leave queue; tolerates transient slurmctld errors
+  local ids="$1" out rc
+  while true; do
+    out="$(squeue -h -j "$ids" 2>&1)"; rc=$?
+    if [ "$rc" -eq 0 ]; then [ -n "$out" ] || break
+    elif [[ "$out" == *"Invalid job id"* ]]; then break
+    else echo "WARN: squeue transient error ($out); retrying in 30 s" >&2
+    fi
+    sleep 30
+  done
+  sleep 5
+}
 wait_jobs() {   # wait_jobs "id,id" "label": waits until the jobs have left the queue, then stops unless all of them completed
-  local ids="$1" label="$2" bad
+  local ids="$1" label="$2" rows bad
   echo "waiting for $label (job $ids); checks every 30 s"
-  while squeue -h -j "$ids" 2>/dev/null | grep -q .; do sleep 30; done; sleep 5
-  bad="$(sacct -j "$ids" -X -n -P -o JobID,JobName,State,ExitCode | grep -v '|COMPLETED|')"
+  squeue_wait "$ids"
+  rows="$(sacct -j "$ids" -X -n -P -o JobID,JobName,State,ExitCode)"
+  [ -n "$rows" ] || die "sacct returned no accounting records for $label (job $ids)"
+  bad="$(printf '%s\n' "$rows" | grep -v '|COMPLETED|' || true)"
   [ -z "$bad" ] || { echo "$bad"; die "$label did not complete; read the log in logs/ (job name and number above)"; }
   echo "$label completed"
 }
 
 job_state() {   # job_state ID: waits until the job has left the queue and prints its final state (COMPLETED, TIMEOUT, FAILED, ...)
-  local id="$1"; while squeue -h -j "$id" 2>/dev/null | grep -q .; do sleep 30; done; sleep 5
-  sacct -j "$id" -X -n -P -o State | head -1 | awk '{print $1}'
+  local id="$1" st
+  squeue_wait "$id"
+  st="$(sacct -j "$id" -X -n -P -o State | head -1 | awk '{print $1}')"
+  echo "${st:-UNKNOWN}"
 }
 work_has_old_run() {   # the work folder holds the products of an earlier run while results/ of this clone is empty: the steps would be skipped as "already done" and results/ would stay incomplete
   local d found=""; for d in asm reads pacbio_bam tests; do [ -n "$(ls -A "$WORK/$d" 2>/dev/null)" ] && found=1; done
@@ -73,7 +92,7 @@ stage_software() {
     s=$(my_job hw_01_software)
     if [ -n "$s" ]; then echo "attempt $attempt: installation job $s is already queued or running (started earlier); waiting for it"
     else
-      s=$(sbatch --parsable "${SBATCH_COMMON[@]}" jobs/01_software.sbatch | cut -d';' -f1) || die "could not submit the installation of the software"
+      s=$(sbatch_id "${SBATCH_COMMON[@]}" jobs/01_software.sbatch) || die "could not submit the installation of the software"
       echo "attempt $attempt: installation job $s; waiting (checks every 30 s)"
     fi
     st=$(job_state "$s")
@@ -94,8 +113,8 @@ stage_databases() {
   for attempt in 1 2 3 4 5; do
     f=$(my_job hw_fetch_databases); i=""
     if [ -n "$f" ]; then i=$(my_job hw_screen_dbindex); echo "attempt $attempt: download job $f is already queued or running (started earlier); waiting for it"
-    else f=$(sbatch --parsable "${SBATCH_COMMON[@]}" jobs/02_fetch_databases.sbatch | cut -d';' -f1) || die "could not submit the download"; fi
-    [ -n "$i" ] || i=$(sbatch --parsable --dependency=afterok:$f "${SBATCH_COMMON[@]}" jobs/02_screen_db_index.sbatch | cut -d';' -f1) || die "could not submit the index job"
+    else f=$(sbatch_id "${SBATCH_COMMON[@]}" jobs/02_fetch_databases.sbatch) || die "could not submit the download"; fi
+    [ -n "$i" ] || i=$(sbatch_id --dependency=afterok:$f "${SBATCH_COMMON[@]}" jobs/02_screen_db_index.sbatch) || die "could not submit the index job"
     echo "attempt $attempt: download job $f, index job $i; waiting (checks every 30 s)"
     st=$(job_state "$f")
     if [ "$st" = COMPLETED ]; then wait_jobs "$i" "the index of the databases"; return; fi
@@ -120,7 +139,7 @@ stage_inputs() {
     f=$(my_job hw_01_fetch_inputs)
     if [ -n "$f" ]; then echo "attempt $attempt: download job $f is already queued or running (started earlier); waiting for it"
     else
-      f=$(sbatch --parsable "${SBATCH_COMMON[@]}" jobs/01_fetch_inputs.sbatch | cut -d';' -f1) || die "could not submit the download"
+      f=$(sbatch_id "${SBATCH_COMMON[@]}" jobs/01_fetch_inputs.sbatch) || die "could not submit the download"
       echo "attempt $attempt: download job $f; waiting (checks every 30 s)"
     fi
     st=$(job_state "$f")
@@ -135,7 +154,7 @@ stage_check() {
   no_old_work
   [ -z "$(inputs_missing)" ] || die "input files are missing (first: $(inputs_missing)); run the stage inputs"
   echo "input files: all present"
-  local p; p=$(sbatch --parsable "${SBATCH_COMMON[@]}" jobs/00_preflight.sbatch | cut -d';' -f1) || die "could not submit the check job"
+  local p; p=$(sbatch_id "${SBATCH_COMMON[@]}" jobs/00_preflight.sbatch) || die "could not submit the check job"
   wait_jobs "$p" "the check job (programs, databases and folders seen from a compute node)"
   grep -h "MISSING\|PREFLIGHT\|versions:" logs/hw_00_preflight_$p.out
   say "dry run of the whole analysis"
@@ -145,8 +164,12 @@ stage_run() {
   say "run"
   [ -n "$DRYRUN" ] || no_old_work
   [ -n "$DRYRUN" ] || { local q; q=$(my_job hw_09_summary); [ -z "$q" ] || die "the analysis is already submitted from this folder (summary job $q is waiting in the queue); wait for it, and follow it with: squeue -u \$USER"; }
-  if [ -n "$DRYRUN" ]; then DRYRUN=1 bash scripts/submit_all.sh | tee logs/dryrun.txt | tail -3; return; fi
-  bash scripts/submit_all.sh | tee logs/submit_all.txt | tail -2
+  if [ -n "$DRYRUN" ]; then DRYRUN=1 bash scripts/submit_all.sh > logs/dryrun.txt 2>&1 || { tail -3 logs/dryrun.txt; die "the dry run failed"; }; tail -3 logs/dryrun.txt; return; fi
+  if ! bash scripts/submit_all.sh > logs/submit_all.txt 2>&1; then   # a submission that stopped half way: the jobs already accepted are cancelled, so that no partial analysis runs
+    tail -5 logs/submit_all.txt; awk '{print $2}' jobs/submitted_by_submit_all.tsv 2>/dev/null | xargs -r scancel
+    die "the submission of the analysis stopped (see above); the jobs already submitted were cancelled; correct the problem and run the stage run again"
+  fi
+  tail -2 logs/submit_all.txt
   local s; s=$(awk '$1=="summary"{print $2}' jobs/submitted_by_submit_all.tsv); [ -n "$s" ] || die "the summary job was not submitted"
   echo "all jobs are submitted; the last job (09_summary, job $s) runs when all others have ended"
   if [ "${HW_MAIL_WHEN:-FAIL}" != NONE ]; then
@@ -155,7 +178,7 @@ stage_run() {
     local ids; ids=$(awk '{print $2}' jobs/submitted_by_submit_all.tsv | paste -sd, -)
     sbatch --parsable -J "${HW_FINISHED_JOB:-hw_run_finished}" --dependency=afterany:$s --account="$HW_ACCOUNT" --mail-type=BEGIN,END --mail-user="$HW_MAIL" \
            --time=00:02:00 --mem=100M --cpus-per-task=1 --output=/dev/null \
-           --wrap="sleep 20; n=\$(sacct -j $ids -X -n -P -o State | grep -c -v '^COMPLETED\$'); [ \"\$n\" = 0 ]" > /dev/null \
+           --wrap="sleep 20; st=\$(sacct -j $ids -X -n -P -o State); [ -n \"\$st\" ] && ! printf '%s\n' \"\$st\" | grep -qv '^COMPLETED\$'" > /dev/null \
       && echo "one message will be sent when the summary job has ended (job name ${HW_FINISHED_JOB:-hw_run_finished}): 'COMPLETED' if all jobs of the analysis completed, 'FAILED' if any job failed or was cancelled; a failed job is also reported by the scheduler"
   fi
   echo "follow the run with:  squeue -u \$USER;  results will be in results/ (README, 'Run everything')"

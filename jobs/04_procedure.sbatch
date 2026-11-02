@@ -11,6 +11,7 @@
 HW="${SLURM_SUBMIT_DIR:-$PWD}"; source "$HW/config/modules.sh"      # the modules of settings.yaml
 source "$HW/config/config.sh"; source "$HW/config/lib.sh"
 hw_start 04_procedure
+set -o pipefail
 
 # Step 04: the HGAP-style procedure (seeds, correction against the seeds, Canu assembly of the corrected reads). RUN (r1, r2, r3) names the run;
 # THREADS may be set with --export to give the repeat runs different thread settings (default: the cores of the job). READS is the filtered read set.
@@ -31,7 +32,7 @@ seqkit fx2tab -n -l seeds.fa | sort -k2,2n > seeds_by_length.tsv || exit 4
 echo "seeds: $(grep -c '>' seeds.fa); shortest seed: $(head -1 seeds_by_length.tsv | cut -f2)"; rm -f seeds_by_length.tsv
 # 2 correction: all reads aligned to the seeds with BLASR (up to 24 alignments per read), consensus per seed with pbdagcon (coverage >= 4, length >= 500)
 /usr/bin/time -v blasr reads.fa seeds.fa -m 5 --bestn 24 --nCandidates 24 --minMatch 12 --maxLCPLength 15 --maxScore -1000 --nproc "$NT" --noSplitSubreads --out aln.m5 > "$LOGDIR/blasr.out" 2> "$LOGDIR/blasr.time"; brc=$?; echo "blasr exit $brc"; [ $brc = 0 ] || exit 2
-sort -k6,6 -T "$T" --parallel="$NT" aln.m5 > aln.sorted.m5; rm -f aln.m5
+sort -k6,6 -T "$T" --parallel="$NT" aln.m5 > aln.sorted.m5 || exit 4; rm -f aln.m5
 # pbdagcon (a program of the original protocol) can stop with a thread error when it runs with many threads; the result of a run that stopped is incomplete, so the run is repeated (three attempts) and the job fails if none succeeds
 for attempt in 1 2 3; do
   /usr/bin/time -v pbdagcon -j "$NT" -t 12 -c 4 -m 500 aln.sorted.m5 > corrected.fasta 2> "$LOGDIR/pbdagcon.time"; prc=$?
@@ -42,9 +43,10 @@ done
 seqkit stats -a -T corrected.fasta > "$R/corrected_stats.tsv" || exit 4; cp corrected.fasta "$OUT/corrected.fasta" || exit 4; cut -f1-9 "$R/corrected_stats.tsv"
 # 3 assembly of the corrected reads with Canu (assembly only, corrected-read error limit 0.025)
 export PATH="$MODERN_BIN:$QC_BIN:$P0"
+rm -rf "$OUT/canu_asm"
 /usr/bin/time -v canu -assemble -p canu -d "$OUT/canu_asm" genomeSize=$GS -pacbio-corrected "$OUT/corrected.fasta" useGrid=false maxThreads="$NT" maxMemory=60 stopOnLowCoverage=2 correctedErrorRate=0.025 > "$LOGDIR/canu_asm.out" 2> "$LOGDIR/canu_asm.time"; rc=$?; echo "canu exit $rc"
 [ $rc = 0 ] || exit 3
-cp "$OUT/canu_asm/canu.contigs.fasta" "$OUT/final.fasta"; seqkit stats -a -T "$OUT/final.fasta" > "$R/assembly_stats.tsv"; cut -f1-9,13,14 "$R/assembly_stats.tsv"
+cp "$OUT/canu_asm/canu.contigs.fasta" "$OUT/final.fasta" || exit 4; seqkit stats -a -T "$OUT/final.fasta" > "$R/assembly_stats.tsv" || exit 4; cut -f1-9,13,14 "$R/assembly_stats.tsv"
 grep -hE "Elapsed|Maximum resident" "$LOGDIR"/*.time > "$R/time_memory.txt"
 rm -f "$T/aln.sorted.m5" "$T/reads.fa"
 hw_end 04_procedure

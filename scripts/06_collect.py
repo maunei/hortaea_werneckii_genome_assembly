@@ -5,9 +5,12 @@ A measure whose file is missing is stored as null, and the key steps_failed list
 import sys, json, os
 res, asm, pb, rna = sys.argv[1:5]
 failed = sys.argv[5].split() if len(sys.argv) > 5 and sys.argv[5].strip() else []
+STEP_FILE = {'contiguity': 'contiguity.json', 'telomeres': 'telomeres.json', 'busco': 'busco.json', 'readback_stats': 'readback.json', 'depth': 'depth.json',
+             'selfalign': 'redundancy.json', 'miniprot': 'miniprot.json', 'star': 'star.json'}
+stale = {STEP_FILE[x] for x in failed if x in STEP_FILE}   # a file left by an earlier attempt is not the result of a step that failed now
 def load(n):
     p = os.path.join(res, n)
-    return json.load(open(p)) if os.path.exists(p) else None
+    return json.load(open(p)) if os.path.exists(p) and n not in stale else None
 ct, bu, st, mp, rb, dp, rd, te = (load(x) for x in ('contiguity.json', 'busco.json', 'star.json', 'miniprot.json', 'readback.json', 'depth.json', 'redundancy.json', 'telomeres.json'))
 S = dict(
     assembly=asm,
