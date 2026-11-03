@@ -17,3 +17,4 @@ Python of the environment `04_probe`. They run in a few seconds and change nothi
 | t07_resources.sh | with a mock `sacct`, the table of resources counts the tasks of array jobs |
 | t08_inputs_list.sh | the list of input checksums has no entry of the 18 git-lfs files and no duplicate |
 | t09_archived_results.sh | optional: with `HW_TEST_RESULTS=<results folder of a complete run>` the summary step is run again on a copy and must give identical tables and verdicts |
+| t10_screen_worker.sh | the worker of the database download receives its arguments in the right order (mock `curl`) |

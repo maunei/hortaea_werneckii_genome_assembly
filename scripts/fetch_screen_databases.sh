@@ -49,7 +49,7 @@ export -f worker
 log "downloading genomes ($JOBS in parallel)"
 rm -f "$T/failed.txt"
 tail -n +2 "$SEL" | awk -F'\t' '{print $1"\t"$2"\t"$9}' \
-  | xargs -P "$JOBS" -L 1 bash -c 'worker "$1" "$2" "$3" "$4"' _ "$T"
+  | xargs -P "$JOBS" -L 1 bash -c 'worker "$2" "$3" "$4" "$1"' _ "$T"
 if [ -s "$T/failed.txt" ]; then log "some genomes failed:"; cat "$T/failed.txt"; exit 1; fi
 
 # 3. concatenate into the parts (gzip members can be joined)
