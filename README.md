@@ -656,17 +656,17 @@ Tree of the files of this step, from a run of a fresh clone of the repository. A
 
 ```
 $HW_ENVS/   (outside the repository)
-├── 04_A_rna/   (636M)
+├── 04_A_rna/   (635M)
 ├── 04_B_qc/   (3.2G)
 ├── 04_B_trinity/   (1.1G)
 ├── 04_I_qc/   (3.2G)
 ├── 04_I_var/   (484M)
-├── 04_pacbio_hdf518/   (580M)
+├── 04_pacbio_hdf518/   (579M)
 ├── 04_pacbio_legacy/   (382M)
 ├── 04_pacbio_modern/   (2.5G)
 ├── 04_probe/   (1.5G)
 ├── 04_screen/   (898M)
-└── libcompat_r2/   (4.0K)
+└── libcompat_r2/   (8.0K)
 ```
 
 </details>
@@ -693,7 +693,7 @@ Time in the run reported here: the longest job took 0.1 hours of elapsed time; a
 Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
-$HW_DBS/   (outside the repository; 85G)
+$HW_DBS/   (outside the repository; 84G)
 ├── busco_downloads/   (279M)
 ├── mito_refs/   (840K)
 ├── proteins/   (25M)
@@ -746,9 +746,9 @@ results/01_inputs/   (3 files)
 ├── archive_check.tsv   - one row for each archive file: checksum published by the archive, checksum found, status
 └── checksums_failed.txt   - empty when every file agrees with input/CHECKSUMS.md5
 
-input/   (outside git: 80G; the repository itself holds CHECKSUMS.md5, manifests/ and hw2/github_commit.txt)
-├── hw2/   (684 files, 5.5G)
-│   ├── github_Hortaea_werneckii/   (672 files, 5.5G)
+input/   (outside git: 75G; the repository itself holds CHECKSUMS.md5, manifests/ and hw2/github_commit.txt)
+├── hw2/   (665 files, 793M)
+│   ├── github_Hortaea_werneckii/   (653 files, 762M)
 │   └── ncbi_GCA_002127715.1/   (11 files, 32M)
 ├── illumina2013/   (3 files, 3.2G)
 │   └── SRR866616/   (2 files, 3.2G)
@@ -819,7 +819,11 @@ The authors deposited the filtered subreads they used as FASTQ (accession SRR508
 Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
-results/02_pacbio_reads/   (95 files)
+results/02_pacbio_reads/   (98 files)
+├── screen_db/
+│   ├── parts_stats.tsv
+│   ├── refseq_release.txt
+│   └── screen_manifest.tsv.gz
 ├── <run>_bax_metrics.json   (x5)   - well and read metrics of the run
 ├── <run>_seqkit_stats.tsv   (x5)   - reads, bases and length statistics of the run
 ├── deposited_fastq_comparison.json   - comparison with the file deposited by the authors (SRR5086624)
@@ -1303,7 +1307,7 @@ results/06_transcripts/   (20 files)
 │   └── transcripts.tsv.gz   - alignment of every Trinity transcript
 └── trinity_assembly.json   - statistics of the Trinity transcripts
 
-$HW_WORK/trinity/   (2 files, 120M)
+$HW_WORK/trinity/   (2 files, 119M)
 ├── Trinity.fasta
 └── Trinity.fasta.gene_trans_map
 ```
@@ -1789,20 +1793,28 @@ results/08_illumina_accuracy/   (105 files)
         ├── proc_r3_status.tsv
         └── summary.json   - all measures of this assembly (or comparison) in one file
 
-$HW_WORK/aln/   (56 files, 241M)
+$HW_WORK/aln/   (64 files, 241M)
 ├── 06_transcripts/
 │   └── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
 ├── 07_compare/
 │   └── {ctrl_canu_quiver_vs_hw2, ctrl_canu_vs_hw2, ctrl_flye_quiver_vs_hw2, ctrl_flye_vs_hw2, proc_r1_vs_hw2, proc_r2_vs_hw2, proc_r3_vs_hw2}/
 └── 07_reads/
     ├── hq_clean_to_ctrl_canu.tsv.gz
+    ├── hq_clean_to_ctrl_canu.tsv.gz.lock
     ├── hq_clean_to_ctrl_canu_quiver.tsv.gz
+    ├── hq_clean_to_ctrl_canu_quiver.tsv.gz.lock
     ├── hq_clean_to_ctrl_flye.tsv.gz
+    ├── hq_clean_to_ctrl_flye.tsv.gz.lock
     ├── hq_clean_to_ctrl_flye_quiver.tsv.gz
+    ├── hq_clean_to_ctrl_flye_quiver.tsv.gz.lock
     ├── hq_clean_to_hw2.tsv.gz
+    ├── hq_clean_to_hw2.tsv.gz.lock
     ├── hq_clean_to_proc_r1.tsv.gz
+    ├── hq_clean_to_proc_r1.tsv.gz.lock
     ├── hq_clean_to_proc_r2.tsv.gz
-    └── hq_clean_to_proc_r3.tsv.gz
+    ├── hq_clean_to_proc_r2.tsv.gz.lock
+    ├── hq_clean_to_proc_r3.tsv.gz
+    └── hq_clean_to_proc_r3.tsv.gz.lock
 
 $HW_WORK/map/   (963 files, 38G)
 └── illumina2013/
@@ -1990,7 +2002,7 @@ results/09_summary/   (25 files)
 ├── verdict.json   - verdict on each evaluation
 └── verdict.tsv   - verdict on each evaluation (table)
 
-results/10_validation/   (2 files)
+results/10_validation/   (3 files)
 ├── closeness.tsv   - the same values as a table (value, first analysis, difference, usual variation, note)
 └── validation_report.txt   - how close the rerun is to validation/expected.tsv: summary and one line per value
 ```
@@ -2019,19 +2031,19 @@ results/10_validation/   (2 files)
 
 The workflow was tested step by step and as a whole: the installation of the software from an empty folder, the downloads of the databases and of the input files from empty folders, and one complete run of `bash setup_and_run_all.sh all` in which every stage started from nothing. The comparison of the results with the first analysis is made by the workflow itself (step 10); it reports how close the values are and never makes a run FAILED.
 
-<details><summary>Complete run from empty folders (31 October to 1 November 2026)</summary>
+<details><summary>Complete run from empty folders (2 to 3 November 2026)</summary>
 
-A fresh clone of the repository (commit 67cb172) with new, empty folders for the software, the databases, the input files and the work files. The later commits changed the documentation, added the files for the license and for citing, and changed one log message, the label of identical values in the validation report and the restart of the script; the analysis was not changed.
+A fresh clone of the repository (commit f24f2dd) with new, empty folders for the software, the databases, the input files and the work files. The analysis was not changed by the commits that followed (they changed the documentation).
 
 | Stage | Time |
 |---|---|
-| Installation of the software (10 environments) | 4 h 40 min |
-| Download and index of the reference databases | 2 h 58 min |
-| Download of the input files (80 GB, md5 checked) | 4 h 38 min |
-| Analysis (first job to last job, 188 core-hours) | 4 h 06 min |
-| Whole run | 16 h 29 min |
+| Installation of the software (10 environments) | 3 h 56 min |
+| Download and index of the reference databases | 39 min |
+| Download of the input files (80 GB, md5 checked) | 3 h 03 min |
+| Analysis (first job to last job, 229 core-hours) | 3 h 55 min |
+| Sum of the stages | 11 h 33 min |
 
-The downloads ran at about 4 MB/s and account for most of the time. Result: all 127 jobs completed and the message of the run said COMPLETED. The assembly has 169 contigs, 50,019,054 bases and an N50 of 581,225; the checksum of the file `results/assembly/Hw2.1.fasta.gz` is `f39e8fcf5f7f6c65d2378634ea97cf5f` and the checksum of its sequences is `befff43029a2e610b0bfffafd7fdaa15` in the three runs of the procedure. The verdicts on the five evaluations are better, not worse (better in part), better, better and better. All 149 values compared with the first analysis are within the usual variation. The 668 input files agree with `input/CHECKSUMS.md5` and the 19 archive files with the archive, the package lists of the ten software environments are identical to those of the first analysis, and the Swiss-Prot download held 38,309 proteins (38,451 in the first analysis).
+The downloads account for most of the time. Result: all 97 jobs of the analysis completed (121 tasks, counting the tasks of array jobs) and the message of the run said COMPLETED. The assembly has 169 contigs, 50,019,054 bases and an N50 of 581,225; the checksum of the file `results/assembly/Hw2.1.fasta.gz` is `f39e8fcf5f7f6c65d2378634ea97cf5f` and the checksum of its sequences is `befff43029a2e610b0bfffafd7fdaa15` in the three runs of the procedure. The verdicts on the five evaluations are better, not worse (better in part), better, better and better. All 149 values compared with the first analysis are within the usual variation. The 647 input files agree with `input/CHECKSUMS.md5` and the 19 archive files with the archive, the package lists of the ten software environments are identical to their lock files, and the Swiss-Prot download held 38,451 proteins (38,309 in an earlier complete run).
 
 </details>
 

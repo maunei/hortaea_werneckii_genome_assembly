@@ -24986,17 +24986,17 @@ source config/config.sh               # run this at the start of every session</
 <p><strong>Expected output:</strong> ten environments in <code>$HW_ENVS</code> and the link that the older PacBio programs need (<code>libcompat</code>). The ten environments hold about 304,000 files (15 GB). A computer with a limit on the number of files in the scratch area may need a folder with a larger file allowance for <code>envs_dir</code>: the installation takes about 2 h 15 min, and in two tests from empty folders it gave package lists identical to those of the environments used for the reported run. An installation that was stopped can be started again: complete environments are kept, and an incomplete one (fewer packages than its lock file) is removed and made again.</p>
 <details><summary>Expected tree of the results of this step</summary><p>Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; &lt;name&gt; and &lt;run&gt; stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.</p>
 <pre><code>$HW_ENVS/   (outside the repository)
-├── 04_A_rna/   (636M)
+├── 04_A_rna/   (635M)
 ├── 04_B_qc/   (3.2G)
 ├── 04_B_trinity/   (1.1G)
 ├── 04_I_qc/   (3.2G)
 ├── 04_I_var/   (484M)
-├── 04_pacbio_hdf518/   (580M)
+├── 04_pacbio_hdf518/   (579M)
 ├── 04_pacbio_legacy/   (382M)
 ├── 04_pacbio_modern/   (2.5G)
 ├── 04_probe/   (1.5G)
 ├── 04_screen/   (898M)
-└── libcompat_r2/   (4.0K)</code></pre></details></details>
+└── libcompat_r2/   (8.0K)</code></pre></details></details>
 <details><summary>Step 2. Fetch the reference data and index the screen database</summary><p>Three reference sets are needed: the BUSCO lineage and the Swiss-Prot fungal proteins (evaluation 2), and the reference collection of the contaminant screen (step 02b). They are downloaded once by a job and used offline afterwards. The screen collection is then indexed by a second job. The same download job also fetches the small reference sequences of step 07 (the mitochondrial genomes of five fungi, the ribosomal DNA of <em>Hortaea werneckii</em> and the beta-lactamase marker). In a test of the stage from an empty folder, the screen collection, the BUSCO lineage and the index were identical to the copies used for the reported run (same checksums of the four database parts, same index sizes). Two points of the download can differ: a download that is stopped by the time limit of the job continues with the files that are missing, and the Swiss-Prot set is taken from the live UniProt interface, which gave 38,451 proteins in the reported run and 38,309 proteins a week later under the same release label (2026_03), so that the number of Swiss-Prot proteins found whole can change slightly when the data are downloaded again.</p>
 <p><strong>Commands, in the order in which they are run:</strong></p>
 <pre><code>F=$(sbatch --parsable jobs/02_fetch_databases.sbatch)                           # BUSCO lineage fungi_odb10, Swiss-Prot fungal proteins and the reference collection of the screen (about 83 GB, about 30 minutes for the collection)
@@ -25004,7 +25004,7 @@ I=$(sbatch --parsable --dependency=afterok:$F jobs/02_screen_db_index.sbatch)   
 <p><strong>Expected output:</strong> files in <code>$HW_DBS</code> and the source, version and checksum of every reference set recorded in <code>envs/databases.tsv</code>.</p>
 <p>Time in the run reported here: the longest job took 0.1 hours of elapsed time; all jobs of the step together used 0.3 core-hours of processor time; the largest peak memory was 86 GB.</p>
 <details><summary>Expected tree of the results of this step</summary><p>Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; &lt;name&gt; and &lt;run&gt; stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.</p>
-<pre><code>$HW_DBS/   (outside the repository; 85G)
+<pre><code>$HW_DBS/   (outside the repository; 84G)
 ├── busco_downloads/   (279M)
 ├── mito_refs/   (840K)
 ├── proteins/   (25M)
@@ -25028,9 +25028,9 @@ bash scripts/01_prepare_hw2.sh                                    # Hw 2.0 as $W
 ├── archive_check.tsv   - one row for each archive file: checksum published by the archive, checksum found, status
 └── checksums_failed.txt   - empty when every file agrees with input/CHECKSUMS.md5
 
-input/   (outside git: 80G; the repository itself holds CHECKSUMS.md5, manifests/ and hw2/github_commit.txt)
-├── hw2/   (684 files, 5.5G)
-│   ├── github_Hortaea_werneckii/   (672 files, 5.5G)
+input/   (outside git: 75G; the repository itself holds CHECKSUMS.md5, manifests/ and hw2/github_commit.txt)
+├── hw2/   (665 files, 793M)
+│   ├── github_Hortaea_werneckii/   (653 files, 762M)
 │   └── ncbi_GCA_002127715.1/   (11 files, 32M)
 ├── illumina2013/   (3 files, 3.2G)
 │   └── SRR866616/   (2 files, 3.2G)
@@ -25065,7 +25065,11 @@ sbatch --dependency=afterok:$M jobs/02_compare_deposited.sbatch                 
 <p><strong>Output files</strong></p>
 <ul><li><code>results/02_pacbio_reads/&lt;RUN&gt;_seqkit_stats.tsv</code>, <code>&lt;RUN&gt;_bax_metrics.json</code>: read statistics and well metrics of each run.</li><li><code>results/02_pacbio_reads/merged_seqkit_stats.tsv</code>: statistics of the two merged sets (the reads themselves are kept in the work folder).</li><li><code>results/02_pacbio_reads/deposited_fastq_comparison.json</code>: the comparison above.</li></ul></details>
 <details><summary>Expected tree of the results of this step</summary><p>Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; &lt;name&gt; and &lt;run&gt; stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.</p>
-<pre><code>results/02_pacbio_reads/   (95 files)
+<pre><code>results/02_pacbio_reads/   (98 files)
+├── screen_db/
+│   ├── parts_stats.tsv
+│   ├── refseq_release.txt
+│   └── screen_manifest.tsv.gz
 ├── &lt;run&gt;_bax_metrics.json   (x5)   - well and read metrics of the run
 ├── &lt;run&gt;_seqkit_stats.tsv   (x5)   - reads, bases and length statistics of the run
 ├── deposited_fastq_comparison.json   - comparison with the file deposited by the authors (SRR5086624)
@@ -25330,7 +25334,7 @@ $HW_WORK/polish/   (125 files, 53G)
 │   └── transcripts.tsv.gz   - alignment of every Trinity transcript
 └── trinity_assembly.json   - statistics of the Trinity transcripts
 
-$HW_WORK/trinity/   (2 files, 120M)
+$HW_WORK/trinity/   (2 files, 119M)
 ├── Trinity.fasta
 └── Trinity.fasta.gene_trans_map</code></pre></details></details>
 <details><summary>Step 10. Evaluations of every assembly</summary><p>The five evaluations are run on Hw 2.0, Hw 2.1 (three runs) and the two polished controls with the same jobs. The first block is for Hw 2.0 only (the files that carry it, its 22 extra sequences, its mitochondrion); the second block is for every assembly; the third compares each assembly with Hw 2.0 after the Illumina accuracy of both has been computed. Paste the whole block at once, in the same shell session as steps 7 and 8 (it uses the job numbers kept in shell variables there): every job is submitted with the dependencies it needs, so the scheduler starts each one when the files it reads exist, and nothing has to be awaited between the commands.</p>
@@ -25606,20 +25610,28 @@ results/08_illumina_accuracy/   (105 files)
         ├── proc_r3_status.tsv
         └── summary.json   - all measures of this assembly (or comparison) in one file
 
-$HW_WORK/aln/   (56 files, 241M)
+$HW_WORK/aln/   (64 files, 241M)
 ├── 06_transcripts/
 │   └── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
 ├── 07_compare/
 │   └── {ctrl_canu_quiver_vs_hw2, ctrl_canu_vs_hw2, ctrl_flye_quiver_vs_hw2, ctrl_flye_vs_hw2, proc_r1_vs_hw2, proc_r2_vs_hw2, proc_r3_vs_hw2}/
 └── 07_reads/
     ├── hq_clean_to_ctrl_canu.tsv.gz
+    ├── hq_clean_to_ctrl_canu.tsv.gz.lock
     ├── hq_clean_to_ctrl_canu_quiver.tsv.gz
+    ├── hq_clean_to_ctrl_canu_quiver.tsv.gz.lock
     ├── hq_clean_to_ctrl_flye.tsv.gz
+    ├── hq_clean_to_ctrl_flye.tsv.gz.lock
     ├── hq_clean_to_ctrl_flye_quiver.tsv.gz
+    ├── hq_clean_to_ctrl_flye_quiver.tsv.gz.lock
     ├── hq_clean_to_hw2.tsv.gz
+    ├── hq_clean_to_hw2.tsv.gz.lock
     ├── hq_clean_to_proc_r1.tsv.gz
+    ├── hq_clean_to_proc_r1.tsv.gz.lock
     ├── hq_clean_to_proc_r2.tsv.gz
-    └── hq_clean_to_proc_r3.tsv.gz
+    ├── hq_clean_to_proc_r2.tsv.gz.lock
+    ├── hq_clean_to_proc_r3.tsv.gz
+    └── hq_clean_to_proc_r3.tsv.gz.lock
 
 $HW_WORK/map/   (963 files, 38G)
 └── illumina2013/
@@ -25758,16 +25770,16 @@ $HW_WORK/screen_contigs/   (126 files, 840K)
 ├── verdict.json   - verdict on each evaluation
 └── verdict.tsv   - verdict on each evaluation (table)
 
-results/10_validation/   (2 files)
+results/10_validation/   (3 files)
 ├── closeness.tsv   - the same values as a table (value, first analysis, difference, usual variation, note)
 └── validation_report.txt   - how close the rerun is to validation/expected.tsv: summary and one line per value</code></pre></details></details>
 <h2>6. Limits of the evaluation and decisions taken</h2>
 <ul><li><strong>How the procedure was defined.</strong> Preliminary analyses on the same reads (not shown) led to the procedure described here, including the choice of Quiver for polishing. The evaluations were applied to the final procedure only. The assessment therefore tests a procedure that was defined with knowledge of the data, not one fixed blindly. The accuracy evaluation uses Illumina reads that play no part in building or polishing either assembly.</li><li><strong>The reads as referee.</strong> Evaluations 3 and 4 use the PacBio reads that were also used to build the assemblies (Hw 2.0 and Hw 2.1 alike). They show whether an assembly is consistent with its source reads; they are not independent evidence of the genome.</li><li><strong>Noise scale.</strong> It is practically zero (section 4), so it gives no protection against calling a very small difference real. The assessments of measures that changed by less than 1 percent are marked "slightly".</li><li><strong>Differences specific to one assembly are an upper bound.</strong> A difference counted as specific may also be a real difference between the cultures, or an error of the Illumina data, that falls where the other assembly happens to have another sequence nearby.</li><li><strong>Adapters.</strong> Adapter sequence was found in 14.3 percent of the HiSeq read pairs; the reads were not trimmed because the aligners soft-clip them. The effect on the RNA-seq evaluation is expected to be small and was not measured.</li><li><strong>RNA-seq reads and transcripts.</strong> Only the HiSeq run is used for the alignment of RNA-seq pairs; the MiSeq run is used for quality control only. The transcripts assembled without a genome come from the first 25 million of the 175 million HiSeq pairs, a practical choice of time and memory, not an impossibility; genes expressed weakly in the culture are missing from the transcripts. Using all the pairs is possible with a larger job.</li><li><strong>Contaminant screen.</strong> It uses a reference collection with one genome per genus and an alignment criterion, and detects contaminants that have a relative within about 10 percent divergence in the collection. Reads are removed whole; no base is masked or edited. Contigs excluded by the contig screen are removed from Hw 2.1 and from the controls; Hw 2.0 is kept as published.</li><li><strong>Comparison with the authors' filtered reads.</strong> The set of filtered subreads made here differs from the file the authors deposited only in the end coordinate of the last subread of 65,233 reads (one base) and one extra well. The set made here is used because it can be rebuilt from the raw files.</li><li><strong>The Illumina reads come from another culture</strong> of the strain than the PacBio reads and were sequenced at another time; this is why differences shared by both assemblies are set aside.</li><li><strong>Not covered.</strong> A gene annotation of Hw 2.1; the nucleosome-positioning data (MNase-seq) of the study; other strains or species.</li><li><strong>Downloaded data can differ from the first analysis.</strong> The download of the databases and of the input files was repeated from empty folders: the input files, the contaminant-screen collection (RefSeq release 237), the BUSCO lineage and the small reference sequences were identical to those of the first analysis. The viral genomes and UniVec of the screen collection, like the Swiss-Prot proteins, are taken from sources that are updated, so they can differ in a later download. The Swiss-Prot proteins are fetched from UniProt, which changes them from month to month (38,451 proteins in the first analysis, 38,309 in a later download), so the proportion of proteins found whole can move by about 0.2 percent. Each download is recorded with its source and date in <code>envs/databases.tsv</code>.</li><li><strong>What the evaluations show and do not show.</strong> They measure how well each assembly agrees with the PacBio reads (the reads the assembly was made from), the RNA-seq reads, the Swiss-Prot proteins, the Illumina reads of 2013 and Hw 2.0. They do not prove that every join is correct, nor that similar copies of a region are kept apart rather than merged. Most of the disagreements with Hw 2.0 that the reads decide are joins of contigs that Hw 2.0 leaves apart; the interior rearrangements are few and most of them are not decided by the reads. Counting alignments within a contig, as well as between contigs, changes the proportion of bases with a partner at 98 percent identity or more by less than 0.1 percentage point. The rates of single-base differences that lie alone are based on few events: only the total rate of specific differences is claimed.</li><li><strong>One computer and one set of program versions.</strong> The reproducibility shown is that of three runs on one computer; the versions are in the section on software, and the environments can be recreated from the lock files.</li></ul>
 <h2>7. Validation</h2>
 <p>The workflow was tested step by step and as a whole: the installation of the software from an empty folder, the downloads of the databases and of the input files from empty folders, and one complete run of <code>bash setup_and_run_all.sh all</code> in which every stage started from nothing. The comparison of the results with the first analysis is made by the workflow itself (step 10); it reports how close the values are and never makes a run FAILED.</p>
-<details><summary>Complete run from empty folders (31 October to 1 November 2026)</summary><p>A fresh clone of the repository (commit 67cb172) with new, empty folders for the software, the databases, the input files and the work files. The later commits changed the documentation, added the files for the license and for citing, and changed one log message, the label of identical values in the validation report and the restart of the script; the analysis was not changed.</p>
-<table><thead><tr><th>Stage</th><th>Time</th></tr></thead><tbody><tr><td>Installation of the software (10 environments)</td><td>4 h 40 min</td></tr><tr><td>Download and index of the reference databases</td><td>2 h 58 min</td></tr><tr><td>Download of the input files (80 GB, md5 checked)</td><td>4 h 38 min</td></tr><tr><td>Analysis (first job to last job, 188 core-hours)</td><td>4 h 06 min</td></tr><tr><td>Whole run</td><td>16 h 29 min</td></tr></tbody></table>
-<p>The downloads ran at about 4 MB/s and account for most of the time. Result: all 127 jobs completed and the message of the run said COMPLETED. The assembly has 169 contigs, 50,019,054 bases and an N50 of 581,225; the checksum of the file <code>results/assembly/Hw2.1.fasta.gz</code> is <code>f39e8fcf5f7f6c65d2378634ea97cf5f</code> and the checksum of its sequences is <code>befff43029a2e610b0bfffafd7fdaa15</code> in the three runs of the procedure. The verdicts on the five evaluations are better, not worse (better in part), better, better and better. All 149 values compared with the first analysis are within the usual variation. The 668 input files agree with <code>input/CHECKSUMS.md5</code> and the 19 archive files with the archive, the package lists of the ten software environments are identical to those of the first analysis, and the Swiss-Prot download held 38,309 proteins (38,451 in the first analysis).</p></details>
+<details><summary>Complete run from empty folders (2 to 3 November 2026)</summary><p>A fresh clone of the repository (commit f24f2dd) with new, empty folders for the software, the databases, the input files and the work files. The analysis was not changed by the commits that followed (they changed the documentation).</p>
+<table><thead><tr><th>Stage</th><th>Time</th></tr></thead><tbody><tr><td>Installation of the software (10 environments)</td><td>3 h 56 min</td></tr><tr><td>Download and index of the reference databases</td><td>39 min</td></tr><tr><td>Download of the input files (80 GB, md5 checked)</td><td>3 h 03 min</td></tr><tr><td>Analysis (first job to last job, 229 core-hours)</td><td>3 h 55 min</td></tr><tr><td>Sum of the stages</td><td>11 h 33 min</td></tr></tbody></table>
+<p>The downloads account for most of the time. Result: all 97 jobs of the analysis completed (121 tasks, counting the tasks of array jobs) and the message of the run said COMPLETED. The assembly has 169 contigs, 50,019,054 bases and an N50 of 581,225; the checksum of the file <code>results/assembly/Hw2.1.fasta.gz</code> is <code>f39e8fcf5f7f6c65d2378634ea97cf5f</code> and the checksum of its sequences is <code>befff43029a2e610b0bfffafd7fdaa15</code> in the three runs of the procedure. The verdicts on the five evaluations are better, not worse (better in part), better, better and better. All 149 values compared with the first analysis are within the usual variation. The 647 input files agree with <code>input/CHECKSUMS.md5</code> and the 19 archive files with the archive, the package lists of the ten software environments are identical to their lock files, and the Swiss-Prot download held 38,451 proteins (38,309 in an earlier complete run).</p></details>
 <p>Programs that give a different result at every run, with the same input: Trinity assembled 57,071 transcripts in one run and 56,609 in another, and the percentage of transcripts that align well to an assembly differed by up to 0.6 percent (relative), for every assembly alike (so the comparison between assemblies is unchanged). Flye, used only for a control assembly, gave 2,276 contigs against 2,263 and a longest contig of 363,769 against 411,508 bases. The polished Canu control had up to 21 percent more places that no read crosses (5,515 against 4,564). The comparison with the first analysis (step 10) therefore reports these values with a wider usual variation: 1.5 percent for the transcript measures and 25 percent for the control assemblies. The proteins of Swiss-Prot are downloaded from UniProt, which changes them from month to month (38,451 proteins in the first analysis, 38,309 in a later download): the proportion of proteins found whole moved by about 0.2 percent for the assembly Hw 2.0 of the authors, and 1 percent is taken as usual. The numbering of the contigs by Canu can also differ between runs (two contigs exchanged their names in some runs of the same data); the sequences are the same, and the assembly is identified by the checksum of its sequences (check 2 below).</p>
 <p>Four checks tie the workflow to its results; the last compares a rerun with the first analysis and only reports how close it is:</p>
 <ol><li><strong>The input files are the files of the archives.</strong> All archive files agree with the checksums and sizes published by the archive (<code>results/01_inputs/archive_check.tsv</code>), and the checksums of all input files are in <code>input/CHECKSUMS.md5</code> for anyone to compare.</li><li><strong>The procedure is reproducible on one computer.</strong> The three runs, made with different numbers of threads, produced the same corrected reads, raw assemblies and polished contigs (<code>results/09_summary/replicate_check.tsv</code>). The last column of that file is a checksum of the sequences of the final assembly, names and orientation ignored; it is the same for the three runs (<code>befff43029a2e610b0bfffafd7fdaa15</code>), and step 10 reports whether it is the same as in the first analysis.</li><li><strong>The contaminant screen is reproducible.</strong> A second run of the screen of reads on the same input gave the same counts (9,727 reads excluded from the high-quality set and 7,737 from the filtered set).</li><li><strong>A rerun is compared with the first analysis.</strong> <code>scripts/10_validate.py</code> compares the results of a rerun with <code>validation/expected.tsv</code>, which lists every measure of this report with the variation that is usual for it, and the checksum of the sequences of the assembly. The report (<code>results/10_validation/validation_report.txt</code> and <code>closeness.tsv</code>) gives, for each value, the difference to the first analysis and a note, "within the usual variation" or "larger than usual"; it does not judge and never makes the run FAILED. The table was made from the run reported here, so a comparison of this run with itself shows no difference; the useful comparison is a rerun.</li></ol>
