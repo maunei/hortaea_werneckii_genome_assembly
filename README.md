@@ -2039,7 +2039,7 @@ A fresh clone of the repository (commit f24f2dd) with new, empty folders for the
 |---|---|
 | Installation of the software (10 environments) | 3 h 56 min |
 | Download and index of the reference databases | 39 min |
-| Download of the input files (80 GB, md5 checked) | 3 h 03 min |
+| Download of the input files (75 GB, md5 checked) | 3 h 03 min |
 | Analysis (first job to last job, 229 core-hours) | 3 h 55 min |
 | Sum of the stages | 11 h 33 min |
 
