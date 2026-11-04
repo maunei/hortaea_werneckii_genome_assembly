@@ -43,14 +43,23 @@ for R in 1 2; do "$PIGZ" -p "$THREADS" -c "$T/out/${RUN}_${R}.fastq" > "$OUT/${R
 # 3. checks: numbers of pairs against the archive record, and identical read names (without /1 /2) in the same order in both files
 n1=$("$QC_BIN/seqkit" stats -T -j "$THREADS" "$OUT/${RUN}_1.fastq.gz.part" | tail -1 | cut -f4)
 n2=$("$QC_BIN/seqkit" stats -T -j "$THREADS" "$OUT/${RUN}_2.fastq.gz.part" | tail -1 | cut -f4)
-cmp <("$PIGZ" -dc "$OUT/${RUN}_1.fastq.gz.part" | awk 'NR%4==1{sub(/\/[12]$/,""); print}') \
-    <("$PIGZ" -dc "$OUT/${RUN}_2.fastq.gz.part" | awk 'NR%4==1{sub(/\/[12]$/,""); print}') > "$LOGDIR/name_check_$RUN.txt" 2>&1 && names=ok || names=MISMATCH
+# the read names of each file (without /1 /2), in order, are summarised by a checksum: the exit status of the decompression, of awk and of md5sum is read for each file,
+# so that a decompressor that fails cannot make two empty or cut lists look equal
+names=ok; : > "$LOGDIR/name_check_$RUN.txt"
+for R in 1 2; do
+  sum=$("$PIGZ" -dc "$OUT/${RUN}_${R}.fastq.gz.part" | awk 'NR%4==1{sub(/\/[12]$/,""); print}' | md5sum | cut -d' ' -f1; echo "${PIPESTATUS[0]} ${PIPESTATUS[1]} ${PIPESTATUS[2]}")
+  read -r md5_R ps1 ps2 ps3 <<< "$(printf '%s' "$sum" | tr '\n' ' ')"
+  echo "file $R: names md5 $md5_R, exit status of pigz, awk, md5sum: $ps1 $ps2 $ps3" >> "$LOGDIR/name_check_$RUN.txt"
+  if [ "$ps1" != 0 ] || [ "$ps2" != 0 ] || [ "$ps3" != 0 ]; then echo "reading the names of ${RUN}_${R} failed" >&2; exit 4; fi
+  eval "md5_$R=$md5_R"
+done
+[ "$md5_1" = "$md5_2" ] || names=MISMATCH
 st=ok; { [ "$n1" = "$EXPECTED" ] && [ "$n2" = "$EXPECTED" ] && [ "$names" = ok ]; } || st=FAILED
 printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\n" "$RUN" "$EXPECTED" "$n1" "$n2" "$UNPAIRED" "$names" "$st" | tee "$OUT/$RUN.counts.tsv"
 if [ "$st" != ok ]; then echo "COUNT OR NAME MISMATCH: step stopped, FASTQ files left as .part" >&2; exit 5; fi
-for R in 1 2; do mv "$OUT/${RUN}_${R}.fastq.gz.part" "$OUT/${RUN}_${R}.fastq.gz"; done
+for R in 1 2; do mv "$OUT/${RUN}_${R}.fastq.gz.part" "$OUT/${RUN}_${R}.fastq.gz" || exit 4; done
 
 # 4. folder marker once every run of the folder is complete
-all=1; for r in $NEEDED; do grep -q "ok$" "$OUT/$r.counts.tsv" 2>/dev/null && [ -s "$OUT/${r}_2.fastq.gz" ] || all=0; done
+all=1; for r in $NEEDED; do grep -q "ok$" "$OUT/$r.counts.tsv" 2>/dev/null && [ -s "$OUT/${r}_1.fastq.gz" ] && [ -s "$OUT/${r}_2.fastq.gz" ] || all=0; done
 [ "$all" = 1 ] && touch "$OUT/READY_03" && echo "READY_03 written in $OUT"
 hw_end 03_convert

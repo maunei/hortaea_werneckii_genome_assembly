@@ -76,14 +76,15 @@ runs = [a for a in NEW if V[a]['n50'] is not None]
 rows = []; state = {}
 for m in M:
     mid, line, label, tmpl, key, hib, fmt = m
-    vals = [V[a][mid] for a in runs if V[a][mid] is not None]
+    vals = [V[a][mid] for a in NEW if V[a][mid] is not None]   # every run that has this measure, whatever else it lacks
     hw = V['hw2'][mid]
     if not vals: continue
     mean = sum(vals) / len(vals); lo, hi = min(vals), max(vals); noise = hi - lo
     row = dict(measure=mid, line=line, label=label, runs=len(vals), mean=mean, min=lo, max=hi, noise=noise, hw2=hw)
     if hib is not None and hw is not None and mid != 'adjud_for_new':
         delta = mean - hw
-        if abs(delta) <= noise: st = 'within noise'
+        if len(vals) < 2: st = 'one run only'   # the range of a single run is zero: no difference is called better or worse from it
+        elif abs(delta) <= noise: st = 'within noise'
         else: st = 'better' if (delta > 0) == hib else 'worse'
         row.update(delta=delta, state=st, rel=(100 * delta / abs(hw) if hw else None))
     rows.append(row)
@@ -91,7 +92,8 @@ for m in M:
 adj = {}
 for a in runs:
     d = J(f'07_compare/{a}_vs_hw2/summary.json')
-    if d: adj[a] = dict(share=d['fraction_of_decided_for_A']['proportion'], lo=d['fraction_of_decided_for_A']['ci95_low'], hi=d['fraction_of_decided_for_A']['ci95_high'],
+    fd = (d or {}).get('fraction_of_decided_for_A') or {}
+    if d and fd.get('ci95_low') is not None and fd.get('ci95_high') is not None: adj[a] = dict(share=d['fraction_of_decided_for_A']['proportion'], lo=d['fraction_of_decided_for_A']['ci95_low'], hi=d['fraction_of_decided_for_A']['ci95_high'],
                         decided=d['fraction_of_decided_for_A']['of'], for_new=d['decided_for_A']['count'], for_hw2=d['decided_for_B']['count'], disagreements=d['disagreements'])
 def adj_state():
     if not adj: return None
@@ -105,7 +107,7 @@ def line_verdict(line):
     keys = {1: ['n50', 'ng50', 'aun', 'l50'], 2: ['busco_complete', 'transcripts'], 4: ['false_dup', 'depth_ok'], 5: ['diff_specific']}
     if len(runs) < REPLICATES: return f'incomplete (only {len(runs)} of {REPLICATES} runs of the procedure have results)', {}
     if line == 3:
-        if len(adj) < len(runs): return f'incomplete (the comparison with Hw 2.0 is missing for {len(runs) - len(adj)} of {len(runs)} runs)', {}
+        if len(adj) < len(runs): return f'incomplete (the comparison with Hw 2.0 is missing, or has no decided disagreement, for {len(runs) - len(adj)} of {len(runs)} runs)', {}
         s = adj_state(); return s, {'adjudication': s}
     sts = {k: S.get(k) for k in keys[line] if S.get(k) is not None}
     miss = [k for k in keys[line] if S.get(k) is None or NRUNS.get(k, 0) < REPLICATES]   # a measure of the line that is missing for Hw 2.0 or for one of the runs

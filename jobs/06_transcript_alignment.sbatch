@@ -36,6 +36,6 @@ tail -3 "$LOGDIR/minimap2.log"
 echo "alignment records: $(wc -l < "$AL/transcripts.paf")"
 
 "$PY" "$HW/scripts/06_transcript_align_stats.py" "$TRANSCRIPTS" "$AL/transcripts.paf" "$AL/$ASM" "$ASM" || exit 3
-cp "$AL/$ASM.summary.json" "$OUT/summary.json"
-cp "$AL/$ASM.transcripts.tsv.gz" "$OUT/transcripts.tsv.gz"
+cp "$AL/$ASM.summary.json" "$OUT/summary.json" || exit 4
+cp "$AL/$ASM.transcripts.tsv.gz" "$OUT/transcripts.tsv.gz" || exit 4
 hw_end 06_transcript_alignment

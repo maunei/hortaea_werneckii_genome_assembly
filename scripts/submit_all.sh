@@ -18,7 +18,13 @@ S() {   # S key "dependency keys (space separated, may be empty)" sbatch-argumen
   if [ -n "${DRYRUN:-}" ]; then echo "sbatch $dep $*"; ID[$key]="<$key>"; return; fi
   local id; id=$(sbatch --parsable $dep "${SBATCH_COMMON[@]}" "$@") || { echo "ERROR: sbatch failed for job $key" >&2; exit 1; }; id="${id%%;*}"
   [[ "$id" =~ ^[0-9]+$ ]] || { echo "ERROR: sbatch gave no job number for $key: $id" >&2; exit 1; }
-  ID[$key]="$id"; printf "%s\t%s\t%s\t%s\t%s\n" "$key" "$id" "${dep#--dependency=}" "$(basename "${@: -1}")" "${*:1:$#-1}" >> "$LEDGER"; echo "$key $id"
+  ID[$key]="$id"
+  if ! printf "%s\t%s\t%s\t%s\t%s\n" "$key" "$id" "${dep#--dependency=}" "$(basename "${@: -1}")" "${*:1:$#-1}" >> "$LEDGER"; then
+    echo "ERROR: could not record accepted job $key ($id); attempting to cancel it" >&2
+    scancel "$id" || echo "WARNING: accepted job $id could not be canceled; cancel it manually" >&2
+    exit 1
+  fi
+  echo "$key $id"
 }
 # 01 inputs; the published assembly Hw 2.0 is made available as $WORK/asm/hw2/final.fasta
 if [ -n "${DRYRUN:-}" ]; then echo "bash scripts/01_prepare_hw2.sh"; else ${HW_PREPARE_CMD:-bash scripts/01_prepare_hw2.sh}; fi   # HW_PREPARE_CMD is set by the tests only
@@ -80,6 +86,6 @@ done
 # last job: summary tables, figures and verdict, checksums of the three runs, time and memory, the released assembly, and the comparison with the first analysis.
 # It starts when all other jobs have ended, whatever their state (afterany): a job of the comparison with Hw 2.0 that failed must not prevent the summary and the release of the assembly.
 # The summary lists what is missing; the message job of setup_and_run_all.sh reports FAILED when any job did not complete.
-ALL=""; for k in "${!ID[@]}"; do ALL="$ALL $k"; done
+ALL=""; for k in $(printf '%s\n' "${!ID[@]}" | sort); do ALL="$ALL $k"; done   # sorted: the same list at every run and with every version of bash
 DEPTYPE=afterany S summary "$ALL" jobs/09_summary.sbatch
 echo "Everything is submitted; the last job (09_summary) runs when all others have ended and writes results/09_summary/ and results/assembly/."

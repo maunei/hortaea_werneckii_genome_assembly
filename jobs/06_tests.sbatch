@@ -44,11 +44,16 @@ for m in 1 2; do [ -s "$RNA_DIR/${RNA_RUN}_$m.fastq.gz" ] || { echo "no RNA-seq 
 FAILED=""
 
 # tm NAME COMMAND...   runs one program, records its wall time and the peak memory of the program (GNU time) in timings.tsv
-tm() { local n="$1"; shift; local t; t="$(mktemp -p "$TMP")"; "$TIMEV" -f '%e %M' -o "$t" "$@"; local rc=$?
+tm() { local n="$1"; shift; local t rc=0; t="$(mktemp -p "$TMP")"; "$TIMEV" -f '%e %M' -o "$t" "$@" || rc=$?   # "|| rc=$?": the time of a command that failed is recorded too (a failing command would end the step before the record under set -e)
   read -r s k < <(tail -n 1 "$t"); printf '%s\t%s\t%s\n' "$n" "$s" "$(awk -v k="$k" 'BEGIN{printf "%.2f", k/1048576}')" >> "$RES/timings.tsv"; return $rc; }
 # step NAME FUNCTION   runs FUNCTION in its own shell; skips it when its marker exists; a failure is recorded and the other steps go on
-step() { local n="$1" fn="$2" rc
-  if [ -e "$BIG/steps/$n.done" ] && [ "$FORCE" != 1 ]; then echo "[$(date)] step $n: already done, skipped"; return; fi
+step() { local n="$1" fn="$2" rc r; shift 2   # step NAME FUNCTION [STEPS THAT MUST HAVE FINISHED FIRST]
+  for r in "$@"; do   # a step is not run, and an earlier result of it is not kept, when a step that it needs has not finished
+    if [[ " $FAILED " == *" $r "* ]] || [ ! -e "$BIG/steps/$r.done" ]; then FAILED="$FAILED $n"; rm -f "$BIG/steps/$n.done"; echo "[$(date)] step $n: FAILED (not run: the step $r has not finished)"; return; fi
+  done
+  local stale=0; for r in "$@"; do [ "$BIG/steps/$r.done" -nt "$BIG/steps/$n.done" ] && stale=1; done   # a step that needs a step that was run again later is run again too (decided here, not by the removal of the marker)
+  [ "$stale" = 0 ] || rm -f "$BIG/steps/$n.done"
+  if [ "$stale" = 0 ] && [ -e "$BIG/steps/$n.done" ] && [ "$FORCE" != 1 ]; then echo "[$(date)] step $n: already done, skipped"; return; fi
   echo "[$(date)] step $n: start"; local t0=$SECONDS
   ( set -euo pipefail; "$fn" )
   rc=$?
@@ -109,11 +114,11 @@ step contiguity s_contiguity
 step telomeres s_telomeres
 step busco s_busco
 step readback_align s_readback_align
-step readback_stats s_readback_stats
-step depth s_depth
+step readback_stats s_readback_stats readback_align
+step depth s_depth readback_align
 step selfalign s_selfalign
-step miniprot s_miniprot
-step star s_star
+step miniprot s_miniprot contiguity
+step star s_star contiguity
 
 # collect all measures into summary.json and summary.tsv
 "$PY" "$SCR/06_collect.py" "$RES" "$ASM" "$PB_READS" "$RNA_RUN" "${FAILED# }" || FAILED="$FAILED collect"

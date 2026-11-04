@@ -17,8 +17,8 @@ hw_start the22
 FASTA="${FASTA:-$WORK/asm/hw2/final.fasta}"; READS="${READS:-$WORK/reads/pacbio/hq_clean.fastq}"; THREADS="${SLURM_CPUS_PER_TASK:-8}"
 OUT="${OUT:-$RESULTS/07_comparator/the22}"; TMP="$WORK/07_comparator/the22"; mkdir -p "$OUT" "$TMP"
 IDS="$RESULTS/07_comparator/genbank_files/the22_ids.tsv"; [ -s "$IDS" ] || { echo "run jobs/07_genbank_files.sbatch first" >&2; exit 1; }
-[ -s "$DBS/mito_refs/mito_proteins.faa" ] || bash "$HW/scripts/07_fetch_mito_refs.sh"
-[ -s "$DBS/rdna_refs/rdna_hw.fasta" ] && [ -s "$DBS/rdna_refs/vector_marker_bla.faa" ] || bash "$HW/scripts/07_fetch_rdna_refs.sh"
+[ -s "$DBS/mito_refs/mito_proteins.faa" ] || bash "$HW/scripts/07_fetch_mito_refs.sh" || exit 2
+[ -s "$DBS/rdna_refs/rdna_hw.fasta" ] && [ -s "$DBS/rdna_refs/vector_marker_bla.faa" ] || bash "$HW/scripts/07_fetch_rdna_refs.sh" || exit 2
 [ -s "$SWISSPROT_FUNGI" ] || { echo "protein set not found: $SWISSPROT_FUNGI (made by scripts/06_fetch_databases.sh)" >&2; exit 1; }
 export DEPTH_DIR="${DEPTH_DIR:-$WORK/07_comparator/hw2}"
 if [ -s "$READS" ] || [ -s "$DEPTH_DIR/depth.per_contig.tsv" ]; then bash "$HW/scripts/07_depth.sh" hw2 "$FASTA" "$READS" "$THREADS" || exit 1

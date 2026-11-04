@@ -17,7 +17,7 @@ hw_start mito
 : "${ASM:?set ASM}"; FASTA="${FASTA:-$WORK/asm/$ASM/final.fasta}"; READS="${READS:-$WORK/reads/pacbio/hq_clean.fastq}"; OUT_NAME="${OUT_NAME:-$ASM}"
 THREADS="${SLURM_CPUS_PER_TASK:-8}"
 OUT="$RESULTS/07_comparator/mito/$OUT_NAME"; TMP="$WORK/07_comparator/mito_$OUT_NAME"; mkdir -p "$OUT" "$TMP"
-[ -s "$DBS/mito_refs/mito_genomes.fasta" ] || bash "$HW/scripts/07_fetch_mito_refs.sh"     # reference mitochondrial genomes and proteins (RefSeq)
+[ -s "$DBS/mito_refs/mito_genomes.fasta" ] || bash "$HW/scripts/07_fetch_mito_refs.sh" || exit 2     # reference mitochondrial genomes and proteins (RefSeq)
 export DEPTH_DIR="${DEPTH_DIR:-$WORK/07_comparator/$OUT_NAME}"
 if [ -s "$READS" ] || [ -s "$DEPTH_DIR/depth.per_contig.tsv" ]; then
   bash "$HW/scripts/07_depth.sh" "$OUT_NAME" "$FASTA" "$READS" "$THREADS" || { echo "depth failed" >&2; exit 1; }

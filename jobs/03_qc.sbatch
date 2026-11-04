@@ -34,8 +34,8 @@ done
 wait "$FQ" || { echo "FastQC failed" >&2; exit 4; }
 
 multiqc -f -o "$QCDIR/multiqc" "$QCDIR/fastqc" "$QCDIR/fastp" > "$LOGDIR/multiqc.log" 2>&1 || { echo "MultiQC failed" >&2; exit 5; }
-cp "$QCDIR/multiqc/multiqc_report.html" "$OUT/multiqc_report.html"
-cp "$QCDIR"/fastp/*.json "$OUT/fastp/"
+cp "$QCDIR/multiqc/multiqc_report.html" "$OUT/multiqc_report.html" || exit 5
+cp "$QCDIR"/fastp/*.json "$OUT/fastp/" || exit 5
 "$PY" "$HW/scripts/03_make_tables.py" "$READS" "$QCDIR" "$OUT" $QC_RUNS || exit 4
 cat "$OUT/read_counts.tsv" "$OUT/qc_summary.tsv"
 hw_end 03_qc

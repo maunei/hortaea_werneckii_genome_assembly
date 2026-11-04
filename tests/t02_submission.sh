@@ -23,7 +23,11 @@ need() { case "$(dep "$1")" in *"$(id "$2")"*) ;; *) echo "job $1 does not wait 
 need trinity conv_miseq; need trinity conv_hiseq; need scr_hw2 dbindex; need scr_proc_r1 dbindex; need pacbio check_inputs; need conv_ill check_inputs
 need the22_proc_r1 genbank; need tests_hw2 check_inputs; need shared_proc_r1 acc_hw2
 case "$(dep summary)" in afterany*) ;; *) echo "the summary job does not use afterany"; exit 1;; esac
-awk -F'\t' 'NF < 5 {print "ledger row without arguments: " $0; bad=1} END{exit bad}' "$LEDGER" || exit 1
+arg() { awk -F'\t' -v k="$1" '$1==k{print $5}' "$LEDGER"; }   # the fifth column holds the arguments of the job
+case "$(arg conv_miseq)" in *RUN=SRR5086621*EXPECTED=3333452*) ;; *) echo "the ledger does not hold the arguments of conv_miseq: '$(arg conv_miseq)'"; exit 1;; esac
+case "$(arg pacbio)" in *--array=0-4*) ;; *) echo "the ledger does not hold the array argument of pacbio: '$(arg pacbio)'"; exit 1;; esac
+case "$(arg tests_hw2)" in *ASM=hw2*) ;; *) echo "the ledger does not hold the arguments of tests_hw2: '$(arg tests_hw2)'"; exit 1;; esac
+awk -F'\t' 'NF < 5 {print "ledger row without the fifth column: " $0; bad=1} END{exit bad}' "$LEDGER" || exit 1
 # 2. a dry run keeps an existing ledger
 cp "$LEDGER" "$W/ledger.before"; DRYRUN=1 bash scripts/submit_all.sh > "$W/dry.txt" 2>&1 || { echo "dry run failed"; exit 1; }
 cmp -s "$LEDGER" "$W/ledger.before" || { echo "the dry run changed the ledger"; exit 1; }

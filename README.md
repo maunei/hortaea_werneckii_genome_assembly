@@ -1,6 +1,12 @@
 # Hw 2.1: a new and improved genome assembly of the black yeast Hortaea werneckii from the published PacBio reads, with a reproducible workflow
 
-This workflow (assisted by claude-science/Sonnet 5.5 model and independent code revisions by codex/GPT-6.1-Sol and anti-gravity/Gemini 4 Argon) assembles the genome of the black yeast *Hortaea werneckii* (strain EXF-2000) from the PacBio reads of Sinha et al. (2017), using a procedure that gives a new assembly, here called **Hw 2.1**, and evaluates Hw 2.1 against the published assembly of the same study, **Hw 2.0**. Both assemblies come from the same sequencing data. The workflow contains the scripts, the settings, the evaluations and the results, so that every step can be repeated and understood.
+This workflow assembles the genome of the black yeast *Hortaea werneckii* (strain EXF-2000) from the PacBio reads of Sinha et al. (2017), using a procedure that gives a new assembly, here called **Hw 2.1**, and evaluates Hw 2.1 against the published assembly of the same study, **Hw 2.0**. Both assemblies come from the same sequencing data. The workflow contains the scripts, the settings, the evaluations and the results, so that every step can be repeated and understood.
+
+The workflow includes software installation, downloads of input data, assembly and complete analysis. Repeated complete runs gave the identical assembly Hw 2.1 (same file checksum) and the same verdicts; a few programs used only for control assemblies and tests (for example Trinity and Flye) give slightly different results at each run, and the workflow reports how close they are. This was tested on one computer with one set of program versions; a run on another computer or with other versions of the programs has not been tested.
+
+The workflow was created with AI assistance: claude-science/Sonnet (High) and independent code reviews by codex-cli 0.166.0/GPT-6.1-Sol (Medium) and Antigravity CLI 1.4.12 Gemini 4 Argon (Medium).
+
+A report of the code review is in section 7 (Validation).
 
 **To get only the assembly Hw 2.1,** without running anything, download it from the release page of this repository (https://github.com/maunei/hortaea_werneckii_genome_assembly/releases/tag/v1.0): `curl -L -O https://github.com/maunei/hortaea_werneckii_genome_assembly/releases/download/v1.0/Hw2.1.fasta.gz` (15 MB; 169 contigs, 50.0 Mb). The checksums of the file are `f39e8fcf5f7f6c65d2378634ea97cf5f` (`md5sum Hw2.1.fasta.gz`) and `fc14171e978444dbdac9bb78d36e2a71d9eca3b1db24e00b102f5ea685966bf2` (`sha256sum Hw2.1.fasta.gz`; one of the two is enough), and the checksum of its sequences, which does not depend on the names of the contigs, is `befff43029a2e610b0bfffafd7fdaa15`. The file is not part of the repository: `git clone` does not download it, and a run of the workflow writes its own copy to `results/assembly/` without touching the file of the release. To obtain the assembly by running the workflow, follow the quick start below.
 
@@ -10,11 +16,11 @@ Sections marked with a triangle open on a click. They hold explanations that are
 
 ## Run everything: quick start
 
-What is needed: a computer cluster with the SLURM job scheduler, micromamba or conda, internet access for the downloads, and about 400 GB of free disk space (about 200 GB of working files, 85 GB of reference databases and 80 GB of input files; the software environments add about 15 GB in about 304,000 files). A download job that reaches its time limit on a slow network is submitted again by the script, and continues with the files that are missing. The analysis used 243 core-hours of processor time in the run reported here (section 5). From the submission of the first analysis job to the end of the last job it takes about 4 to 5 hours on a computer with short queue waits (4 h 06 min in the complete run of section 7); the longest single job, one run of the procedure, takes about 3 hours. The installation of the software takes 2 to 5 hours and the downloads 35 minutes to 8 hours, depending on the network; the complete run of section 7, with a slow network, took 16 h 29 min. Count on longer when the queue is busy.
+What is needed: a computer cluster with the SLURM job scheduler, micromamba or conda, internet access for the downloads, and about 400 GB of free disk space (about 200 GB of working files, 85 GB of reference databases and 75 GB of input files; the software environments add about 15 GB in about 304,000 files). A download job that reaches its time limit on a slow network is submitted again by the script, and continues with the files that are missing. The analysis used 243 core-hours of processor time in the run reported here (section 5). From the submission of the first analysis job to the end of the last job it takes about 4 to 5 hours on a computer with short queue waits (3 h 55 min in the complete run of section 7); the longest single job, one run of the procedure, takes about 3 hours. The installation of the software takes 2 to 5 hours and the downloads 35 minutes to 8 hours, depending on the network; the stages of the complete run of section 7 together took 11 h 33 min (the sum of the times of its four stages, without queue waits). Count on longer when the queue is busy.
 
 1. **Get the repository** and go into its folder: `git clone https://github.com/maunei/hortaea_werneckii_genome_assembly.git` and `cd hortaea_werneckii_genome_assembly`.
 2. **Fill in `settings.yaml`.** It has one line for each value: the scheduler account, your e-mail address, how many messages you want, the software modules of your cluster (if any), and three folders for large files outside the repository. The work folder must be new and empty for each run. Nothing else has to be edited.
-3. **Run `bash setup_and_run_all.sh all > run.log 2>&1 &`.** It checks the settings, creates the software environments, downloads the reference databases and the input files, checks that everything works from a compute node, and submits the whole analysis (97 jobs with their dependencies). The script waits for each stage, so it stays running in the background; `tail -f run.log` shows its messages and `squeue -u $USER` the jobs. If the script is stopped (for example when the login computer is restarted), run the same command again in the same folder: the stages that are finished are skipped, and a job that is still queued or running is waited for and not submitted twice.
+3. **Run `bash setup_and_run_all.sh all > run.log 2>&1 &`.** It checks the settings, creates the software environments, downloads the reference databases and the input files, checks that everything works from a compute node, and submits the whole analysis (97 jobs with their dependencies). The script waits for each stage, so it stays running in the background; `tail -f run.log` shows its messages and `squeue -u $USER` the jobs. If the script is stopped (for example when the login computer is restarted), it can be started again in the same folder. The software, database and input stages skip the work that is finished and wait for their jobs that are still queued or running. The analysis stage behaves differently: it refuses to submit again while jobs of the earlier attempt are still queued or running, and tells you to wait for them or to look at the list of jobs; when none is active it submits the analysis again (with a new, empty work folder).
 4. **When the analysis has finished** (one message arrives if you asked for messages, saying COMPLETED, or FAILED if a job of the analysis did not finish; `squeue -u $USER` shows nothing), the results are in `results/`: the assembly Hw 2.1 in `results/assembly/`, the verdict on the five evaluations in `results/09_summary/verdict.tsv` and the comparison with the first analysis in `results/10_validation/`.
 
 ```
@@ -509,14 +515,14 @@ Every line is a job submission; `<name>` stands for the number of the job of tha
 ```
 bash scripts/01_prepare_hw2.sh
 sbatch  jobs/01_check_inputs.sbatch
-sbatch  --array=0-4 jobs/02_pacbio_reads.sbatch
+sbatch --dependency=afterok:<check_inputs> --array=0-4 jobs/02_pacbio_reads.sbatch
 sbatch --dependency=afterok:<pacbio> jobs/02_merge_reads.sbatch
 sbatch --dependency=afterok:<merge> jobs/02_compare_deposited.sbatch
 sbatch  jobs/02_screen_db_index.sbatch
 sbatch --dependency=afterok:<merge>:<dbindex> jobs/02_screen_reads.sbatch
-sbatch  --export=ALL,RUN=SRR5086621,GROUP=rna,EXPECTED=3333452 --time=01:00:00 --cpus-per-task=8 jobs/03_convert.sbatch
-sbatch  --export=ALL,RUN=SRR5086622,GROUP=rna,EXPECTED=175019208 --time=08:00:00 --cpus-per-task=16 jobs/03_convert.sbatch
-sbatch  --export=ALL,RUN=SRR866616,GROUP=illumina2013,EXPECTED=37667637 --time=04:00:00 --cpus-per-task=16 jobs/03_convert.sbatch
+sbatch --dependency=afterok:<check_inputs> --export=ALL,RUN=SRR5086621,GROUP=rna,EXPECTED=3333452 --time=01:00:00 --cpus-per-task=8 jobs/03_convert.sbatch
+sbatch --dependency=afterok:<check_inputs> --export=ALL,RUN=SRR5086622,GROUP=rna,EXPECTED=175019208 --time=08:00:00 --cpus-per-task=16 jobs/03_convert.sbatch
+sbatch --dependency=afterok:<check_inputs> --export=ALL,RUN=SRR866616,GROUP=illumina2013,EXPECTED=37667637 --time=04:00:00 --cpus-per-task=16 jobs/03_convert.sbatch
 sbatch --dependency=afterok:<conv_miseq>:<conv_hiseq>:<conv_ill> jobs/03_qc.sbatch
 sbatch --dependency=afterok:<screen_reads> --export=ALL,RUN=r1,THREADS=16 jobs/04_procedure.sbatch
 sbatch --dependency=afterok:<screen_reads> --export=ALL,RUN=r2,THREADS=12 --cpus-per-task=12 jobs/04_procedure.sbatch
@@ -538,73 +544,73 @@ sbatch --dependency=afterok:<polish_ctrl_canu> --export=ALL,OUTNAME=ctrl_canu_qu
 sbatch --dependency=afterok:<ctrl_flye> --export=ALL,RAW=ctrl_flye,OUTNAME=ctrl_flye_quiver jobs/05_align_subreads.sbatch
 sbatch --dependency=afterok:<align_ctrl_flye> --export=ALL,RAW=ctrl_flye,OUTNAME=ctrl_flye_quiver jobs/05_polish.sbatch
 sbatch --dependency=afterok:<polish_ctrl_flye> --export=ALL,OUTNAME=ctrl_flye_quiver jobs/05_remove_contaminant_contigs.sbatch
-sbatch --dependency=afterok:<conv_hiseq> jobs/06_trinity_denovo.sbatch
-sbatch  jobs/07_genbank_files.sbatch
+sbatch --dependency=afterok:<conv_miseq>:<conv_hiseq> jobs/06_trinity_denovo.sbatch
+sbatch --dependency=afterok:<check_inputs> jobs/07_genbank_files.sbatch
 sbatch --dependency=afterok:<screen_reads> --export=ALL,ASM=hw2 jobs/07_mito.sbatch
 sbatch --dependency=afterok:<genbank>:<mito_hw2> jobs/07_the22.sbatch
 sbatch --dependency=afterok:<the22> jobs/07_depth_unscreened.sbatch
 sbatch --dependency=afterok:<proc_r1>:<conv_hiseq>:<screen_reads> --export=ALL,ASM=proc_r1_raw jobs/06_tests.sbatch
 sbatch --dependency=afterok:<proc_r1>:<trinity> --export=ALL,ASM=proc_r1_raw jobs/06_transcript_alignment.sbatch
-sbatch --dependency=afterok:<proc_r1>:<conv_ill> --export=ALL,ASM=proc_r1_raw,FASTA=/path/to/work/asm/proc_r1_raw/final.fasta jobs/08_illumina_accuracy.sbatch
-sbatch --dependency=afterok:<proc_r1> --export=ALL,ASM=proc_r1_raw,FASTA=/path/to/work/asm/proc_r1_raw/final.fasta jobs/02_screen_contigs.sbatch
+sbatch --dependency=afterok:<proc_r1>:<conv_ill> --export=ALL,ASM=proc_r1_raw,FASTA=$WORK/asm/proc_r1_raw/final.fasta jobs/08_illumina_accuracy.sbatch
+sbatch --dependency=afterok:<proc_r1>:<dbindex> --export=ALL,ASM=proc_r1_raw,FASTA=$WORK/asm/proc_r1_raw/final.fasta jobs/02_screen_contigs.sbatch
 sbatch --dependency=afterok:<remove_r1>:<conv_hiseq>:<screen_reads> --export=ALL,ASM=proc_r1 jobs/06_tests.sbatch
 sbatch --dependency=afterok:<remove_r1>:<trinity> --export=ALL,ASM=proc_r1 jobs/06_transcript_alignment.sbatch
-sbatch --dependency=afterok:<remove_r1>:<conv_ill> --export=ALL,ASM=proc_r1,FASTA=/path/to/work/asm/proc_r1/final.fasta jobs/08_illumina_accuracy.sbatch
-sbatch --dependency=afterok:<remove_r1> --export=ALL,ASM=proc_r1,FASTA=/path/to/work/asm/proc_r1/final.fasta jobs/02_screen_contigs.sbatch
+sbatch --dependency=afterok:<remove_r1>:<conv_ill> --export=ALL,ASM=proc_r1,FASTA=$WORK/asm/proc_r1/final.fasta jobs/08_illumina_accuracy.sbatch
+sbatch --dependency=afterok:<remove_r1>:<dbindex> --export=ALL,ASM=proc_r1,FASTA=$WORK/asm/proc_r1/final.fasta jobs/02_screen_contigs.sbatch
 sbatch --dependency=afterok:<remove_r2>:<conv_hiseq>:<screen_reads> --export=ALL,ASM=proc_r2 jobs/06_tests.sbatch
 sbatch --dependency=afterok:<remove_r2>:<trinity> --export=ALL,ASM=proc_r2 jobs/06_transcript_alignment.sbatch
-sbatch --dependency=afterok:<remove_r2>:<conv_ill> --export=ALL,ASM=proc_r2,FASTA=/path/to/work/asm/proc_r2/final.fasta jobs/08_illumina_accuracy.sbatch
-sbatch --dependency=afterok:<remove_r2> --export=ALL,ASM=proc_r2,FASTA=/path/to/work/asm/proc_r2/final.fasta jobs/02_screen_contigs.sbatch
+sbatch --dependency=afterok:<remove_r2>:<conv_ill> --export=ALL,ASM=proc_r2,FASTA=$WORK/asm/proc_r2/final.fasta jobs/08_illumina_accuracy.sbatch
+sbatch --dependency=afterok:<remove_r2>:<dbindex> --export=ALL,ASM=proc_r2,FASTA=$WORK/asm/proc_r2/final.fasta jobs/02_screen_contigs.sbatch
 sbatch --dependency=afterok:<remove_r3>:<conv_hiseq>:<screen_reads> --export=ALL,ASM=proc_r3 jobs/06_tests.sbatch
 sbatch --dependency=afterok:<remove_r3>:<trinity> --export=ALL,ASM=proc_r3 jobs/06_transcript_alignment.sbatch
-sbatch --dependency=afterok:<remove_r3>:<conv_ill> --export=ALL,ASM=proc_r3,FASTA=/path/to/work/asm/proc_r3/final.fasta jobs/08_illumina_accuracy.sbatch
-sbatch --dependency=afterok:<remove_r3> --export=ALL,ASM=proc_r3,FASTA=/path/to/work/asm/proc_r3/final.fasta jobs/02_screen_contigs.sbatch
+sbatch --dependency=afterok:<remove_r3>:<conv_ill> --export=ALL,ASM=proc_r3,FASTA=$WORK/asm/proc_r3/final.fasta jobs/08_illumina_accuracy.sbatch
+sbatch --dependency=afterok:<remove_r3>:<dbindex> --export=ALL,ASM=proc_r3,FASTA=$WORK/asm/proc_r3/final.fasta jobs/02_screen_contigs.sbatch
 sbatch --dependency=afterok:<ctrl_canu>:<conv_hiseq>:<screen_reads> --export=ALL,ASM=ctrl_canu jobs/06_tests.sbatch
 sbatch --dependency=afterok:<ctrl_canu>:<trinity> --export=ALL,ASM=ctrl_canu jobs/06_transcript_alignment.sbatch
-sbatch --dependency=afterok:<ctrl_canu>:<conv_ill> --export=ALL,ASM=ctrl_canu,FASTA=/path/to/work/asm/ctrl_canu/final.fasta jobs/08_illumina_accuracy.sbatch
-sbatch --dependency=afterok:<ctrl_canu> --export=ALL,ASM=ctrl_canu,FASTA=/path/to/work/asm/ctrl_canu/final.fasta jobs/02_screen_contigs.sbatch
+sbatch --dependency=afterok:<ctrl_canu>:<conv_ill> --export=ALL,ASM=ctrl_canu,FASTA=$WORK/asm/ctrl_canu/final.fasta jobs/08_illumina_accuracy.sbatch
+sbatch --dependency=afterok:<ctrl_canu>:<dbindex> --export=ALL,ASM=ctrl_canu,FASTA=$WORK/asm/ctrl_canu/final.fasta jobs/02_screen_contigs.sbatch
 sbatch --dependency=afterok:<ctrl_flye>:<conv_hiseq>:<screen_reads> --export=ALL,ASM=ctrl_flye jobs/06_tests.sbatch
 sbatch --dependency=afterok:<ctrl_flye>:<trinity> --export=ALL,ASM=ctrl_flye jobs/06_transcript_alignment.sbatch
-sbatch --dependency=afterok:<ctrl_flye>:<conv_ill> --export=ALL,ASM=ctrl_flye,FASTA=/path/to/work/asm/ctrl_flye/final.fasta jobs/08_illumina_accuracy.sbatch
-sbatch --dependency=afterok:<ctrl_flye> --export=ALL,ASM=ctrl_flye,FASTA=/path/to/work/asm/ctrl_flye/final.fasta jobs/02_screen_contigs.sbatch
+sbatch --dependency=afterok:<ctrl_flye>:<conv_ill> --export=ALL,ASM=ctrl_flye,FASTA=$WORK/asm/ctrl_flye/final.fasta jobs/08_illumina_accuracy.sbatch
+sbatch --dependency=afterok:<ctrl_flye>:<dbindex> --export=ALL,ASM=ctrl_flye,FASTA=$WORK/asm/ctrl_flye/final.fasta jobs/02_screen_contigs.sbatch
 sbatch --dependency=afterok:<remove_ctrl_canu>:<conv_hiseq>:<screen_reads> --export=ALL,ASM=ctrl_canu_quiver jobs/06_tests.sbatch
 sbatch --dependency=afterok:<remove_ctrl_canu>:<trinity> --export=ALL,ASM=ctrl_canu_quiver jobs/06_transcript_alignment.sbatch
-sbatch --dependency=afterok:<remove_ctrl_canu>:<conv_ill> --export=ALL,ASM=ctrl_canu_quiver,FASTA=/path/to/work/asm/ctrl_canu_quiver/final.fasta jobs/08_illumina_accuracy.sbatch
-sbatch --dependency=afterok:<remove_ctrl_canu> --export=ALL,ASM=ctrl_canu_quiver,FASTA=/path/to/work/asm/ctrl_canu_quiver/final.fasta jobs/02_screen_contigs.sbatch
+sbatch --dependency=afterok:<remove_ctrl_canu>:<conv_ill> --export=ALL,ASM=ctrl_canu_quiver,FASTA=$WORK/asm/ctrl_canu_quiver/final.fasta jobs/08_illumina_accuracy.sbatch
+sbatch --dependency=afterok:<remove_ctrl_canu>:<dbindex> --export=ALL,ASM=ctrl_canu_quiver,FASTA=$WORK/asm/ctrl_canu_quiver/final.fasta jobs/02_screen_contigs.sbatch
 sbatch --dependency=afterok:<remove_ctrl_flye>:<conv_hiseq>:<screen_reads> --export=ALL,ASM=ctrl_flye_quiver jobs/06_tests.sbatch
 sbatch --dependency=afterok:<remove_ctrl_flye>:<trinity> --export=ALL,ASM=ctrl_flye_quiver jobs/06_transcript_alignment.sbatch
-sbatch --dependency=afterok:<remove_ctrl_flye>:<conv_ill> --export=ALL,ASM=ctrl_flye_quiver,FASTA=/path/to/work/asm/ctrl_flye_quiver/final.fasta jobs/08_illumina_accuracy.sbatch
-sbatch --dependency=afterok:<remove_ctrl_flye> --export=ALL,ASM=ctrl_flye_quiver,FASTA=/path/to/work/asm/ctrl_flye_quiver/final.fasta jobs/02_screen_contigs.sbatch
-sbatch --dependency=afterok:<conv_hiseq>:<screen_reads> --export=ALL,ASM=hw2 jobs/06_tests.sbatch
-sbatch --dependency=afterok:<trinity> --export=ALL,ASM=hw2 jobs/06_transcript_alignment.sbatch
-sbatch --dependency=afterok:<conv_ill> --export=ALL,ASM=hw2,FASTA=/path/to/work/asm/hw2/final.fasta jobs/08_illumina_accuracy.sbatch
-sbatch  --export=ALL,ASM=hw2,FASTA=/path/to/work/asm/hw2/final.fasta jobs/02_screen_contigs.sbatch
+sbatch --dependency=afterok:<remove_ctrl_flye>:<conv_ill> --export=ALL,ASM=ctrl_flye_quiver,FASTA=$WORK/asm/ctrl_flye_quiver/final.fasta jobs/08_illumina_accuracy.sbatch
+sbatch --dependency=afterok:<remove_ctrl_flye>:<dbindex> --export=ALL,ASM=ctrl_flye_quiver,FASTA=$WORK/asm/ctrl_flye_quiver/final.fasta jobs/02_screen_contigs.sbatch
+sbatch --dependency=afterok:<check_inputs>:<conv_hiseq>:<screen_reads> --export=ALL,ASM=hw2 jobs/06_tests.sbatch
+sbatch --dependency=afterok:<check_inputs>:<trinity> --export=ALL,ASM=hw2 jobs/06_transcript_alignment.sbatch
+sbatch --dependency=afterok:<check_inputs>:<conv_ill> --export=ALL,ASM=hw2,FASTA=$WORK/asm/hw2/final.fasta jobs/08_illumina_accuracy.sbatch
+sbatch --dependency=afterok:<check_inputs>:<dbindex> --export=ALL,ASM=hw2,FASTA=$WORK/asm/hw2/final.fasta jobs/02_screen_contigs.sbatch
 sbatch --dependency=afterok:<acc_proc_r1_raw>:<acc_hw2> --export=ALL,ASM_A=proc_r1_raw,ASM_B=hw2 jobs/08_shared_differences.sbatch
 sbatch --dependency=afterok:<acc_proc_r1>:<acc_hw2> --export=ALL,ASM_A=proc_r1,ASM_B=hw2 jobs/08_shared_differences.sbatch
 sbatch --dependency=afterok:<remove_r1> --export=ALL,A_ASM=proc_r1,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
 sbatch --dependency=afterok:<remove_r1> --export=ALL,ASM=proc_r1 jobs/07_mito.sbatch
-sbatch --dependency=afterok:<remove_r1> --export=ALL,ASM=proc_r1 jobs/07_the22_vs_assembly.sbatch
+sbatch --dependency=afterok:<remove_r1>:<genbank> --export=ALL,ASM=proc_r1 jobs/07_the22_vs_assembly.sbatch
 sbatch --dependency=afterok:<acc_proc_r2>:<acc_hw2> --export=ALL,ASM_A=proc_r2,ASM_B=hw2 jobs/08_shared_differences.sbatch
 sbatch --dependency=afterok:<remove_r2> --export=ALL,A_ASM=proc_r2,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
 sbatch --dependency=afterok:<remove_r2> --export=ALL,ASM=proc_r2 jobs/07_mito.sbatch
-sbatch --dependency=afterok:<remove_r2> --export=ALL,ASM=proc_r2 jobs/07_the22_vs_assembly.sbatch
+sbatch --dependency=afterok:<remove_r2>:<genbank> --export=ALL,ASM=proc_r2 jobs/07_the22_vs_assembly.sbatch
 sbatch --dependency=afterok:<acc_proc_r3>:<acc_hw2> --export=ALL,ASM_A=proc_r3,ASM_B=hw2 jobs/08_shared_differences.sbatch
 sbatch --dependency=afterok:<remove_r3> --export=ALL,A_ASM=proc_r3,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
 sbatch --dependency=afterok:<remove_r3> --export=ALL,ASM=proc_r3 jobs/07_mito.sbatch
-sbatch --dependency=afterok:<remove_r3> --export=ALL,ASM=proc_r3 jobs/07_the22_vs_assembly.sbatch
+sbatch --dependency=afterok:<remove_r3>:<genbank> --export=ALL,ASM=proc_r3 jobs/07_the22_vs_assembly.sbatch
 sbatch --dependency=afterok:<acc_ctrl_canu>:<acc_hw2> --export=ALL,ASM_A=ctrl_canu,ASM_B=hw2 jobs/08_shared_differences.sbatch
 sbatch --dependency=afterok:<ctrl_canu> --export=ALL,A_ASM=ctrl_canu,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
 sbatch --dependency=afterok:<ctrl_canu> --export=ALL,ASM=ctrl_canu jobs/07_mito.sbatch
-sbatch --dependency=afterok:<ctrl_canu> --export=ALL,ASM=ctrl_canu jobs/07_the22_vs_assembly.sbatch
+sbatch --dependency=afterok:<ctrl_canu>:<genbank> --export=ALL,ASM=ctrl_canu jobs/07_the22_vs_assembly.sbatch
 sbatch --dependency=afterok:<acc_ctrl_flye>:<acc_hw2> --export=ALL,ASM_A=ctrl_flye,ASM_B=hw2 jobs/08_shared_differences.sbatch
 sbatch --dependency=afterok:<ctrl_flye> --export=ALL,A_ASM=ctrl_flye,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
 sbatch --dependency=afterok:<ctrl_flye> --export=ALL,ASM=ctrl_flye jobs/07_mito.sbatch
-sbatch --dependency=afterok:<ctrl_flye> --export=ALL,ASM=ctrl_flye jobs/07_the22_vs_assembly.sbatch
+sbatch --dependency=afterok:<ctrl_flye>:<genbank> --export=ALL,ASM=ctrl_flye jobs/07_the22_vs_assembly.sbatch
 sbatch --dependency=afterok:<acc_ctrl_canu_quiver>:<acc_hw2> --export=ALL,ASM_A=ctrl_canu_quiver,ASM_B=hw2 jobs/08_shared_differences.sbatch
 sbatch --dependency=afterok:<remove_ctrl_canu> --export=ALL,A_ASM=ctrl_canu_quiver,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
 sbatch --dependency=afterok:<acc_ctrl_flye_quiver>:<acc_hw2> --export=ALL,ASM_A=ctrl_flye_quiver,ASM_B=hw2 jobs/08_shared_differences.sbatch
 sbatch --dependency=afterok:<remove_ctrl_flye> --export=ALL,A_ASM=ctrl_flye_quiver,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
-sbatch --dependency=afterany:<trans_hw2>:<qc>:<trans_ctrl_canu_quiver>:<proc_r2>:<proc_r3>:<acc_proc_r1_raw>:<proc_r1>:<scr_hw2>:<acc_ctrl_canu>:<remove_r2>:<remove_r3>:<remove_r1>:<the22_ctrl_flye>:<pacbio>:<scr_proc_r1_raw>:<the22_ctrl_canu>:<polish_ctrl_flye>:<remove_ctrl_canu>:<trans_ctrl_flye_quiver>:<mito_ctrl_flye>:<mito_ctrl_canu>:<acc_ctrl_canu_quiver>:<polish_ctrl_canu>:<tests_ctrl_canu_quiver>:<shared_ctrl_canu>:<scr_ctrl_canu>:<acc_ctrl_flye>:<screen_reads>:<align_ctrl_flye>:<shared_ctrl_flye>:<compare_ctrl_canu_quiver>:<conv_miseq>:<conv_hiseq>:<tests_ctrl_canu>:<scr_ctrl_flye>:<trans_proc_r1_raw>:<compare_proc_r2>:<compare_proc_r3>:<compare_proc_r1>:<align_r1>:<align_r3>:<align_r2>:<mito_proc_r1>:<mito_proc_r2>:<mito_proc_r3>:<genbank>:<scr_ctrl_flye_quiver>:<tests_proc_r1_raw>:<trans_proc_r1>:<trans_proc_r3>:<trans_proc_r2>:<remove_ctrl_flye>:<trinity>:<tests_ctrl_flye>:<acc_hw2>:<align_ctrl_canu>:<deposited>:<tests_hw2>:<tests_proc_r1>:<tests_proc_r2>:<tests_proc_r3>:<depth_unscreened>:<conv_ill>:<shared_proc_r1_raw>:<compare_ctrl_flye>:<acc_proc_r1>:<acc_proc_r2>:<acc_proc_r3>:<shared_proc_r2>:<shared_proc_r3>:<shared_proc_r1>:<tests_ctrl_flye_quiver>:<compare_ctrl_flye_quiver>:<shared_ctrl_flye_quiver>:<the22>:<scr_proc_r3>:<scr_proc_r2>:<compare_ctrl_canu>:<scr_proc_r1>:<shared_ctrl_canu_quiver>:<ctrl_flye>:<the22_proc_r2>:<the22_proc_r3>:<the22_proc_r1>:<mito_hw2>:<acc_ctrl_flye_quiver>:<ctrl_canu>:<trans_ctrl_flye>:<polish_r3>:<polish_r2>:<polish_r1>:<scr_ctrl_canu_quiver>:<trans_ctrl_canu>:<check_inputs>:<dbindex>:<merge> jobs/09_summary.sbatch
+sbatch --dependency=afterany:<acc_ctrl_canu>:<acc_ctrl_canu_quiver>:<acc_ctrl_flye>:<acc_ctrl_flye_quiver>:<acc_hw2>:<acc_proc_r1>:<acc_proc_r1_raw>:<acc_proc_r2>:<acc_proc_r3>:<align_ctrl_canu>:<align_ctrl_flye>:<align_r1>:<align_r2>:<align_r3>:<check_inputs>:<compare_ctrl_canu>:<compare_ctrl_canu_quiver>:<compare_ctrl_flye>:<compare_ctrl_flye_quiver>:<compare_proc_r1>:<compare_proc_r2>:<compare_proc_r3>:<conv_hiseq>:<conv_ill>:<conv_miseq>:<ctrl_canu>:<ctrl_flye>:<dbindex>:<deposited>:<depth_unscreened>:<genbank>:<merge>:<mito_ctrl_canu>:<mito_ctrl_flye>:<mito_hw2>:<mito_proc_r1>:<mito_proc_r2>:<mito_proc_r3>:<pacbio>:<polish_ctrl_canu>:<polish_ctrl_flye>:<polish_r1>:<polish_r2>:<polish_r3>:<proc_r1>:<proc_r2>:<proc_r3>:<qc>:<remove_ctrl_canu>:<remove_ctrl_flye>:<remove_r1>:<remove_r2>:<remove_r3>:<scr_ctrl_canu>:<scr_ctrl_canu_quiver>:<scr_ctrl_flye>:<scr_ctrl_flye_quiver>:<scr_hw2>:<scr_proc_r1>:<scr_proc_r1_raw>:<scr_proc_r2>:<scr_proc_r3>:<screen_reads>:<shared_ctrl_canu>:<shared_ctrl_canu_quiver>:<shared_ctrl_flye>:<shared_ctrl_flye_quiver>:<shared_proc_r1>:<shared_proc_r1_raw>:<shared_proc_r2>:<shared_proc_r3>:<tests_ctrl_canu>:<tests_ctrl_canu_quiver>:<tests_ctrl_flye>:<tests_ctrl_flye_quiver>:<tests_hw2>:<tests_proc_r1>:<tests_proc_r1_raw>:<tests_proc_r2>:<tests_proc_r3>:<the22>:<the22_ctrl_canu>:<the22_ctrl_flye>:<the22_proc_r1>:<the22_proc_r2>:<the22_proc_r3>:<trans_ctrl_canu>:<trans_ctrl_canu_quiver>:<trans_ctrl_flye>:<trans_ctrl_flye_quiver>:<trans_hw2>:<trans_proc_r1>:<trans_proc_r1_raw>:<trans_proc_r2>:<trans_proc_r3>:<trinity> jobs/09_summary.sbatch
 Everything is submitted; the last job (09_summary) runs when all others have ended and writes results/09_summary/ and results/assembly/.
 ```
 
@@ -726,7 +732,7 @@ Time in the run reported here: the longest job took 0.0 hours of elapsed time; a
 
 **What is checked and why**
 
-Every later number depends on the input files being exactly the files of the archives. The workflow keeps its inputs in the folder `input/`: the 15 PacBio files of the five sequencing runs (`.bax.h5`, the raw output of the RS II instrument), the SRA archive files of the two RNA-seq runs and of the Illumina run of 2013, and the published assembly Hw 2.0 as it is stored in the GitHub repository of the paper and in the NCBI record GCA_002127715.1. The commit of the repository that was used is written in `input/hw2/github_commit.txt`.
+Every later number depends on the input files being exactly the files of the archives. The workflow keeps its inputs in the folder `input/`: the 15 PacBio files of the five sequencing runs (`.bax.h5`, the raw output of the RS II instrument), the filtered PacBio subreads file deposited by the authors (`SRR5086624`), the SRA archive files of the two RNA-seq runs and of the Illumina run of 2013, and the published assembly Hw 2.0 as it is stored in the GitHub repository of the paper and in the NCBI record GCA_002127715.1. The commit of the repository that was used is written in `input/hw2/github_commit.txt`.
 
 Two checks are made, and both can be repeated by anyone who uses the same data. First, every archive file is compared with the md5 checksum and the size that the archive itself publishes (`input/manifests/*.tsv`, one table per data group): this shows that the files are the files of the archive. Second, the md5 checksum of every input file used here is listed in `input/CHECKSUMS.md5`, so that another person can compute the checksums of their own copy and compare them with this list, and know that the same data are used as in the results reported below.
 
@@ -742,7 +748,7 @@ Two checks are made, and both can be repeated by anyone who uses the same data. 
 Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
-results/01_inputs/   (3 files)
+results/01_inputs/   (2 files)
 ├── archive_check.tsv   - one row for each archive file: checksum published by the archive, checksum found, status
 └── checksums_failed.txt   - empty when every file agrees with input/CHECKSUMS.md5
 
@@ -819,7 +825,7 @@ The authors deposited the filtered subreads they used as FASTQ (accession SRR508
 Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
-results/02_pacbio_reads/   (98 files)
+results/02_pacbio_reads/   (97 files)
 ├── screen_db/
 │   ├── parts_stats.tsv
 │   ├── refseq_release.txt
@@ -1078,7 +1084,7 @@ Programs and versions are listed in `envs/versions_03.tsv`.
 Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
-results/03_rna_illumina/   (7 files)
+results/03_rna_illumina/   (6 files)
 ├── fastp/
 │   └── <run>.json   (x3)   - fastp report of the run
 ├── multiqc_report.html   - MultiQC report of all runs
@@ -1153,7 +1159,7 @@ The procedure is run three times from the same reads, with 16, 12 and 8 threads 
 Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
-results/04_procedure/   (20 files)
+results/04_procedure/   (19 files)
 ├── {ctrl_canu, ctrl_flye}/
 │   ├── assembly_stats.tsv   - contig statistics of the assembly
 │   └── time_memory.txt   - time and memory of the stage
@@ -1253,7 +1259,7 @@ Runs 2 and 3 (12 and 24, 8 and 16 threads) and the two controls (`RAW=ctrl_canu,
 Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
-results/05_polish/   (26 files)
+results/05_polish/   (25 files)
 └── {ctrl_canu_quiver, ctrl_flye_quiver, proc_r1, proc_r2, proc_r3}/
     ├── assembly_stats.tsv   - contig statistics of the assembly
     ├── assembly_stats_after_removal.tsv   - contig statistics after the removal of contaminant contigs
@@ -1261,7 +1267,7 @@ results/05_polish/   (26 files)
     ├── removed_contigs.tsv   - contigs removed by the contaminant screen
     └── time_memory.txt   - time and memory of the stage
 
-results/assembly/   (3 files)
+results/assembly/   (2 files)
 ├── Hw2.1.fasta.gz   - the assembly Hw 2.1
 └── Hw2.1_contigs.tsv   - name, length and origin of each contig of Hw 2.1
 
@@ -1301,13 +1307,13 @@ Time in the run reported here: the longest job took 1.6 hours of elapsed time; a
 Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
-results/06_transcripts/   (20 files)
+results/06_transcripts/   (19 files)
 ├── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
 │   ├── summary.json   - all measures of this assembly (or comparison) in one file
 │   └── transcripts.tsv.gz   - alignment of every Trinity transcript
 └── trinity_assembly.json   - statistics of the Trinity transcripts
 
-$HW_WORK/trinity/   (2 files, 119M)
+$HW_WORK/trinity/   (2 files, 120M)
 ├── Trinity.fasta
 └── Trinity.fasta.gene_trans_map
 ```
@@ -1361,7 +1367,7 @@ Time in the run reported here: the longest job took 0.5 hours of elapsed time; a
 
 One job per assembly carries out four of the five evaluations with the same programs, settings and thresholds for every assembly: contiguity (evaluation 1), gene-space completeness (evaluation 2), structural correctness against the PacBio reads (evaluation 3) and redundancy and collapse (evaluation 4). Evaluation 5, base accuracy from the Illumina reads, belongs to another step; the comparison of two assemblies with each other, the transcripts assembled without a genome and the mitochondrial genome also belong to other steps. The job writes one table per measure and a file `summary.json` with fixed key names, so that the later steps (the noise scale, the decision table, the figures) read numbers from files and never retype them.
 
-The job is `jobs/06_tests.sbatch`. It takes the assembly name (`ASM`) and the FASTA file (`FASTA`) and nothing else is needed. It uses 16 cores and a few gigabytes of memory, and the steps are independent of each other, so an interrupted job can be submitted again: finished steps are skipped (a marker file per step is kept with the large files) unless `FORCE=1` is set. The marker of a step does not record the assembly or the reads it was made from: set `FORCE=1` after changing either.
+The job is `jobs/06_tests.sbatch`. It takes the assembly name (`ASM`) and the FASTA file (`FASTA`) and nothing else is needed. It uses 16 cores and a few gigabytes of memory, and the steps run one after the other (a step that needs the result of another step, for example the transcript alignment of the contiguity step, is not run when that step has failed, and is run again when that step was run again), so an interrupted job can be submitted again: finished steps are skipped (a marker file per step is kept with the large files) unless `FORCE=1` is set. The marker of a step does not record the assembly or the reads it was made from: set `FORCE=1` after changing either.
 
 **Reference data (fetched once, used offline)**
 
@@ -1654,7 +1660,7 @@ Differences in the first and last 20 bases of a contig cannot be matched in the 
 Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
-results/06_tests/   (262 files)
+results/06_tests/   (261 files)
 └── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
     ├── busco.json   - BUSCO counts
     ├── busco.tsv   - BUSCO result table
@@ -1686,7 +1692,7 @@ results/06_tests/   (262 files)
     ├── telomeres.tsv   - telomeric repeats at contig ends
     └── timings.tsv   - time of each test
 
-results/07_comparator/   (82 files)
+results/07_comparator/   (81 files)
 ├── genbank_files/
 │   ├── case_differences.tsv
 │   ├── contigs_by_file.tsv
@@ -1735,13 +1741,13 @@ results/07_comparator/   (82 files)
     ├── depth_unscreened_and_screened_reads.tsv
     └── summary.json   - all measures of this assembly (or comparison) in one file
 
-results/07_compare/   (22 files)
+results/07_compare/   (21 files)
 └── {ctrl_canu_quiver_vs_hw2, ctrl_canu_vs_hw2, ctrl_flye_quiver_vs_hw2, ctrl_flye_vs_hw2, proc_r1_vs_hw2, proc_r2_vs_hw2, proc_r3_vs_hw2}/
     ├── alignment_stats.json   - alignment of the two assemblies, statistics
     ├── disagreements.tsv   - every place where the two assemblies arrange the sequence differently, with the reads that support each side
     └── summary.json   - all measures of this assembly (or comparison) in one file
 
-results/08_illumina_accuracy/   (105 files)
+results/08_illumina_accuracy/   (104 files)
 ├── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
 │   ├── depth_limits.json   - depth limits used
 │   ├── differences.tsv   - every difference between the assembly and the Illumina reads
@@ -1976,7 +1982,7 @@ The report `results/10_validation/validation_report.txt` starts with a summary (
 Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
-results/09_summary/   (25 files)
+results/09_summary/   (24 files)
 ├── fig_contigs.png   - figure (contigs), png
 ├── fig_contigs.svg   - figure (contigs), svg
 ├── fig_measures.png   - figure (measures), png
@@ -2002,7 +2008,7 @@ results/09_summary/   (25 files)
 ├── verdict.json   - verdict on each evaluation
 └── verdict.tsv   - verdict on each evaluation (table)
 
-results/10_validation/   (3 files)
+results/10_validation/   (2 files)
 ├── closeness.tsv   - the same values as a table (value, first analysis, difference, usual variation, note)
 └── validation_report.txt   - how close the rerun is to validation/expected.tsv: summary and one line per value
 ```
@@ -2033,7 +2039,7 @@ The workflow was tested step by step and as a whole: the installation of the sof
 
 <details><summary>Complete run from empty folders (2 to 3 November 2026)</summary>
 
-A fresh clone of the repository (commit f24f2dd) with new, empty folders for the software, the databases, the input files and the work files. The analysis was not changed by the commits that followed (they changed the documentation).
+A fresh clone of the repository (version 1.0.1, commit f24f2dd) with new, empty folders for the software, the databases, the input files and the work files.
 
 | Stage | Time |
 |---|---|
@@ -2047,6 +2053,20 @@ The downloads account for most of the time. Result: all 97 jobs of the analysis 
 
 </details>
 
+<details><summary>Second complete analysis, with version 1.0.2 (3 November 2026)</summary>
+
+The analysis was run again from a fresh clone of the repository (version 1.0.2) with a new work folder and empty `results/` and `logs/`. The software environments and the databases of the first run were kept and the input files were linked from the folder of that run (`input_source` in `settings.yaml`), so the stages for the software, the databases and the input files had nothing to download; the check of the input files and all 97 jobs of the analysis ran from the beginning.
+
+| Stage | Time |
+|---|---|
+| Analysis (first job to last job, 228 core-hours) | 4 h 27 min |
+
+Result: all 97 jobs of the analysis completed (121 tasks) and the message of the run said COMPLETED. The checksum of the file `results/assembly/Hw2.1.fasta.gz` is `f39e8fcf5f7f6c65d2378634ea97cf5f`, the checksum of the sequences is `befff43029a2e610b0bfffafd7fdaa15` in the three runs of the procedure, the verdicts on the five evaluations are better, not worse (better in part), better, better and better, and all 149 values compared with the first analysis are within the usual variation. The check of the input files covered the 20 archive files and the 649 entries of `input/CHECKSUMS.md5`. The 25 timed alignment stages of the polishing are all in `results/09_summary/resources_stages.tsv`. As in the first complete run, only the values of the Flye control assembly differ a little between runs (2,261 contigs against 2,263).
+
+The last changes of the version, made after this run started, concern the handling of failures, the tests and the documentation. The tables of the summary and of the comparison with the first analysis (steps 09 and 10) were made again with the final code from the results of this run and are identical to the files of the run, and the 73 tests in `tests/` pass with these results (the test t09 repeats the summary and the comparison).
+
+</details>
+
 Programs that give a different result at every run, with the same input: Trinity assembled 57,071 transcripts in one run and 56,609 in another, and the percentage of transcripts that align well to an assembly differed by up to 0.6 percent (relative), for every assembly alike (so the comparison between assemblies is unchanged). Flye, used only for a control assembly, gave 2,276 contigs against 2,263 and a longest contig of 363,769 against 411,508 bases. The polished Canu control had up to 21 percent more places that no read crosses (5,515 against 4,564). The comparison with the first analysis (step 10) therefore reports these values with a wider usual variation: 1.5 percent for the transcript measures and 25 percent for the control assemblies. The proteins of Swiss-Prot are downloaded from UniProt, which changes them from month to month (38,451 proteins in the first analysis, 38,309 in a later download): the proportion of proteins found whole moved by about 0.2 percent for the assembly Hw 2.0 of the authors, and 1 percent is taken as usual. The numbering of the contigs by Canu can also differ between runs (two contigs exchanged their names in some runs of the same data); the sequences are the same, and the assembly is identified by the checksum of its sequences (check 2 below).
 
 Four checks tie the workflow to its results; the last compares a rerun with the first analysis and only reports how close it is:
@@ -2057,6 +2077,88 @@ Four checks tie the workflow to its results; the last compares a rerun with the 
 4. **A rerun is compared with the first analysis.** `scripts/10_validate.py` compares the results of a rerun with `validation/expected.tsv`, which lists every measure of this report with the variation that is usual for it, and the checksum of the sequences of the assembly. The report (`results/10_validation/validation_report.txt` and `closeness.tsv`) gives, for each value, the difference to the first analysis and a note, "within the usual variation" or "larger than usual"; it does not judge and never makes the run FAILED. The table was made from the run reported here, so a comparison of this run with itself shows no difference; the useful comparison is a rerun.
 
 Not validated: a rerun on another computer or with other versions of the programs.
+
+<details><summary>Code review of the scripts</summary>
+
+The scripts were reviewed by two AI reviewers (Codex and Antigravity, see the first paragraph) that worked separately from each other and from claude-science, which wrote the code. They read the scripts, tried to break them, and proposed fixes. Only claude-science changed the code, and every fix has a test, written by a reviewer, that fails on the code without the fix. The table lists the 73 tests of `tests/` one by one (`bash tests/run_tests.sh`; no cluster is needed), grouped by the part of the code that they check, with the author of each test. The last column gives the result of each of the three on the final version of the code: each one ran the 73 tests itself.
+
+| Test file | Part of the code and what the test checks | Result on the final code (claude-science / Codex / Antigravity) |
+|---|---|---|
+| `t01_syntax.sh` (written by claude-science) | **Syntax.** every shell script and job file passes `bash -n`; every Python script compiles | PASS / PASS / PASS |
+| `t03_settings.sh` (written by claude-science) | **Settings (`setup_and_run_all.sh settings`).** an empty value followed by a comment and a quoted value reach `config/local.sh` unchanged; folder names with a space, a quote, a backslash, a comma or `;`, and relative `input_source`, are refused with a message and never shortened | PASS / PASS / PASS |
+| `fx11_quoted_comments.sh` (written by Codex) | **Settings (`setup_and_run_all.sh settings`).** a `#` inside a quoted value is data, a comment after it is not; an escaped quote or text after the closing quote is refused, not cut | PASS / PASS / PASS |
+| `fx46_settings_all_keys_and_abs_input_source.sh` (written by Antigravity) | **Settings (`setup_and_run_all.sh settings`).** account, mail address, modules, job name and mail setting with a quote, backslash, backtick or `$` are refused; `input_source` must be an absolute path | PASS / PASS / PASS |
+| `t02_submission.sh` (written by claude-science) | **Submission of the analysis (`submit_all.sh`, `setup_and_run_all.sh run`).** with a mock `sbatch`: the dependencies of the jobs, a failed submission stops with an error, a dry run changes nothing | PASS / PASS / PASS |
+| `fx08_ledger_identity.sh` (written by Codex) | **Submission of the analysis (`submit_all.sh`, `setup_and_run_all.sh run`).** one job list per attempt is used by the submission, the cancellation, the search for the summary job and the message job; an old list is never read | PASS / PASS / PASS |
+| `fx24_ledger_io.sh` (written by Codex) | **Submission of the analysis (`submit_all.sh`, `setup_and_run_all.sh run`).** an unwritable old job list sends no job number to the cancellation; an accepted job that cannot be recorded is cancelled at once | PASS / PASS / PASS |
+| `fx36_old_ledger.sh` (written by Codex) | **Restart and parallel start.** the stage run refuses to start while jobs of the old job list are queued, array tasks included; it starts when none is queued or the list is empty or absent | PASS / PASS / PASS |
+| `fx51_submission_safety.sh` (written by Codex) | **Restart and parallel start.** a queue that cannot be read stops the stage with the job list kept; a second stage run at the same time is refused | PASS / PASS / PASS |
+| `fx57_stage_run_lock_and_squeue.sh` (written by Antigravity) | **Restart and parallel start.** the submission lock is exclusive and not waited for; a failing `squeue` stops the run; an old array range in the queue is detected | PASS / PASS / PASS |
+| `t12_array_coverage.sh` (written by claude-science) | **Message at the end of the run.** the number of accounting rows the job list requires (one per job, one per array task) and the command of the message job: FAILED if a job has no row, an array has too few rows, a job number is only the beginning of another, or a task did not complete | PASS / PASS / PASS |
+| `fx22_notification_coverage.sh` (written by Codex) | **Message at the end of the run.** the message job cannot say COMPLETED from partial, empty or failed accounting | PASS / PASS / PASS |
+| `fx10_wait_accounting.sh` (written by Codex) | **Message at the end of the run.** the wait for a stage stops when the accounting of a job is missing or not COMPLETED | PASS / PASS / PASS |
+| `fx45_resources_tasks_and_final_cmd.sh` (written by Antigravity) | **Message at the end of the run.** exact task numbers in the resource table and the command of the message job, with job numbers that are prefixes of each other | PASS / PASS / PASS |
+| `t07_resources.sh` (written by claude-science) | **Table of resources (`09_resources.py`).** with a mock `sacct`: tasks of array jobs are counted; one task that did not complete makes the job not completed, in either order; controls are grouped by the key of the job list | PASS / PASS / PASS |
+| `t14_resources_array_identity.sh` (written by claude-science) | **Table of resources (`09_resources.py`).** exactly the tasks declared by the array (job list or `#SBATCH --array`): a missing task, a task not in the array or the allocation row instead of a task refuses the table | PASS / PASS / PASS |
+| `fx04_resources_array_state.sh` (written by Antigravity) | **Table of resources (`09_resources.py`).** an array job with any task not COMPLETED is not COMPLETED and its processor time is not counted, whatever the order of the tasks | PASS / PASS / PASS |
+| `fx05_resources_array_stages.sh` (written by Antigravity) | **Table of resources (`09_resources.py`).** the time files of all array tasks are kept (25 of 25 alignment files of the run), files of jobs not in the list are ignored | PASS / PASS / PASS |
+| `fx06_resources_ctrl_group.sh` (written by Antigravity) | **Table of resources (`09_resources.py`).** polishing of the control assemblies is counted as controls; the total stays 228.7 core-hours for the first complete run | PASS / PASS / PASS |
+| `fx10_resources_sacct_errors.sh` (written by Antigravity) | **Table of resources (`09_resources.py`).** failing, empty or partial `sacct` gives an error and no table of zeros; complete output works | PASS / PASS / PASS |
+| `fx55_resources_bracketed_rows.sh` (written by Antigravity) | **Table of resources (`09_resources.py`).** an unexpanded array range such as `7002_[0-2]` in the accounting refuses the table | PASS / PASS / PASS |
+| `t04_fetch_archive.sh` (written by claude-science) | **Downloads (`fetch_archive.py`).** never writes through a link (final or temporary name); replaces a file of the wrong size; no temporary file after a failure; a wrong checksum is rejected | PASS / PASS / PASS |
+| `fx02_download_paths.sh` (written by Codex) | **Downloads (`fetch_archive.py`).** no write through a link or a shared file in the download, the report, the marker and the linking of `input_source`; reports and markers are owned files | PASS / PASS / PASS |
+| `fx12_verification_markers.sh` (written by Codex) | **Downloads (`fetch_archive.py`).** a marker is trusted only when it holds the expected checksum; a wrong marker forces a check of the content and a repair; a marker cannot approve a file of the wrong size; a failed repair leaves no bad file under the final name | PASS / PASS / PASS |
+| `fx28_metadata_hardlinks.sh` (written by Codex) | **Downloads (`fetch_archive.py`).** a marker or a report that is a second name of another file is replaced, never written through; report history is kept | PASS / PASS / PASS |
+| `fx30_fetch_archive_part_and_fd.sh` (written by Antigravity) | **Downloads (`fetch_archive.py`).** unfinished `.part` files of earlier attempts are removed; the file is closed when the disk is full; an unwritable report does not fail the download | PASS / PASS / PASS |
+| `fx35_folder_lock.sh` (written by Codex) | **Downloads (`fetch_archive.py`).** two downloaders of one folder: no lost report rows, a failed downloader does not delete the file another installed | PASS / PASS / PASS |
+| `fx50_lock_failure.sh` (written by Codex) | **Downloads (`fetch_archive.py`).** when the folder lock cannot be opened or taken, the downloader stops with exit 2 and changes nothing | PASS / PASS / PASS |
+| `fx56_fetch_archive_lock_fail.sh` (written by Antigravity) | **Downloads (`fetch_archive.py`).** same check, written independently: lock failure exit 2, existing `.part` files and report untouched | PASS / PASS / PASS |
+| `t15_fetch_lock.sh` (written by claude-science) | **Downloads (`fetch_archive.py`).** a second downloader of the same folder waits for the first; a downloader of another folder does not wait | PASS / PASS / PASS |
+| `t08_inputs_list.sh` (written by claude-science) | **Input files (check and inputs stage).** the checksum list has 649 entries, no git-lfs file, no duplicate | PASS / PASS / PASS |
+| `t13_inputs_missing.sh` (written by claude-science) | **Input files (check and inputs stage).** a missing file counts as missing, including the file deposited by the authors, which older lists do not name | PASS / PASS / PASS |
+| `fx14_checksum_coverage.sh` (written by Codex) | **Input files (check and inputs stage).** a missing checksum is reported as unavailable, not as a difference between runs; complete equal checksums are reported identical | PASS / PASS / PASS |
+| `fx15_check_inputs_archive.sh` (written by Antigravity) | **Input files (check and inputs stage).** the archive check marks a damaged or missing file as not ok in every form that `md5sum -c` reports | PASS / PASS / PASS |
+| `fx16_stage_inputs_deposited.sh` (written by Antigravity) | **Input files (check and inputs stage).** the inputs stage downloads and verifies the file deposited by the authors; the comparison job keeps its fallback | PASS / PASS / PASS |
+| `fx29_deposited_stage.sh` (written by Codex) | **Input files (check and inputs stage).** the real inputs stage: a complete folder downloads nothing; a missing deposited file starts the download | PASS / PASS / PASS |
+| `fx32_check_inputs_deposited_and_diff.sh` (written by Antigravity) | **Input files (check and inputs stage).** the check includes the deposited manifest and stops with exit 5 when a file differs from the archive record | PASS / PASS / PASS |
+| `fx37_manifest_check.sh` (written by Codex) | **Input files (check and inputs stage).** each of the four manifests missing or empty stops the inputs stage | PASS / PASS / PASS |
+| `fx47_input_source_skip_lock_and_part.sh` (written by Antigravity) | **Input files (check and inputs stage).** linking from `input_source` skips lock files, `.part` files and reports | PASS / PASS / PASS |
+| `fx23_prepare_hw2_fail.sh` (written by Antigravity) | **Preparation of Hw 2.0, databases and software.** a damaged compressed Hw 2.0 file stops the preparation with an error | PASS / PASS / PASS |
+| `fx25_prepare_tmp.sh` (written by Codex) | **Preparation of Hw 2.0, databases and software.** the preparation of Hw 2.0 uses a unique temporary file (not a fixed name that a link could redirect) and keeps the earlier file when it fails | PASS / PASS / PASS |
+| `fx23_ncbi_temporary.sh` (written by Codex) | **Preparation of Hw 2.0, databases and software.** the NCBI downloads never write through a shared `.part` link; a failed download publishes nothing | PASS / PASS / PASS |
+| `fx48_fetch_ncbi_stale_part_cleanup.sh` (written by Antigravity) | **Preparation of Hw 2.0, databases and software.** stale `.part` files of the NCBI downloads are removed before a new download; the temporary file is removed when `curl` fails | PASS / PASS / PASS |
+| `fx52_ncbi_lock.sh` (written by Codex) | **Preparation of Hw 2.0, databases and software.** two NCBI downloaders: the active temporary file of one survives, both end with the file | PASS / PASS / PASS |
+| `fx58_fetch_ncbi_folder_lock.sh` (written by Antigravity) | **Preparation of Hw 2.0, databases and software.** the NCBI download takes the folder lock; a lock that cannot be opened is exit 6 without deleting parts | PASS / PASS / PASS |
+| `fx27_grep_error.sh` (written by Codex) | **Preparation of Hw 2.0, databases and software.** an error of the search in the table of databases is not hidden and the old table is kept | PASS / PASS / PASS |
+| `fx38_grep_query.sh` (written by Codex) | **Preparation of Hw 2.0, databases and software.** the first search of the same table: present, absent and failing (exit 2) cases | PASS / PASS / PASS |
+| `fx17_screen_dbindex_readonly.sh` (written by Antigravity) | **Preparation of Hw 2.0, databases and software.** the database index job does not rewrite the statistics of the databases when they exist and are newer than the parts (it works when the folder is read-only); the descriptor files in `results/` are still written | PASS / PASS / PASS |
+| `fx19_make_envs_dryrun.sh` (written by Antigravity) | **Preparation of Hw 2.0, databases and software.** a dry run of the software installation creates nothing on disk | PASS / PASS / PASS |
+| `t10_screen_worker.sh` (written by claude-science) | **Preparation of Hw 2.0, databases and software.** the worker that downloads one genome of the screen database receives its arguments in the right order | PASS / PASS / PASS |
+| `t05_step_errexit.sh` (written by claude-science) | **Steps of the tests of one assembly (`06_tests.sbatch`, `06_collect.py`).** a command that fails in the middle of a step makes the step fail | PASS / PASS / PASS |
+| `t06_collect_stale.sh` (written by claude-science) | **Steps of the tests of one assembly (`06_tests.sbatch`, `06_collect.py`).** the file of a step that failed earlier is not used by the collection | PASS / PASS / PASS |
+| `fx07_step06_deps_and_tm.sh` (written by Antigravity) | **Steps of the tests of one assembly (`06_tests.sbatch`, `06_collect.py`).** a step is not run when the step it needs failed, its dependents are not used, and failed commands are recorded in the timings | PASS / PASS / PASS |
+| `fx26_failed_marker.sh` (written by Codex) | **Steps of the tests of one assembly (`06_tests.sbatch`, `06_collect.py`).** a failed step blocks its consumer even when its old marker cannot be removed | PASS / PASS / PASS |
+| `fx31_step06_prereq_newer.sh` (written by Antigravity) | **Steps of the tests of one assembly (`06_tests.sbatch`, `06_collect.py`).** a step runs again when the step it needs is newer than its own marker | PASS / PASS / PASS |
+| `fx40_marker_freshness.sh` (written by Codex) | **Steps of the tests of one assembly (`06_tests.sbatch`, `06_collect.py`).** the same decision with an unremovable marker: a fresh marker skips, a newer producer reruns | PASS / PASS / PASS |
+| `fx01_cache_failure.sh` (written by Codex) | **Cache of the comparison of two assemblies.** a failing aligner, compressor, gzip check or rename does not publish the cache that later steps read | PASS / PASS / PASS |
+| `fx13_conversion_failures.sh` (written by Codex) | **Final copies, renames and conversions.** the two files of a read pair are published only when the read names of both agree and the conversion and compression succeeded; a failure stops the job | PASS / PASS / PASS |
+| `fx33_step07_fetch_and_callers.sh` (written by Antigravity) | **Final copies, renames and conversions.** the step 07 download scripts write under temporary names and clean up; the jobs stop with exit 2 when they fail | PASS / PASS / PASS |
+| `fx39_depth_status.sh` (written by Codex) | **Final copies, renames and conversions.** errors in the depth calculation (first or second `awk`, the final rename) stop the script | PASS / PASS / PASS |
+| `fx49_step07_depth_awk_failure.sh` (written by Antigravity) | **Final copies, renames and conversions.** same, written independently: exit 5 and no partial depth table | PASS / PASS / PASS |
+| `t09_archived_results.sh` (written by claude-science) | **Summary and comparison with the first analysis.** on the results of a complete run the summary is made again on a copy; the tables and verdicts are identical | PASS / PASS / PASS |
+| `fx09_zero_decisions.sh` (written by Codex) | **Summary and comparison with the first analysis.** a comparison with no decided disagreement does not crash the summary | PASS / PASS / PASS |
+| `fx22_summary_partial_runs.sh` (written by Antigravity) | **Summary and comparison with the first analysis.** with one replicate or missing data the summary does not declare better or worse; the verdict is incomplete | PASS / PASS / PASS |
+| `fx03_archived_test_mutant.sh` (written by Codex) | **Summary and comparison with the first analysis.** the test of the archived results fails for a copy of the code that loses a table | PASS / PASS / PASS |
+| `fx18_replicates_missing_fasta.sh` (written by Antigravity) | **Check that the three runs are the same (`09_replicates.sh`).** a missing FASTA file gives the word missing, not the checksum of an empty file | PASS / PASS / PASS |
+| `t11_readme_dryrun.sh` (written by claude-science) | **The README.** the submission lines in the README are the lines that the dry run prints now | PASS / PASS / PASS |
+| `fx21_suite_discovery.sh` (written by Codex) | **The test runner and the tests themselves.** a new test file is found and run by the runner; its failure fails the suite | PASS / PASS / PASS |
+| `fx34_runner_family_filters.sh` (written by Antigravity) | **The test runner and the tests themselves.** the filter `t03` runs only `t03`, `fx03` only that family, `03` both | PASS / PASS / PASS |
+| `fx03_runner_filters.sh` (written by Codex) | **The test runner and the tests themselves.** the runner runs the tests selected by the filters `t03`, `03` and `t03_settings.sh` | PASS / PASS / PASS |
+| `fx03_t07_mutant.sh` (written by Antigravity) | **The test runner and the tests themselves.** the resource test fails for a copy of `09_resources.py` that always says COMPLETED | PASS / PASS / PASS |
+| `fx03_download_test_mutants.sh` (written by Codex) | **The test runner and the tests themselves.** the download tests fail for deliberately broken copies of `fetch_archive.py` | PASS / PASS / PASS |
+| `fx03_ledger_test_mutant.sh` (written by Codex) | **The test runner and the tests themselves.** the job list test fails for a deliberately broken copy of the submission code | PASS / PASS / PASS |
+
+</details>
 
 ## 8. Folder layout
 

@@ -21,7 +21,7 @@ for r in SRR5086620 SRR5086623 SRR5086626 SRR5086627 SRR5086628; do [ -s "$r.ali
 pbmerge -o all.aligned.bam SRR*.aligned.bam > "$LOGDIR/pbmerge.out" 2>&1 || exit 4
 /usr/bin/time -v variantCaller --algorithm=quiver -j "$NT" -r ref.fa --verbose -o polished.fasta -o polished.gff all.aligned.bam > "$LOGDIR/quiver.out" 2> "$LOGDIR/quiver.time"; rc=$?
 echo "quiver exit $rc"; [ $rc = 0 ] || exit 5
-sed 's/^>\([^|]*\)|quiver.*/>\1/' polished.fasta > "$OUT/polished.fasta"
+sed 's/^>\([^|]*\)|quiver.*/>\1/' polished.fasta > "$OUT/polished.fasta" || exit 4
 "$QC_BIN/seqkit" stats -a -T "$WORK/asm/$RAW/final.fasta" "$OUT/polished.fasta" > "$R/assembly_stats.tsv" || exit 4; cut -f1-9,13,14 "$R/assembly_stats.tsv"
 # number of changes made by Quiver, by type (column 3 of the GFF file)
 grep -v '^#' polished.gff | cut -f3 | sort | uniq -c | awk 'BEGIN{OFS="\t"; print "change","count"} {print $2,$1}' > "$R/quiver_changes.tsv"; cat "$R/quiver_changes.tsv"

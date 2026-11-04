@@ -62,8 +62,8 @@ F="$T/trinity_run/Trinity.fasta"
 [ -s "$F" ] || F="$(find "$T" -maxdepth 2 -name '*Trinity.fasta' -size +0 | head -1)"
 [ -s "$F" ] || { echo "ERROR: no transcript file found" >&2; find "$T" -maxdepth 2 | head -30; exit 4; }
 echo "transcript file: $F"
-cp "$F" "$TRINITY_OUT/Trinity.fasta"
-[ -s "${F}.gene_trans_map" ] && cp "${F}.gene_trans_map" "$TRINITY_OUT/Trinity.fasta.gene_trans_map"
+cp "$F" "$TRINITY_OUT/Trinity.fasta" || exit 4
+if [ -s "${F}.gene_trans_map" ]; then cp "${F}.gene_trans_map" "$TRINITY_OUT/Trinity.fasta.gene_trans_map" || exit 4; fi
 cp "$T"/trinity_run/*.log "$LOGDIR/" 2>/dev/null || true
 
 # 5. Check and record: number of transcripts, total length, N50; the version of the program.

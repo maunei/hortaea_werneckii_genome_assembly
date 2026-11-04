@@ -19,7 +19,11 @@ for part in $SCREEN_PARTS; do
   "$SCREEN_BIN/minimap2" -x map-pb -t "${SLURM_CPUS_PER_TASK:-16}" -I 100G -d "$SCREEN_DB/$part.mmi.tmp" "$SCREEN_DB/$part.fa.gz" && mv "$SCREEN_DB/$part.mmi.tmp" "$SCREEN_DB/$part.mmi" || exit 3
 done
 # number of sequences and bases per part (a check of the download)
-"$SCREEN_BIN/seqkit" stats -T -j "${SLURM_CPUS_PER_TASK:-16}" "$SCREEN_DB"/*.fa.gz > "$SCREEN_DB/parts_stats.tsv" || exit 4; cat "$SCREEN_DB/parts_stats.tsv"
+PS="$SCREEN_DB/parts_stats.tsv"   # written only when it is missing or older than a part: the databases folder is not written again at every run
+if [ ! -s "$PS" ] || [ -n "$(find "$SCREEN_DB" -maxdepth 1 -name '*.fa.gz' -newer "$PS" -print -quit)" ]; then
+  "$SCREEN_BIN/seqkit" stats -T -j "${SLURM_CPUS_PER_TASK:-16}" "$SCREEN_DB"/*.fa.gz > "$PS.tmp.$$" && mv "$PS.tmp.$$" "$PS" || exit 4
+fi
+cat "$PS"
 ls -l "$SCREEN_DB"/*.mmi
 # small descriptors of the database for results/ (sequences and bases per part, RefSeq release, table linking every key to its organism)
 R="$RESULTS/02_pacbio_reads/screen_db"; mkdir -p "$R" || exit 5

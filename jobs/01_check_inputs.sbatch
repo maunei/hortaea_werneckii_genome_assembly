@@ -20,23 +20,25 @@ md5sum -c --quiet CHECKSUMS.md5 > "$RESULTS/01_inputs/checksums_failed.txt" 2>&1
 echo "files in the list: $(wc -l < CHECKSUMS.md5); failed: $(grep -c FAILED "$RESULTS/01_inputs/checksums_failed.txt")"
 # (2) archive checksums
 $PY - <<PYEOF || exit 4
-import csv, os
+import csv, os, re, sys
 inp = os.environ['INPUT']; res = os.environ['RESULTS'] + '/01_inputs'
 md5 = {}
 for l in open(inp + '/CHECKSUMS.md5'):
     h, p = l.rstrip('\n').split('  ', 1); md5[p.lstrip('./')] = h
 bad = set()   # files that failed the check of part (1): a file that is damaged on disk is not 'ok' even when its checksum in the list is the archive checksum
 for l in open(res + '/checksums_failed.txt'):
-    if l.rstrip().endswith(': FAILED'): bad.add(l.rstrip()[:-len(': FAILED')].lstrip('./'))
+    m = re.match(r'^(.*): FAILED( open or read)?\s*$', l)   # md5sum reports a damaged file as FAILED and a missing file as FAILED open or read
+    if m: bad.add(m.group(1).lstrip('./'))
 rows = []
-for man, sub, layout in (('pacbio_files.tsv', 'pacbio', 'run/name'), ('rna_sra_files.tsv', 'rnaseq', 'run/run'), ('illumina2013_sra_files.tsv', 'illumina2013', 'run/run')):
+for man, sub, layout in (('pacbio_files.tsv', 'pacbio', 'run/name'), ('rna_sra_files.tsv', 'rnaseq', 'run/run'), ('illumina2013_sra_files.tsv', 'illumina2013', 'run/run'), ('pacbio_deposited_fastq.tsv', 'pacbio_deposited', 'run/name')):
     for r in csv.DictReader(open(f'{inp}/manifests/{man}'), delimiter='\t'):
         p = f"{sub}/{r['run']}/{r['name']}"
-        got = md5.get(p); rows.append((sub, r['run'], r['name'], r['size'], r['md5'], got or 'missing', 'ok' if got == r['md5'] and p not in bad else 'DIFFERENT'))
+        got = md5.get(p); rows.append((sub, r['run'], r['name'], r['size'], r['md5'], 'FAILED on disk' if p in bad else (got or 'missing'), 'ok' if got == r['md5'] and p not in bad else 'DIFFERENT'))
 with open(res + '/archive_check.tsv', 'w') as w:
     w.write('group\trun\tfile\tsize\tmd5_archive\tmd5_found\tstatus\n')
     for x in rows: w.write('\t'.join(map(str, x)) + '\n')
 print('archive files:', len(rows), ' ok:', sum(1 for x in rows if x[-1] == 'ok'))
+if any(x[-1] != 'ok' for x in rows): print('ERROR: a file differs from the archive record (see archive_check.tsv)', file=sys.stderr); sys.exit(5)
 PYEOF
 # the files of the NCBI record of Hw 2.0 that steps 07a-07c read: found by exact name, and holding the records the report lists
 "$PY" "$HW/scripts/check_ncbi_input.py" "$INPUT" || exit 4

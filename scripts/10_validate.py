@@ -29,7 +29,7 @@ def read_seq_md5(res):   # checksum of the sequences of the final assembly of ea
     f = Path(res) / '09_summary' / 'replicate_check.tsv'
     if f.exists():
         for r in csv.DictReader(open(f), delimiter='\t'):
-            if r.get('polished_assembly_sequences_md5'): c[r['run']] = r['polished_assembly_sequences_md5']
+            if r.get('polished_assembly_sequences_md5') and r['polished_assembly_sequences_md5'] != 'missing': c[r['run']] = r['polished_assembly_sequences_md5']
     return c
 mode = sys.argv[1]; res = sys.argv[2]
 if mode == 'make-expected':
@@ -87,7 +87,8 @@ else:
     summ = [f'{n_in} of {tot} values are within the usual variation of the first analysis' + (f'; {n_out} {"value is" if n_out == 1 else "values are"} larger than usual (the data or the programs used differ from the first analysis: see the lines marked "larger than usual")' if n_out else '') + '.']
     n_chk = sum(1 for r in _rows_all if r['group'] == 'checksum')
     if asm_same and len(asm_same) < n_chk: summ.append(f'The checksum of the sequences is available for only {len(asm_same)} of {n_chk} runs of the procedure.')
-    if asm_same: summ.append('The sequences of the assembly are ' + ('identical to those of the first analysis (same checksum) in every run of the procedure.' if all(asm_same) else 'different from those of the first analysis (different checksum): the program versions or the data differ.'))
+    scope = 'every run of the procedure' if len(asm_same) == n_chk else f'the {len(asm_same)} of {n_chk} runs for which the checksum is available (the others are marked not available below)'
+    if asm_same: summ.append('The sequences of the assembly are ' + (f'identical to those of the first analysis (same checksum) in {scope}.' if all(asm_same) else 'different from those of the first analysis (different checksum): the program versions or the data differ.'))
     if cnt_same: summ.append('The numbers of reads are ' + ('the same as in the first analysis.' if all(cnt_same) else 'different from the first analysis.'))
     if n_na: summ.append(f'{n_na} values are not available (the steps that make them have not been run).')
     (out / 'validation_report.txt').write_text('\n'.join(summ + [''] + lines) + '\n')

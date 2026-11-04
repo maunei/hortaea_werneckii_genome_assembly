@@ -10,7 +10,8 @@ mkdir -p "$DBS/busco_downloads" "$DBS/proteins"
 [ -s "$TAB" ] || printf 'name\tsource\tversion_or_accession\tdownload_date\tchecksum_md5\tused_for\n' > "$TAB"
 add_entry() {  # appends one row under a lock; a row of the same name from an earlier run is replaced, other rows are left as they are
   ( flock 9
-    if grep -q -P "^$1\t" "$TAB"; then grep -v -P "^$1\t" "$TAB" > "$TAB.tmp06"; cat "$TAB.tmp06" > "$TAB"; rm -f "$TAB.tmp06"; fi
+    qrc=0; grep -q -P "^$1\t" "$TAB" || qrc=$?; [ "$qrc" -le 1 ] || exit "$qrc"   # 0 = the row exists, 1 = it does not, more = the search itself failed
+    if [ "$qrc" = 0 ]; then { grc=0; grep -v -P "^$1\t" "$TAB" || grc=$?; [ "$grc" -le 1 ] || exit "$grc"; } > "$TAB.tmp06"; cat "$TAB.tmp06" > "$TAB"; rm -f "$TAB.tmp06"; fi
     printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$@" >> "$TAB" ) 9> "$DBS/.databases.tsv.lock"
 }
 
@@ -31,7 +32,7 @@ if [ ! -s "$SWISSPROT_FUNGI" ]; then
   grep -q '^>' "$SWISSPROT_FUNGI.part"
   mv "$SWISSPROT_FUNGI.part" "$SWISSPROT_FUNGI"
 fi
-REL="$(grep -i '^x-uniprot-release:' "$DBS/proteins/swissprot_fungi.headers.txt" | head -1 | cut -d: -f2 | tr -d ' \r')"
+REL="$( { grep -i '^x-uniprot-release:' "$DBS/proteins/swissprot_fungi.headers.txt" 2>/dev/null || true; } | head -1 | cut -d: -f2 | tr -d ' \r')"
 NSEQ="$(grep -c '^>' "$SWISSPROT_FUNGI")"
 add_entry swissprot_fungi "UniProt REST interface, query: taxonomy_id:4751 AND reviewed:true (${NSEQ} proteins)" "UniProt release ${REL:-unknown}" "$TODAY" "$(md5sum "$SWISSPROT_FUNGI" | cut -d' ' -f1)" "step 06: proteins aligned with miniprot (proteins found whole, frameshifts, premature stops)"
 echo "done: $BUSCO_LINEAGE and $SWISSPROT_FUNGI"

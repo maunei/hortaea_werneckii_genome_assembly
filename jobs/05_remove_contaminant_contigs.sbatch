@@ -35,6 +35,6 @@ with open("$R/removed_contigs.tsv", "w") as w:
     for c in sorted(excl): w.write(f"{c}\t{per[c]['length']}\t{per[c]['best_contaminant_organism']}\t{per[c]['class']}\n")
 print(n, "contigs before,", k, "after; removed:", sorted(excl))
 PYEOF
-mv "$OUT.tmp" "$OUT"
+mv "$OUT.tmp" "$OUT" || exit 4
 "$QC_BIN/seqkit" stats -a -T "$IN" "$OUT" > "$R/assembly_stats_after_removal.tsv" || exit 4; cut -f1-9,13,14 "$R/assembly_stats_after_removal.tsv"
 hw_end 05_remove_contigs

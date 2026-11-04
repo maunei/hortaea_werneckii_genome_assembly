@@ -14,6 +14,7 @@ input/hw2/*
 !input/hw2/github_commit.txt
 config/local.sh
 jobs/submitted*.tsv
+jobs/.submission.lock
 __pycache__/
 *.pyc
 .DS_Store

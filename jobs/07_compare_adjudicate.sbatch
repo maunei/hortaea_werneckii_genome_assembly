@@ -42,20 +42,22 @@ echo "alignment records: $(wc -l < "$AL/A_to_B.paf")"
 for X in A B; do
   if [ "$X" = A ]; then ASMX="$A_ASM"; FX="$FASTA_A"; else ASMX="$B_ASM"; FX="$FASTA_B"; fi
   C="$RD/${READS_TAG}_to_${ASMX}.tsv.gz"
-  (
+  (   # the cache is made under a lock (several comparison jobs share the cache of Hw 2.0); no "set -e" here: it does not act in a block that is followed by ||
     flock 9 || exit 4
     if [ -s "$C" ] && [ "$C" -nt "$FX" ] && [ "$C" -nt "$READS" ] && [ -z "${FORCE:-}" ]; then echo "reusing $C"; exit 0; fi
-    set -euo pipefail
-    trap 'rm -f "$C.tmp.$$"' EXIT
+    TMPC="$C.tmp.$$"; trap 'rm -f "$TMPC"' EXIT
     "$MM" -x map-pb -c --secondary=no -t "$CPUS" "$FX" "$READS" 2> "$LOGDIR/minimap2_reads_$X.log" \
       | "$PY" "$HW/scripts/07_compact_read_alignments.py" 200 500 \
-      | gzip > "$C.tmp.$$"
-    mv "$C.tmp.$$" "$C"
+      | gzip > "$TMPC"
+    st=("${PIPESTATUS[@]}")   # the status of each of the three programs
+    if [ "${st[0]}" != 0 ] || [ "${st[1]}" != 0 ] || [ "${st[2]}" != 0 ]; then echo "ERROR: the alignment of the reads to $FX failed (exit status of minimap2, compaction, gzip: ${st[*]}); no cache was written" >&2; exit 4; fi
+    gzip -t "$TMPC" || { echo "ERROR: $TMPC is not a complete gzip file" >&2; exit 4; }
+    mv "$TMPC" "$C" || exit 4
   ) 9> "$C.lock" || exit 4
   echo "$C: $(gzip -dc "$C" | wc -l) alignment records"
 done
 
 # 4. The reads decide.
 "$PY" "$HW/scripts/07_adjudicate.py" "$AL/events.tsv" "$RD/${READS_TAG}_to_${A_ASM}.tsv.gz" "$RD/${READS_TAG}_to_${B_ASM}.tsv.gz" "$FASTA_A" "$FASTA_B" "$A_ASM" "$B_ASM" "$OUT" || exit 5
-cp "$AL/alignment_stats.json" "$OUT/alignment_stats.json"
+cp "$AL/alignment_stats.json" "$OUT/alignment_stats.json" || exit 5
 hw_end 07_compare_adjudicate

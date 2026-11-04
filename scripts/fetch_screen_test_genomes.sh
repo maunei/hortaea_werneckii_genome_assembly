@@ -6,6 +6,6 @@ set -euo pipefail
 HW="${HW:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"; source "$HW/config/config.sh"
 D="${TEST_DIR:-$WORK/screen_test}"; mkdir -p "$D"
 for id in NC_004431.1 NC_009434.1 NC_007168.1; do
-  [ -s "$D/$id.fa" ] || { curl -sS --fail --retry 5 "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nuccore&id=$id&rettype=fasta&retmode=text" > "$D/$id.fa"; sleep 1; }
+  [ -s "$D/$id.fa" ] || { curl -sS --fail --retry 5 "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nuccore&id=$id&rettype=fasta&retmode=text" > "$D/$id.fa.part.$$" && [ -s "$D/$id.fa.part.$$" ] && mv "$D/$id.fa.part.$$" "$D/$id.fa" || { rm -f "$D/$id.fa.part.$$"; echo "download failed: $id" >&2; exit 1; }; sleep 1; }
 done
 ls -l "$D"/NC_*.fa

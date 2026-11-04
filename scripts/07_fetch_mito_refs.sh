@@ -9,10 +9,11 @@ ACCS="NC_010222.1 NC_044132.1 NC_050879.1 NC_030334.1 NC_001224.1"
 E=https://eutils.ncbi.nlm.nih.gov/entrez/eutils
 : > mito_genomes.fasta; rm -f gb_*.gb
 for A in $ACCS; do
-  [ -s "gb_$A.gb" ] || { curl -sf --retry 3 --max-time 120 "$E/efetch.fcgi?db=nuccore&id=$A&rettype=gbwithparts&retmode=text" -o "gb_$A.gb"; sleep 0.5; }
+  [ -s "gb_$A.gb" ] || { curl -sf --retry 3 --max-time 120 "$E/efetch.fcgi?db=nuccore&id=$A&rettype=gbwithparts&retmode=text" -o "gb_$A.gb.part.$$" && mv "gb_$A.gb.part.$$" "gb_$A.gb" || rm -f "gb_$A.gb.part.$$"; sleep 0.5; }   # written under a temporary name, renamed when complete
   [ -s "gb_$A.gb" ] || { echo "download failed: $A" >&2; exit 1; }
 done
-"$PY" "$HW/scripts/07_mito_refs.py" $ACCS
+"$PY" "$HW/scripts/07_mito_refs.py" $ACCS || { echo "07_mito_refs.py failed" >&2; exit 1; }
+[ -s mito_genomes.fasta ] && [ -s mito_proteins.faa ] && [ -s mito_refs.tsv ] || { echo "the reference files were not made" >&2; exit 1; }
 DATE="$(date +%F)"
 DBT="$HW/envs/databases.tsv"
 ( flock 9
@@ -21,6 +22,6 @@ while IFS=$'\t' read -r acc org len ngenes; do
   [ "$acc" = accession ] && continue
   grep -q "^mito_ref_genome_${org}"$'\t' "$DBT" || printf 'mito_ref_genome_%s\t%s\t%s\t%s\t%s\t%s\n' "$org" "$E/efetch.fcgi?db=nuccore&id=$acc&rettype=gbwithparts (NCBI RefSeq, $len bases, $ngenes protein-coding genes)" "$acc" "$DATE" "$(md5sum gb_$acc.gb | cut -d' ' -f1)" "step 07: recognition of mitochondrial contigs" >> "$DBT"
 done < mito_refs.tsv
-) 9> "$DBS/.databases.tsv.lock"
-sed -i "s/\$/\t$DATE/;1s/\t$DATE\$/\tdownload_date/" mito_refs.tsv
+) 9> "$DBS/.databases.tsv.lock" || exit 1
+sed -i "s/\$/\t$DATE/;1s/\t$DATE\$/\tdownload_date/" mito_refs.tsv || exit 1
 echo "done"; cat mito_refs.tsv

@@ -20,10 +20,10 @@ if [ -s "$D/depth.per_contig.tsv" ] && [ -z "$FORCE" ]; then echo "depth already
 "$QC_BIN/mosdepth" -t 4 -n --by 1000 --flag 3844 --mapq 20 "$D/depth_mapq20" "$D/reads_vs_asm.bam" || exit 4
 "$QC_BIN/samtools" flagstat -@ 4 "$D/reads_vs_asm.bam" > "$D/flagstat.txt" || exit 4
 # mean depth per contig = total / length from the mosdepth summaries; contigs without any aligned read are listed with depth 0
-awk '/^>/{if(n!="")print n"\t"l; n=substr($1,2); l=0; next}{l+=length($0)} END{if(n!="")print n"\t"l}' "$FASTA" > "$D/asm.lengths"
+awk '/^>/{if(n!="")print n"\t"l; n=substr($1,2); l=0; next}{l+=length($0)} END{if(n!="")print n"\t"l}' "$FASTA" > "$D/asm.lengths" || exit 5
 awk 'BEGIN{OFS="\t"; print "contig","length","mean_depth","mean_depth_mapq20"}
      FILENAME==ARGV[1] { if ($1!="total" && $1!="chrom" && $1 !~ /_region$/) d[$1]=$4; next }
      FILENAME==ARGV[2] { if ($1!="total" && $1!="chrom" && $1 !~ /_region$/) q[$1]=$4; next }
-     {print $1,$2,($1 in d ? d[$1] : 0),($1 in q ? q[$1] : 0)}' "$D/depth.mosdepth.summary.txt" "$D/depth_mapq20.mosdepth.summary.txt" "$D/asm.lengths" > "$D/depth.per_contig.tsv.tmp" && mv "$D/depth.per_contig.tsv.tmp" "$D/depth.per_contig.tsv"
+     {print $1,$2,($1 in d ? d[$1] : 0),($1 in q ? q[$1] : 0)}' "$D/depth.mosdepth.summary.txt" "$D/depth_mapq20.mosdepth.summary.txt" "$D/asm.lengths" > "$D/depth.per_contig.tsv.tmp" && mv "$D/depth.per_contig.tsv.tmp" "$D/depth.per_contig.tsv" || exit 5
 echo "$READS" > "$D/reads_used.txt"
 echo "depth done: $D"

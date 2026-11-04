@@ -17,6 +17,6 @@ READS=${READS:-$WORK/reads/pacbio/filtered_clean.fastq}; OUT="$WORK/asm/ctrl_can
 export PATH="$MODERN_BIN:$QC_BIN:$PATH"
 /usr/bin/time -v canu -p canu -d "$OUT/canu" genomeSize=50m -pacbio "$READS" useGrid=false maxThreads=16 maxMemory=140 stopOnLowCoverage=3 > "$LOGDIR/canu.out" 2> "$LOGDIR/canu.time"; rc=$?; echo "canu exit $rc"
 [ $rc = 0 ] || exit 3
-cp "$OUT/canu/canu.contigs.fasta" "$OUT/final.fasta"; seqkit stats -a -T "$OUT/final.fasta" > "$R/assembly_stats.tsv"; cut -f1-9,13,14 "$R/assembly_stats.tsv"
+cp "$OUT/canu/canu.contigs.fasta" "$OUT/final.fasta" || exit 4; seqkit stats -a -T "$OUT/final.fasta" > "$R/assembly_stats.tsv" || exit 4; cut -f1-9,13,14 "$R/assembly_stats.tsv"
 grep -hE "Elapsed|Maximum resident" "$LOGDIR/canu.time" > "$R/time_memory.txt"
 hw_end 04_control_canu
