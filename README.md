@@ -98,219 +98,415 @@ Only the scripts that a job file names itself are listed first; a script that on
 | Step 11 | Summary, assessment of the evaluations and validation | `09_summary.sbatch` | 1 |
 
 ```
-=== STAGE settings (bash setup_and_run_all.sh settings) - no job ===
-      checks settings.yaml, writes config/local.sh and makes the folders
+=== STAGE settings ===
+      bash setup_and_run_all.sh settings: no job
+      checks settings.yaml, writes config/local.sh and makes the
+        folders
 
-=== STAGE software (bash setup_and_run_all.sh software) - 1 job ===
-S1  01_software  [01_software.sbatch]   time limit 06:00:00, 4 cpus, 16G memory   <-  (nothing; the stage is skipped when the ten environments are complete)
+=== STAGE software ===
+      bash setup_and_run_all.sh software: 1 job
+S1  01_software  [01_software.sbatch]
+       time limit 06:00:00, 4 cpus, 16G memory
+       <- (nothing; the stage is skipped when the ten environments
+          are complete)
        scripts: make_environments.sh
        programs: micromamba/conda
-       the stage itself runs make_environments.sh (CHECK=1) to see whether the environments are complete
-       if the job reaches the time limit it is submitted again (up to 3 attempts); the script waits for it to end before the next stage
+       the stage itself runs make_environments.sh (CHECK=1) to see
+         whether the environments are complete
+       if the job reaches the time limit it is submitted again (up
+         to 3 attempts); the script waits for it to end before the
+         next stage
 
-=== STAGE databases (bash setup_and_run_all.sh databases) - 2 jobs ===
-S2  02_fetch_databases  [02_fetch_databases.sbatch]   time limit 06:00:00, 4 cpus, 16G memory   <-  (nothing; skipped when the databases are present)
-       scripts: 06_fetch_databases.sh, 07_fetch_mito_refs.sh (calls 07_mito_refs.py), 07_fetch_rdna_refs.sh, fetch_screen_databases.sh (calls select_screen_genomes.py)
+=== STAGE databases ===
+      bash setup_and_run_all.sh databases: 2 jobs
+S2  02_fetch_databases  [02_fetch_databases.sbatch]
+       time limit 06:00:00, 4 cpus, 16G memory
+       <- (nothing; skipped when the databases are present)
+       scripts: 06_fetch_databases.sh, 07_fetch_mito_refs.sh (calls
+                07_mito_refs.py), 07_fetch_rdna_refs.sh,
+                fetch_screen_databases.sh (calls
+                select_screen_genomes.py)
        programs: BUSCO, curl
-S2  02_screen_db_index  [02_screen_db_index.sbatch]   time limit 02:00:00, 16 cpus, 128G memory   <-  02_fetch_databases (afterok)
+S2  02_screen_db_index  [02_screen_db_index.sbatch]
+       time limit 02:00:00, 16 cpus, 128G memory
+       <- 02_fetch_databases (afterok)
        scripts: screen_common.sh
        programs: seqkit, minimap2
-       the download is submitted again if it reaches the time limit (up to 5 attempts)
+       the download is submitted again if it reaches the time limit
+         (up to 5 attempts)
 
-=== STAGE inputs (bash setup_and_run_all.sh inputs) - 1 job, or links ===
-S3  01_fetch_inputs  [01_fetch_inputs.sbatch]   time limit 06:00:00, 4 cpus, 8G memory   <-  (nothing; skipped when the four manifests, every file of input/CHECKSUMS.md5 and every file of the list of the deposited FASTQ files are present, or when input_source links them)
+=== STAGE inputs ===
+      bash setup_and_run_all.sh inputs: 1 job, or links
+S3  01_fetch_inputs  [01_fetch_inputs.sbatch]
+       time limit 06:00:00, 4 cpus, 8G memory
+       <- (nothing; skipped when the four manifests, every file of
+          input/CHECKSUMS.md5 and every file of the list of the
+          deposited FASTQ files are present, or when input_source
+          links them)
        scripts: fetch_archive.py
        programs: curl
-       the download is submitted again if it reaches the time limit (up to 5 attempts)
+       the download is submitted again if it reaches the time limit
+         (up to 5 attempts)
 
-=== STAGE check (bash setup_and_run_all.sh check) - 1 job + a dry run ===
-S0  00_preflight  [00_preflight.sbatch]   time limit 00:10:00, 1 cpu, 4G memory   <-  (nothing; checks programs, databases and folders from a compute node)
+=== STAGE check ===
+      bash setup_and_run_all.sh check: 1 job + a dry run
+S0  00_preflight  [00_preflight.sbatch]
+       time limit 00:10:00, 1 cpu, 4G memory
+       <- (nothing; checks programs, databases and folders from a
+          compute node)
        scripts: none
-       programs: samtools, seqkit, Python (it asks each for its version); for the other programs, the databases and the input checksums it checks that the files exist
-       then the dry run of scripts/submit_all.sh (prints the submissions, runs nothing)
+       programs: samtools, seqkit, Python (it asks each for its
+                 version); for the other programs, the databases and
+                 the input checksums it checks that the files exist
+       then the dry run of scripts/submit_all.sh (prints the
+         submissions, runs nothing)
 
-=== STAGE run (bash setup_and_run_all.sh run) - the 97 jobs of scripts/submit_all.sh + 1 message job; levels L0 to L10 ===
-       scripts/submit_all.sh first runs 01_prepare_hw2.sh (the preparation of Hw 2.0), then submits all the jobs at once; SLURM starts each job when the jobs it points to have ended
+=== STAGE run ===
+      bash setup_and_run_all.sh run: the 97 jobs of
+        scripts/submit_all.sh + 1 message job; levels L0 to L10
+       scripts/submit_all.sh first runs 01_prepare_hw2.sh (the
+         preparation of Hw 2.0), then submits all the jobs at once;
+         SLURM starts each job when the jobs it points to have ended
 
 --- level L0 (starts at once) - 2 jobs ---
-S3  check_inputs  [01_check_inputs.sbatch]   <-  (nothing: starts at once)
+S3  check_inputs  [01_check_inputs.sbatch]
+       <- (nothing: starts at once)
        scripts: check_ncbi_input.py (calls hw07_common.py)
        programs: none (Python only)
-S2  dbindex  [02_screen_db_index.sbatch]   <-  (nothing: starts at once)
+S2  dbindex  [02_screen_db_index.sbatch]
+       <- (nothing: starts at once)
        the same job file as in the stage databases
 
 --- level L1 - 6 jobs ---
-S4  pacbio  [02_pacbio_reads.sbatch  --array=0-4]   <-  check_inputs
+S4  pacbio  [02_pacbio_reads.sbatch  --array=0-4]
+       <- check_inputs
        scripts: bax_metrics.py, filter_subreads.py
        programs: seqkit, samtools, bax2bam
-S6  conv_miseq  [03_convert.sbatch  RUN=SRR5086621,GROUP=rna]   <-  check_inputs
+S6  conv_miseq  [03_convert.sbatch  RUN=SRR5086621,GROUP=rna]
+       <- check_inputs
        scripts: none
        programs: seqkit, SRA Toolkit, pigz
-S6  conv_hiseq  [03_convert.sbatch  RUN=SRR5086622,GROUP=rna]   <-  check_inputs
-S6  conv_ill  [03_convert.sbatch  RUN=SRR866616,GROUP=illumina2013]   <-  check_inputs
-S10 genbank  [07_genbank_files.sbatch]   <-  check_inputs
+S6  conv_hiseq  [03_convert.sbatch  RUN=SRR5086622,GROUP=rna]
+       <- check_inputs
+S6  conv_ill  [03_convert.sbatch  RUN=SRR866616,GROUP=illumina2013]
+       <- check_inputs
+S10 genbank  [07_genbank_files.sbatch]
+       <- check_inputs
        scripts: 07_genbank_files.py (calls hw07_common.py)
        programs: minimap2
-S10 scr_hw2  [02_screen_contigs.sbatch  ASM=hw2]   <-  check_inputs, dbindex
-       scripts: screen_contigs.sh (calls screen_classify.py, screen_common.sh)
+S10 scr_hw2  [02_screen_contigs.sbatch  ASM=hw2]
+       <- check_inputs, dbindex
+       scripts: screen_contigs.sh (calls screen_classify.py,
+                screen_common.sh)
        programs: seqkit, minimap2, pigz
 
 --- level L2 - 4 jobs ---
-S4  merge  [02_merge_reads.sbatch]   <-  pacbio
+S4  merge  [02_merge_reads.sbatch]
+       <- pacbio
        scripts: none
        programs: seqkit
-S9  trinity  [06_trinity_denovo.sbatch]   <-  conv_miseq, conv_hiseq
+S9  trinity  [06_trinity_denovo.sbatch]
+       <- conv_miseq, conv_hiseq
        scripts: 06_fasta_stats.py
        programs: Trinity
-S6  qc  [03_qc.sbatch]   <-  conv_miseq, conv_hiseq, conv_ill
+S6  qc  [03_qc.sbatch]
+       <- conv_miseq, conv_hiseq, conv_ill
        scripts: 03_make_tables.py
        programs: fastp, FastQC, MultiQC
-S10 acc_hw2  [08_illumina_accuracy.sbatch  ASM=hw2]   <-  check_inputs, conv_ill
+S10 acc_hw2  [08_illumina_accuracy.sbatch  ASM=hw2]
+       <- check_inputs, conv_ill
        scripts: 08_illumina_accuracy.py (calls diff_common.py)
        programs: samtools, mosdepth, bwa, bcftools
 
 --- level L3 - 3 jobs ---
-S4  deposited  [02_compare_deposited.sbatch]   <-  merge
+S4  deposited  [02_compare_deposited.sbatch]
+       <- merge
        scripts: compare_deposited_fastq.py, fetch_archive.py
        programs: none (Python only)
-S5  screen_reads  [02_screen_reads.sbatch]   <-  merge, dbindex
-       scripts: screen_reads.sh (calls screen_classify.py, screen_common.sh)
+S5  screen_reads  [02_screen_reads.sbatch]
+       <- merge, dbindex
+       scripts: screen_reads.sh (calls screen_classify.py,
+                screen_common.sh)
        programs: seqkit, minimap2, pigz
-S10 trans_hw2  [06_transcript_alignment.sbatch  ASM=hw2]   <-  check_inputs, trinity
+S10 trans_hw2  [06_transcript_alignment.sbatch  ASM=hw2]
+       <- check_inputs, trinity
        scripts: 06_transcript_align_stats.py
        programs: minimap2
 
 --- level L4 - 7 jobs ---
-S7  proc_r1  [04_procedure.sbatch  RUN=r1]   <-  screen_reads
+S7  proc_r1  [04_procedure.sbatch  RUN=r1]
+       <- screen_reads
        scripts: none
        programs: seqkit, Canu, BLASR, pbdagcon
-S7  proc_r2  [04_procedure.sbatch  RUN=r2]   <-  screen_reads
-S7  proc_r3  [04_procedure.sbatch  RUN=r3]   <-  screen_reads
-S7  ctrl_canu  [04_control_canu.sbatch]   <-  screen_reads
+S7  proc_r2  [04_procedure.sbatch  RUN=r2]
+       <- screen_reads
+S7  proc_r3  [04_procedure.sbatch  RUN=r3]
+       <- screen_reads
+S7  ctrl_canu  [04_control_canu.sbatch]
+       <- screen_reads
        scripts: none
        programs: seqkit, Canu
-S7  ctrl_flye  [04_control_flye.sbatch]   <-  screen_reads
+S7  ctrl_flye  [04_control_flye.sbatch]
+       <- screen_reads
        scripts: none
        programs: seqkit, Flye
-S10 mito_hw2  [07_mito.sbatch  ASM=hw2]   <-  screen_reads
-       scripts: 07_depth.sh, 07_fetch_mito_refs.sh (calls 07_mito_refs.py), 07_mito.py (calls hw07_common.py)
+S10 mito_hw2  [07_mito.sbatch  ASM=hw2]
+       <- screen_reads
+       scripts: 07_depth.sh, 07_fetch_mito_refs.sh (calls
+                07_mito_refs.py), 07_mito.py (calls hw07_common.py)
        programs: samtools, minimap2, mosdepth, BLAST+, curl
-S10 tests_hw2  [06_tests.sbatch  ASM=hw2]   <-  check_inputs, conv_hiseq, screen_reads
-       scripts: 06_busco_summary.py, 06_collect.py, 06_contiguity.py, 06_depth.py, 06_miniprot_summary.py, 06_readback.py, 06_selfalign.py, 06_star_summary.py, 06_telomeres.py
+S10 tests_hw2  [06_tests.sbatch  ASM=hw2]
+       <- check_inputs, conv_hiseq, screen_reads
+       scripts: 06_busco_summary.py, 06_collect.py,
+                06_contiguity.py, 06_depth.py,
+                06_miniprot_summary.py, 06_readback.py,
+                06_selfalign.py, 06_star_summary.py, 06_telomeres.py
        programs: samtools, minimap2, mosdepth, STAR, BUSCO, miniprot
 
 --- level L5 - 24 jobs ---
-S8  align_r1  [05_align_subreads.sbatch  RAW=proc_r1_raw,OUTNAME=proc_r1]   <-  proc_r1
+S8  align_r1  [05_align_subreads.sbatch
+       RAW=proc_r1_raw,OUTNAME=proc_r1]
+       <- proc_r1
        scripts: none
        programs: samtools, pbalign, pbindex
-S10 tests_proc_r1_raw  [06_tests.sbatch  ASM=proc_r1_raw]   <-  proc_r1, conv_hiseq, screen_reads
-S10 trans_proc_r1_raw  [06_transcript_alignment.sbatch  ASM=proc_r1_raw]   <-  proc_r1, trinity
-S10 acc_proc_r1_raw  [08_illumina_accuracy.sbatch  ASM=proc_r1_raw]   <-  proc_r1, conv_ill
-S10 scr_proc_r1_raw  [02_screen_contigs.sbatch  ASM=proc_r1_raw]   <-  proc_r1, dbindex
-S8  align_r2  [05_align_subreads.sbatch  RAW=proc_r2_raw,OUTNAME=proc_r2]   <-  proc_r2
-S8  align_r3  [05_align_subreads.sbatch  RAW=proc_r3_raw,OUTNAME=proc_r3]   <-  proc_r3
-S8  align_ctrl_canu  [05_align_subreads.sbatch  RAW=ctrl_canu,OUTNAME=ctrl_canu_quiver]   <-  ctrl_canu
-S10 tests_ctrl_canu  [06_tests.sbatch  ASM=ctrl_canu]   <-  ctrl_canu, conv_hiseq, screen_reads
-S10 trans_ctrl_canu  [06_transcript_alignment.sbatch  ASM=ctrl_canu]   <-  ctrl_canu, trinity
-S10 acc_ctrl_canu  [08_illumina_accuracy.sbatch  ASM=ctrl_canu]   <-  ctrl_canu, conv_ill
-S10 scr_ctrl_canu  [02_screen_contigs.sbatch  ASM=ctrl_canu]   <-  ctrl_canu, dbindex
-S10 compare_ctrl_canu  [07_compare_adjudicate.sbatch  A_ASM=ctrl_canu,B_ASM=hw2]   <-  ctrl_canu
-       scripts: 07_adjudicate.py, 07_compact_read_alignments.py, 07_find_disagreements.py
+S10 tests_proc_r1_raw  [06_tests.sbatch  ASM=proc_r1_raw]
+       <- proc_r1, conv_hiseq, screen_reads
+S10 trans_proc_r1_raw  [06_transcript_alignment.sbatch
+       ASM=proc_r1_raw]
+       <- proc_r1, trinity
+S10 acc_proc_r1_raw  [08_illumina_accuracy.sbatch  ASM=proc_r1_raw]
+       <- proc_r1, conv_ill
+S10 scr_proc_r1_raw  [02_screen_contigs.sbatch  ASM=proc_r1_raw]
+       <- proc_r1, dbindex
+S8  align_r2  [05_align_subreads.sbatch
+       RAW=proc_r2_raw,OUTNAME=proc_r2]
+       <- proc_r2
+S8  align_r3  [05_align_subreads.sbatch
+       RAW=proc_r3_raw,OUTNAME=proc_r3]
+       <- proc_r3
+S8  align_ctrl_canu  [05_align_subreads.sbatch
+       RAW=ctrl_canu,OUTNAME=ctrl_canu_quiver]
+       <- ctrl_canu
+S10 tests_ctrl_canu  [06_tests.sbatch  ASM=ctrl_canu]
+       <- ctrl_canu, conv_hiseq, screen_reads
+S10 trans_ctrl_canu  [06_transcript_alignment.sbatch  ASM=ctrl_canu]
+       <- ctrl_canu, trinity
+S10 acc_ctrl_canu  [08_illumina_accuracy.sbatch  ASM=ctrl_canu]
+       <- ctrl_canu, conv_ill
+S10 scr_ctrl_canu  [02_screen_contigs.sbatch  ASM=ctrl_canu]
+       <- ctrl_canu, dbindex
+S10 compare_ctrl_canu  [07_compare_adjudicate.sbatch
+       A_ASM=ctrl_canu,B_ASM=hw2]
+       <- ctrl_canu
+       scripts: 07_adjudicate.py, 07_compact_read_alignments.py,
+                07_find_disagreements.py
        programs: minimap2
-S10 mito_ctrl_canu  [07_mito.sbatch  ASM=ctrl_canu]   <-  ctrl_canu
-S10 the22_ctrl_canu  [07_the22_vs_assembly.sbatch  ASM=ctrl_canu]   <-  ctrl_canu, genbank
-       scripts: 07_the22_align.py (calls hw07_common.py), hw07_common.py
+S10 mito_ctrl_canu  [07_mito.sbatch  ASM=ctrl_canu]
+       <- ctrl_canu
+S10 the22_ctrl_canu  [07_the22_vs_assembly.sbatch  ASM=ctrl_canu]
+       <- ctrl_canu, genbank
+       scripts: 07_the22_align.py (calls hw07_common.py),
+                hw07_common.py
        programs: minimap2
-S8  align_ctrl_flye  [05_align_subreads.sbatch  RAW=ctrl_flye,OUTNAME=ctrl_flye_quiver]   <-  ctrl_flye
-S10 tests_ctrl_flye  [06_tests.sbatch  ASM=ctrl_flye]   <-  ctrl_flye, conv_hiseq, screen_reads
-S10 trans_ctrl_flye  [06_transcript_alignment.sbatch  ASM=ctrl_flye]   <-  ctrl_flye, trinity
-S10 acc_ctrl_flye  [08_illumina_accuracy.sbatch  ASM=ctrl_flye]   <-  ctrl_flye, conv_ill
-S10 scr_ctrl_flye  [02_screen_contigs.sbatch  ASM=ctrl_flye]   <-  ctrl_flye, dbindex
-S10 compare_ctrl_flye  [07_compare_adjudicate.sbatch  A_ASM=ctrl_flye,B_ASM=hw2]   <-  ctrl_flye
-S10 mito_ctrl_flye  [07_mito.sbatch  ASM=ctrl_flye]   <-  ctrl_flye
-S10 the22_ctrl_flye  [07_the22_vs_assembly.sbatch  ASM=ctrl_flye]   <-  ctrl_flye, genbank
-S10 the22  [07_the22.sbatch]   <-  genbank, mito_hw2
-       scripts: 07_depth.sh, 07_fetch_mito_refs.sh (calls 07_mito_refs.py), 07_fetch_rdna_refs.sh, 07_the22.py (calls hw07_common.py), hw07_common.py, screen_contigs.sh (calls screen_classify.py, screen_common.sh)
-       programs: seqkit, samtools, minimap2, mosdepth, miniprot, BLAST+, pigz, curl
+S8  align_ctrl_flye  [05_align_subreads.sbatch
+       RAW=ctrl_flye,OUTNAME=ctrl_flye_quiver]
+       <- ctrl_flye
+S10 tests_ctrl_flye  [06_tests.sbatch  ASM=ctrl_flye]
+       <- ctrl_flye, conv_hiseq, screen_reads
+S10 trans_ctrl_flye  [06_transcript_alignment.sbatch  ASM=ctrl_flye]
+       <- ctrl_flye, trinity
+S10 acc_ctrl_flye  [08_illumina_accuracy.sbatch  ASM=ctrl_flye]
+       <- ctrl_flye, conv_ill
+S10 scr_ctrl_flye  [02_screen_contigs.sbatch  ASM=ctrl_flye]
+       <- ctrl_flye, dbindex
+S10 compare_ctrl_flye  [07_compare_adjudicate.sbatch
+       A_ASM=ctrl_flye,B_ASM=hw2]
+       <- ctrl_flye
+S10 mito_ctrl_flye  [07_mito.sbatch  ASM=ctrl_flye]
+       <- ctrl_flye
+S10 the22_ctrl_flye  [07_the22_vs_assembly.sbatch  ASM=ctrl_flye]
+       <- ctrl_flye, genbank
+S10 the22  [07_the22.sbatch]
+       <- genbank, mito_hw2
+       scripts: 07_depth.sh, 07_fetch_mito_refs.sh (calls
+                07_mito_refs.py), 07_fetch_rdna_refs.sh, 07_the22.py
+                (calls hw07_common.py), hw07_common.py,
+                screen_contigs.sh (calls screen_classify.py,
+                screen_common.sh)
+       programs: seqkit, samtools, minimap2, mosdepth, miniprot,
+                 BLAST+, pigz, curl
 
 --- level L6 - 9 jobs ---
-S8  polish_r1  [05_polish.sbatch  RAW=proc_r1_raw,OUTNAME=proc_r1]   <-  align_r1
+S8  polish_r1  [05_polish.sbatch  RAW=proc_r1_raw,OUTNAME=proc_r1]
+       <- align_r1
        scripts: none
        programs: seqkit, pbmerge, Quiver
-S10 shared_proc_r1_raw  [08_shared_differences.sbatch  ASM_A=proc_r1_raw,ASM_B=hw2]   <-  acc_proc_r1_raw, acc_hw2
+S10 shared_proc_r1_raw  [08_shared_differences.sbatch
+       ASM_A=proc_r1_raw,ASM_B=hw2]
+       <- acc_proc_r1_raw, acc_hw2
        scripts: shared_differences.py (calls diff_common.py)
        programs: none (Python only)
-S8  polish_r2  [05_polish.sbatch  RAW=proc_r2_raw,OUTNAME=proc_r2]   <-  align_r2
-S8  polish_r3  [05_polish.sbatch  RAW=proc_r3_raw,OUTNAME=proc_r3]   <-  align_r3
-S8  polish_ctrl_canu  [05_polish.sbatch  RAW=ctrl_canu,OUTNAME=ctrl_canu_quiver]   <-  align_ctrl_canu
-S10 shared_ctrl_canu  [08_shared_differences.sbatch  ASM_A=ctrl_canu,ASM_B=hw2]   <-  acc_ctrl_canu, acc_hw2
-S8  polish_ctrl_flye  [05_polish.sbatch  RAW=ctrl_flye,OUTNAME=ctrl_flye_quiver]   <-  align_ctrl_flye
-S10 shared_ctrl_flye  [08_shared_differences.sbatch  ASM_A=ctrl_flye,ASM_B=hw2]   <-  acc_ctrl_flye, acc_hw2
-S10 depth_unscreened  [07_depth_unscreened.sbatch]   <-  the22
+S8  polish_r2  [05_polish.sbatch  RAW=proc_r2_raw,OUTNAME=proc_r2]
+       <- align_r2
+S8  polish_r3  [05_polish.sbatch  RAW=proc_r3_raw,OUTNAME=proc_r3]
+       <- align_r3
+S8  polish_ctrl_canu  [05_polish.sbatch
+       RAW=ctrl_canu,OUTNAME=ctrl_canu_quiver]
+       <- align_ctrl_canu
+S10 shared_ctrl_canu  [08_shared_differences.sbatch
+       ASM_A=ctrl_canu,ASM_B=hw2]
+       <- acc_ctrl_canu, acc_hw2
+S8  polish_ctrl_flye  [05_polish.sbatch
+       RAW=ctrl_flye,OUTNAME=ctrl_flye_quiver]
+       <- align_ctrl_flye
+S10 shared_ctrl_flye  [08_shared_differences.sbatch
+       ASM_A=ctrl_flye,ASM_B=hw2]
+       <- acc_ctrl_flye, acc_hw2
+S10 depth_unscreened  [07_depth_unscreened.sbatch]
+       <- the22
        scripts: 07_depth.sh
        programs: samtools, minimap2, mosdepth
 
 --- level L7 - 5 jobs ---
-S8  remove_r1  [05_remove_contaminant_contigs.sbatch  OUTNAME=proc_r1]   <-  polish_r1
-       scripts: screen_contigs.sh (calls screen_classify.py, screen_common.sh)
+S8  remove_r1  [05_remove_contaminant_contigs.sbatch
+       OUTNAME=proc_r1]
+       <- polish_r1
+       scripts: screen_contigs.sh (calls screen_classify.py,
+                screen_common.sh)
        programs: seqkit, minimap2, pigz
-S8  remove_r2  [05_remove_contaminant_contigs.sbatch  OUTNAME=proc_r2]   <-  polish_r2
-S8  remove_r3  [05_remove_contaminant_contigs.sbatch  OUTNAME=proc_r3]   <-  polish_r3
-S8  remove_ctrl_canu  [05_remove_contaminant_contigs.sbatch  OUTNAME=ctrl_canu_quiver]   <-  polish_ctrl_canu
-S8  remove_ctrl_flye  [05_remove_contaminant_contigs.sbatch  OUTNAME=ctrl_flye_quiver]   <-  polish_ctrl_flye
+S8  remove_r2  [05_remove_contaminant_contigs.sbatch
+       OUTNAME=proc_r2]
+       <- polish_r2
+S8  remove_r3  [05_remove_contaminant_contigs.sbatch
+       OUTNAME=proc_r3]
+       <- polish_r3
+S8  remove_ctrl_canu  [05_remove_contaminant_contigs.sbatch
+       OUTNAME=ctrl_canu_quiver]
+       <- polish_ctrl_canu
+S8  remove_ctrl_flye  [05_remove_contaminant_contigs.sbatch
+       OUTNAME=ctrl_flye_quiver]
+       <- polish_ctrl_flye
 
 --- level L8 - 31 jobs ---
-S10 tests_proc_r1  [06_tests.sbatch  ASM=proc_r1]   <-  remove_r1, conv_hiseq, screen_reads
-S10 trans_proc_r1  [06_transcript_alignment.sbatch  ASM=proc_r1]   <-  remove_r1, trinity
-S10 acc_proc_r1  [08_illumina_accuracy.sbatch  ASM=proc_r1]   <-  remove_r1, conv_ill
-S10 scr_proc_r1  [02_screen_contigs.sbatch  ASM=proc_r1]   <-  remove_r1, dbindex
-S10 compare_proc_r1  [07_compare_adjudicate.sbatch  A_ASM=proc_r1,B_ASM=hw2]   <-  remove_r1
-S10 mito_proc_r1  [07_mito.sbatch  ASM=proc_r1]   <-  remove_r1
-S10 the22_proc_r1  [07_the22_vs_assembly.sbatch  ASM=proc_r1]   <-  remove_r1, genbank
-S10 tests_proc_r2  [06_tests.sbatch  ASM=proc_r2]   <-  remove_r2, conv_hiseq, screen_reads
-S10 trans_proc_r2  [06_transcript_alignment.sbatch  ASM=proc_r2]   <-  remove_r2, trinity
-S10 acc_proc_r2  [08_illumina_accuracy.sbatch  ASM=proc_r2]   <-  remove_r2, conv_ill
-S10 scr_proc_r2  [02_screen_contigs.sbatch  ASM=proc_r2]   <-  remove_r2, dbindex
-S10 compare_proc_r2  [07_compare_adjudicate.sbatch  A_ASM=proc_r2,B_ASM=hw2]   <-  remove_r2
-S10 mito_proc_r2  [07_mito.sbatch  ASM=proc_r2]   <-  remove_r2
-S10 the22_proc_r2  [07_the22_vs_assembly.sbatch  ASM=proc_r2]   <-  remove_r2, genbank
-S10 tests_proc_r3  [06_tests.sbatch  ASM=proc_r3]   <-  remove_r3, conv_hiseq, screen_reads
-S10 trans_proc_r3  [06_transcript_alignment.sbatch  ASM=proc_r3]   <-  remove_r3, trinity
-S10 acc_proc_r3  [08_illumina_accuracy.sbatch  ASM=proc_r3]   <-  remove_r3, conv_ill
-S10 scr_proc_r3  [02_screen_contigs.sbatch  ASM=proc_r3]   <-  remove_r3, dbindex
-S10 compare_proc_r3  [07_compare_adjudicate.sbatch  A_ASM=proc_r3,B_ASM=hw2]   <-  remove_r3
-S10 mito_proc_r3  [07_mito.sbatch  ASM=proc_r3]   <-  remove_r3
-S10 the22_proc_r3  [07_the22_vs_assembly.sbatch  ASM=proc_r3]   <-  remove_r3, genbank
-S10 tests_ctrl_canu_quiver  [06_tests.sbatch  ASM=ctrl_canu_quiver]   <-  remove_ctrl_canu, conv_hiseq, screen_reads
-S10 trans_ctrl_canu_quiver  [06_transcript_alignment.sbatch  ASM=ctrl_canu_quiver]   <-  remove_ctrl_canu, trinity
-S10 acc_ctrl_canu_quiver  [08_illumina_accuracy.sbatch  ASM=ctrl_canu_quiver]   <-  remove_ctrl_canu, conv_ill
-S10 scr_ctrl_canu_quiver  [02_screen_contigs.sbatch  ASM=ctrl_canu_quiver]   <-  remove_ctrl_canu, dbindex
-S10 compare_ctrl_canu_quiver  [07_compare_adjudicate.sbatch  A_ASM=ctrl_canu_quiver,B_ASM=hw2]   <-  remove_ctrl_canu
-S10 tests_ctrl_flye_quiver  [06_tests.sbatch  ASM=ctrl_flye_quiver]   <-  remove_ctrl_flye, conv_hiseq, screen_reads
-S10 trans_ctrl_flye_quiver  [06_transcript_alignment.sbatch  ASM=ctrl_flye_quiver]   <-  remove_ctrl_flye, trinity
-S10 acc_ctrl_flye_quiver  [08_illumina_accuracy.sbatch  ASM=ctrl_flye_quiver]   <-  remove_ctrl_flye, conv_ill
-S10 scr_ctrl_flye_quiver  [02_screen_contigs.sbatch  ASM=ctrl_flye_quiver]   <-  remove_ctrl_flye, dbindex
-S10 compare_ctrl_flye_quiver  [07_compare_adjudicate.sbatch  A_ASM=ctrl_flye_quiver,B_ASM=hw2]   <-  remove_ctrl_flye
+S10 tests_proc_r1  [06_tests.sbatch  ASM=proc_r1]
+       <- remove_r1, conv_hiseq, screen_reads
+S10 trans_proc_r1  [06_transcript_alignment.sbatch  ASM=proc_r1]
+       <- remove_r1, trinity
+S10 acc_proc_r1  [08_illumina_accuracy.sbatch  ASM=proc_r1]
+       <- remove_r1, conv_ill
+S10 scr_proc_r1  [02_screen_contigs.sbatch  ASM=proc_r1]
+       <- remove_r1, dbindex
+S10 compare_proc_r1  [07_compare_adjudicate.sbatch
+       A_ASM=proc_r1,B_ASM=hw2]
+       <- remove_r1
+S10 mito_proc_r1  [07_mito.sbatch  ASM=proc_r1]
+       <- remove_r1
+S10 the22_proc_r1  [07_the22_vs_assembly.sbatch  ASM=proc_r1]
+       <- remove_r1, genbank
+S10 tests_proc_r2  [06_tests.sbatch  ASM=proc_r2]
+       <- remove_r2, conv_hiseq, screen_reads
+S10 trans_proc_r2  [06_transcript_alignment.sbatch  ASM=proc_r2]
+       <- remove_r2, trinity
+S10 acc_proc_r2  [08_illumina_accuracy.sbatch  ASM=proc_r2]
+       <- remove_r2, conv_ill
+S10 scr_proc_r2  [02_screen_contigs.sbatch  ASM=proc_r2]
+       <- remove_r2, dbindex
+S10 compare_proc_r2  [07_compare_adjudicate.sbatch
+       A_ASM=proc_r2,B_ASM=hw2]
+       <- remove_r2
+S10 mito_proc_r2  [07_mito.sbatch  ASM=proc_r2]
+       <- remove_r2
+S10 the22_proc_r2  [07_the22_vs_assembly.sbatch  ASM=proc_r2]
+       <- remove_r2, genbank
+S10 tests_proc_r3  [06_tests.sbatch  ASM=proc_r3]
+       <- remove_r3, conv_hiseq, screen_reads
+S10 trans_proc_r3  [06_transcript_alignment.sbatch  ASM=proc_r3]
+       <- remove_r3, trinity
+S10 acc_proc_r3  [08_illumina_accuracy.sbatch  ASM=proc_r3]
+       <- remove_r3, conv_ill
+S10 scr_proc_r3  [02_screen_contigs.sbatch  ASM=proc_r3]
+       <- remove_r3, dbindex
+S10 compare_proc_r3  [07_compare_adjudicate.sbatch
+       A_ASM=proc_r3,B_ASM=hw2]
+       <- remove_r3
+S10 mito_proc_r3  [07_mito.sbatch  ASM=proc_r3]
+       <- remove_r3
+S10 the22_proc_r3  [07_the22_vs_assembly.sbatch  ASM=proc_r3]
+       <- remove_r3, genbank
+S10 tests_ctrl_canu_quiver  [06_tests.sbatch  ASM=ctrl_canu_quiver]
+       <- remove_ctrl_canu, conv_hiseq, screen_reads
+S10 trans_ctrl_canu_quiver  [06_transcript_alignment.sbatch
+       ASM=ctrl_canu_quiver]
+       <- remove_ctrl_canu, trinity
+S10 acc_ctrl_canu_quiver  [08_illumina_accuracy.sbatch
+       ASM=ctrl_canu_quiver]
+       <- remove_ctrl_canu, conv_ill
+S10 scr_ctrl_canu_quiver  [02_screen_contigs.sbatch
+       ASM=ctrl_canu_quiver]
+       <- remove_ctrl_canu, dbindex
+S10 compare_ctrl_canu_quiver  [07_compare_adjudicate.sbatch
+       A_ASM=ctrl_canu_quiver,B_ASM=hw2]
+       <- remove_ctrl_canu
+S10 tests_ctrl_flye_quiver  [06_tests.sbatch  ASM=ctrl_flye_quiver]
+       <- remove_ctrl_flye, conv_hiseq, screen_reads
+S10 trans_ctrl_flye_quiver  [06_transcript_alignment.sbatch
+       ASM=ctrl_flye_quiver]
+       <- remove_ctrl_flye, trinity
+S10 acc_ctrl_flye_quiver  [08_illumina_accuracy.sbatch
+       ASM=ctrl_flye_quiver]
+       <- remove_ctrl_flye, conv_ill
+S10 scr_ctrl_flye_quiver  [02_screen_contigs.sbatch
+       ASM=ctrl_flye_quiver]
+       <- remove_ctrl_flye, dbindex
+S10 compare_ctrl_flye_quiver  [07_compare_adjudicate.sbatch
+       A_ASM=ctrl_flye_quiver,B_ASM=hw2]
+       <- remove_ctrl_flye
 
 --- level L9 - 5 jobs ---
-S10 shared_proc_r1  [08_shared_differences.sbatch  ASM_A=proc_r1,ASM_B=hw2]   <-  acc_proc_r1, acc_hw2
-S10 shared_proc_r2  [08_shared_differences.sbatch  ASM_A=proc_r2,ASM_B=hw2]   <-  acc_proc_r2, acc_hw2
-S10 shared_proc_r3  [08_shared_differences.sbatch  ASM_A=proc_r3,ASM_B=hw2]   <-  acc_proc_r3, acc_hw2
-S10 shared_ctrl_canu_quiver  [08_shared_differences.sbatch  ASM_A=ctrl_canu_quiver,ASM_B=hw2]   <-  acc_ctrl_canu_quiver, acc_hw2
-S10 shared_ctrl_flye_quiver  [08_shared_differences.sbatch  ASM_A=ctrl_flye_quiver,ASM_B=hw2]   <-  acc_ctrl_flye_quiver, acc_hw2
+S10 shared_proc_r1  [08_shared_differences.sbatch
+       ASM_A=proc_r1,ASM_B=hw2]
+       <- acc_proc_r1, acc_hw2
+S10 shared_proc_r2  [08_shared_differences.sbatch
+       ASM_A=proc_r2,ASM_B=hw2]
+       <- acc_proc_r2, acc_hw2
+S10 shared_proc_r3  [08_shared_differences.sbatch
+       ASM_A=proc_r3,ASM_B=hw2]
+       <- acc_proc_r3, acc_hw2
+S10 shared_ctrl_canu_quiver  [08_shared_differences.sbatch
+       ASM_A=ctrl_canu_quiver,ASM_B=hw2]
+       <- acc_ctrl_canu_quiver, acc_hw2
+S10 shared_ctrl_flye_quiver  [08_shared_differences.sbatch
+       ASM_A=ctrl_flye_quiver,ASM_B=hw2]
+       <- acc_ctrl_flye_quiver, acc_hw2
 
 --- level L10 - 1 job ---
-S11 summary  [09_summary.sbatch]   <-  ALL the other 96 jobs (afterany: it starts when they have all ended, even if some failed)
-       scripts: 09_qc_figures.py, 09_release.py, 09_replicates.sh, 09_resources.py, 09_summary.py, 09_workflow_figure.py, 10_validate.py
+S11 summary  [09_summary.sbatch]
+       <- ALL the other 96 jobs (afterany: it starts when they have
+          all ended, even if some failed)
+       scripts: 09_qc_figures.py, 09_release.py, 09_replicates.sh,
+                09_resources.py, 09_summary.py,
+                09_workflow_figure.py, 10_validate.py
        programs: samtools
 
 --- after the level L10 ---
-    hw_run_finished  [no job file: sbatch --wrap in setup_and_run_all.sh]   time limit 00:02:00, 1 cpu, 100M memory   <-  summary (afterany)
-       (submitted unless mail_when is NONE) it checks in the accounting (sacct) that all the jobs of the run, and all the tasks of the arrays, are COMPLETED; the scheduler message says COMPLETED or FAILED
+    hw_run_finished  [no job file: sbatch --wrap in
+       setup_and_run_all.sh]
+       time limit 00:02:00, 1 cpu, 100M memory
+       <- summary (afterany)
+       (submitted unless mail_when is NONE) it checks in the
+         accounting (sacct) that all the jobs of the run, and all
+         the tasks of the arrays, are COMPLETED; the scheduler
+         message says COMPLETED or FAILED
 
---- job files that no script submits (optional, not part of the run) ---
-S5  02_screen_selftest  [02_screen_selftest.sbatch]   time limit 02:00:00, 16 cpus, 96G memory   <-  (the user submits it after 02_merge_reads and 02_screen_db_index have ended)
-       scripts: screen_selftest.sh (calls screen_common.sh, screen_reads.sh, screen_classify.py, screen_selftest_summary.py, simulate_screen_test_reads.py)
+--- optional job files that no script submits ---
+S5  02_screen_selftest  [02_screen_selftest.sbatch]
+       time limit 02:00:00, 16 cpus, 96G memory
+       <- (the user submits it after 02_merge_reads and
+          02_screen_db_index have ended)
+       scripts: screen_selftest.sh (calls screen_common.sh,
+                screen_reads.sh, screen_classify.py,
+                screen_selftest_summary.py,
+                simulate_screen_test_reads.py)
        programs: seqkit, minimap2, pigz
 ```
 
