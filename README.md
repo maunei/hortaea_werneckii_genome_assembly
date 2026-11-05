@@ -932,7 +932,7 @@ sbatch jobs/01_software.sbatch       # about 2 h 15 min; needs micromamba or con
 
 <details><summary>Expected tree of the results of this step</summary>
 
-Tree of the folders that this step writes to, from a run of a fresh clone of the repository. A folder that several steps write to (for example `results/02_pacbio_reads/` and `$HW_WORK/asm/`) is shown in full under one step, so a tree can hold files that other steps write, and some files of a step are shown under another one (for example the files of the final assembly, which the summary job of step 11 writes, are shown under step 8). A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
+Tree of the files that are new after the commands of this step (the steps are run in the order 0 to 11), from a run of a fresh clone of the repository: a folder that several steps write to, for example `results/02_pacbio_reads/` or `$HW_WORK/asm/`, shows here only the files of this step. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
 $HW_ENVS/   (outside the repository)
@@ -970,7 +970,7 @@ Time in the run reported here: the longest job took 0.1 hours of elapsed time; a
 
 <details><summary>Expected tree of the results of this step</summary>
 
-Tree of the folders that this step writes to, from a run of a fresh clone of the repository. A folder that several steps write to (for example `results/02_pacbio_reads/` and `$HW_WORK/asm/`) is shown in full under one step, so a tree can hold files that other steps write, and some files of a step are shown under another one (for example the files of the final assembly, which the summary job of step 11 writes, are shown under step 8). A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
+Tree of the files that are new after the commands of this step (the steps are run in the order 0 to 11), from a run of a fresh clone of the repository: a folder that several steps write to, for example `results/02_pacbio_reads/` or `$HW_WORK/asm/`, shows here only the files of this step. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
 $HW_DBS/   (outside the repository; 84G)
@@ -979,6 +979,12 @@ $HW_DBS/   (outside the repository; 84G)
 ├── proteins/   (25M)
 ├── rdna_refs/   (12K)
 └── screen/   (83G)
+
+results/02_pacbio_reads/   (3 files)
+└── screen_db/
+    ├── parts_stats.tsv
+    ├── refseq_release.txt
+    └── screen_manifest.tsv.gz
 ```
 
 </details>
@@ -1020,12 +1026,16 @@ Two checks are made, and both can be repeated by anyone who uses the same data. 
 
 <details><summary>Expected tree of the results of this step</summary>
 
-Tree of the folders that this step writes to, from a run of a fresh clone of the repository. A folder that several steps write to (for example `results/02_pacbio_reads/` and `$HW_WORK/asm/`) is shown in full under one step, so a tree can hold files that other steps write, and some files of a step are shown under another one (for example the files of the final assembly, which the summary job of step 11 writes, are shown under step 8). A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
+Tree of the files that are new after the commands of this step (the steps are run in the order 0 to 11), from a run of a fresh clone of the repository: a folder that several steps write to, for example `results/02_pacbio_reads/` or `$HW_WORK/asm/`, shows here only the files of this step. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
 results/01_inputs/   (2 files)
 ├── archive_check.tsv   - one row for each archive file: checksum published by the archive, checksum found, status
 └── checksums_failed.txt   - empty when every file agrees with input/CHECKSUMS.md5
+
+$HW_WORK/asm/   (1 file, 48M)
+└── hw2/
+    └── final.fasta
 
 input/   (outside git: 75G; the repository itself holds CHECKSUMS.md5, manifests/ and hw2/github_commit.txt)
 ├── hw2/   (665 files, 793M)
@@ -1097,14 +1107,10 @@ The authors deposited the filtered subreads they used as FASTQ (accession SRR508
 
 <details><summary>Expected tree of the results of this step</summary>
 
-Tree of the folders that this step writes to, from a run of a fresh clone of the repository. A folder that several steps write to (for example `results/02_pacbio_reads/` and `$HW_WORK/asm/`) is shown in full under one step, so a tree can hold files that other steps write, and some files of a step are shown under another one (for example the files of the final assembly, which the summary job of step 11 writes, are shown under step 8). A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
+Tree of the files that are new after the commands of this step (the steps are run in the order 0 to 11), from a run of a fresh clone of the repository: a folder that several steps write to, for example `results/02_pacbio_reads/` or `$HW_WORK/asm/`, shows here only the files of this step. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
-results/02_pacbio_reads/   (97 files)
-├── screen_db/
-│   ├── parts_stats.tsv
-│   ├── refseq_release.txt
-│   └── screen_manifest.tsv.gz
+results/02_pacbio_reads/   (12 files)
 ├── <run>_bax_metrics.json   (x5)   - well and read metrics of the run
 ├── <run>_seqkit_stats.tsv   (x5)   - reads, bases and length statistics of the run
 ├── deposited_fastq_comparison.json   - comparison with the file deposited by the authors (SRR5086624)
@@ -1117,12 +1123,9 @@ $HW_WORK/pacbio_bam/   (20 files, 21G)
     ├── <name>.subreads.bam
     └── <name>.subreads.bam.pbi
 
-$HW_WORK/reads/pacbio/   (6 files, 18G)
-├── READY_02
+$HW_WORK/reads/pacbio/   (3 files, 8.8G)
 ├── READY_02A
-├── filtered_clean.fastq
 ├── filtered_subreads.fastq
-├── hq_clean.fastq
 └── hq_subreads.fastq
 ```
 
@@ -1232,32 +1235,30 @@ The table `results/02_pacbio_reads/screen_test/selftest_sensitivity.tsv` gives, 
 
 <details><summary>Expected tree of the results of this step</summary>
 
-Tree of the folders that this step writes to, from a run of a fresh clone of the repository. A folder that several steps write to (for example `results/02_pacbio_reads/` and `$HW_WORK/asm/`) is shown in full under one step, so a tree can hold files that other steps write, and some files of a step are shown under another one (for example the files of the final assembly, which the summary job of step 11 writes, are shown under step 8). A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
+Tree of the files that are new after the commands of this step (the steps are run in the order 0 to 11), from a run of a fresh clone of the repository: a folder that several steps write to, for example `results/02_pacbio_reads/` or `$HW_WORK/asm/`, shows here only the files of this step. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
-results/02_pacbio_reads/screen/   (12 files)
-├── counts_by_set.tsv   - reads kept and excluded by the contaminant screen, for each read set
-├── criterion.txt   - the rule by which a read is excluded
-├── filtered_by_organism.tsv   - excluded reads by organism, filtered set
-├── filtered_counts.tsv   - counts of the screen, filtered set
-├── filtered_criterion.json   - criterion and thresholds, filtered set
-├── filtered_excluded_reads.txt   - names of the excluded reads, filtered set
-├── filtered_per_read.tsv.gz   - screen result for every read of the filtered set
-├── hq_by_organism.tsv   - excluded reads by organism, high-quality set
-├── hq_counts.tsv   - counts of the screen, high-quality set
-├── hq_criterion.json   - criterion and thresholds, high-quality set
-├── hq_excluded_reads.txt   - names of the excluded reads, high-quality set
-└── hq_per_read.tsv.gz   - screen result for every read of the high-quality set
+results/02_pacbio_reads/   (12 files)
+└── screen/
+    ├── counts_by_set.tsv   - reads kept and excluded by the contaminant screen, for each read set
+    ├── criterion.txt   - the rule by which a read is excluded
+    ├── filtered_by_organism.tsv   - excluded reads by organism, filtered set
+    ├── filtered_counts.tsv   - counts of the screen, filtered set
+    ├── filtered_criterion.json   - criterion and thresholds, filtered set
+    ├── filtered_excluded_reads.txt   - names of the excluded reads, filtered set
+    ├── filtered_per_read.tsv.gz   - screen result for every read of the filtered set
+    ├── hq_by_organism.tsv   - excluded reads by organism, high-quality set
+    ├── hq_counts.tsv   - counts of the screen, high-quality set
+    ├── hq_criterion.json   - criterion and thresholds, high-quality set
+    ├── hq_excluded_reads.txt   - names of the excluded reads, high-quality set
+    └── hq_per_read.tsv.gz   - screen result for every read of the high-quality set
 
-results/02_pacbio_reads/screen_contigs/   (70 files)
-└── {ctrl_canu, ctrl_canu_quiver, ctrl_canu_quiver_polished, ctrl_flye, ctrl_flye_quiver, ctrl_flye_quiver_polished, hw2, proc_r1, proc_r1_polished, proc_r1_raw, proc_r2, proc_r2_polished, proc_r3, proc_r3_polished}/
-    ├── <name>_by_organism.tsv   - excluded contigs by organism
-    ├── <name>_counts.tsv   - contigs kept and excluded
-    ├── <name>_criterion.json   - criterion and thresholds of the contig screen
-    ├── <name>_excluded_contigs.txt   - names of the excluded contigs
-    └── <name>_per_contig.tsv.gz   - screen result for every contig
+$HW_WORK/reads/pacbio/   (3 files, 8.7G)
+├── READY_02
+├── filtered_clean.fastq
+└── hq_clean.fastq
 
-$HW_WORK/screen_reads/   (18 files, 102M)
+$HW_WORK/screen_reads/   (18 files, 101M)
 ├── filtered_bacteria_1.minimap2.log
 ├── filtered_bacteria_1.paf.gz
 ├── filtered_bacteria_2.minimap2.log
@@ -1354,7 +1355,7 @@ Programs and versions are listed in `envs/versions_03.tsv`.
 
 <details><summary>Expected tree of the results of this step</summary>
 
-Tree of the folders that this step writes to, from a run of a fresh clone of the repository. A folder that several steps write to (for example `results/02_pacbio_reads/` and `$HW_WORK/asm/`) is shown in full under one step, so a tree can hold files that other steps write, and some files of a step are shown under another one (for example the files of the final assembly, which the summary job of step 11 writes, are shown under step 8). A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
+Tree of the files that are new after the commands of this step (the steps are run in the order 0 to 11), from a run of a fresh clone of the repository: a folder that several steps write to, for example `results/02_pacbio_reads/` or `$HW_WORK/asm/`, shows here only the files of this step. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
 results/03_rna_illumina/   (6 files)
@@ -1364,24 +1365,23 @@ results/03_rna_illumina/   (6 files)
 ├── qc_summary.tsv   - quality-control statistics of the RNA-seq and Illumina runs
 └── read_counts.tsv   - read pairs of each run
 
-$HW_WORK/reads/rna/   (7 files, 20G)
+$HW_WORK/reads/rna/   (7 files, 19G)
 ├── <run>.counts.tsv   (x2)
 ├── <run>_1.fastq.gz   (x2)
 ├── <run>_2.fastq.gz   (x2)
 └── READY_03
 
-$HW_WORK/reads/illumina2013/   (4 files, 4.2G)
+$HW_WORK/reads/illumina2013/   (4 files, 4.1G)
 ├── <run>.counts.tsv
 ├── <run>_1.fastq.gz
 ├── <run>_2.fastq.gz
 └── READY_03
 
-$HW_WORK/qc/   (55 files, 9.8M)
+$HW_WORK/qc/   (55 files, 9.6M)
 └── 03_rna_illumina/
     ├── fastp/
     ├── fastqc/
-    ├── multiqc/
-    └── tmp/
+    └── multiqc/
 ```
 
 </details>
@@ -1429,7 +1429,7 @@ The procedure is run three times from the same reads, with 16, 12 and 8 threads 
 
 <details><summary>Expected tree of the results of this step</summary>
 
-Tree of the folders that this step writes to, from a run of a fresh clone of the repository. A folder that several steps write to (for example `results/02_pacbio_reads/` and `$HW_WORK/asm/`) is shown in full under one step, so a tree can hold files that other steps write, and some files of a step are shown under another one (for example the files of the final assembly, which the summary job of step 11 writes, are shown under step 8). A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
+Tree of the files that are new after the commands of this step (the steps are run in the order 0 to 11), from a run of a fresh clone of the repository: a folder that several steps write to, for example `results/02_pacbio_reads/` or `$HW_WORK/asm/`, shows here only the files of this step. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
 results/04_procedure/   (19 files)
@@ -1443,17 +1443,12 @@ results/04_procedure/   (19 files)
     ├── seeds_stats.tsv   - statistics of the seed reads
     └── time_memory.txt   - time and memory of the stage
 
-$HW_WORK/asm/   (968 files, 18G)
+$HW_WORK/asm/   (957 files, 17G)
 ├── ctrl_canu/
 │   ├── canu/
 │   └── final.fasta
-├── {ctrl_canu_quiver, ctrl_flye_quiver, proc_r1, proc_r2, proc_r3}/
-│   ├── final.fasta
-│   └── polished.fasta
 ├── ctrl_flye/
 │   ├── flye/
-│   └── final.fasta
-├── hw2/
 │   └── final.fasta
 ├── proc_r1_raw/
 │   ├── canu_asm/
@@ -1529,9 +1524,18 @@ Runs 2 and 3 (12 and 24, 8 and 16 threads) and the two controls (`RAW=ctrl_canu,
 
 <details><summary>Expected tree of the results of this step</summary>
 
-Tree of the folders that this step writes to, from a run of a fresh clone of the repository. A folder that several steps write to (for example `results/02_pacbio_reads/` and `$HW_WORK/asm/`) is shown in full under one step, so a tree can hold files that other steps write, and some files of a step are shown under another one (for example the files of the final assembly, which the summary job of step 11 writes, are shown under step 8). A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
+Tree of the files that are new after the commands of this step (the steps are run in the order 0 to 11), from a run of a fresh clone of the repository: a folder that several steps write to, for example `results/02_pacbio_reads/` or `$HW_WORK/asm/`, shows here only the files of this step. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
+results/02_pacbio_reads/   (25 files)
+└── screen_contigs/
+    └── {ctrl_canu_quiver_polished, ctrl_flye_quiver_polished, proc_r1_polished, proc_r2_polished, proc_r3_polished}/
+        ├── <name>_by_organism.tsv   - excluded contigs by organism
+        ├── <name>_counts.tsv   - contigs kept and excluded
+        ├── <name>_criterion.json   - criterion and thresholds of the contig screen
+        ├── <name>_excluded_contigs.txt   - names of the excluded contigs
+        └── <name>_per_contig.tsv.gz   - screen result for every contig
+
 results/05_polish/   (25 files)
 └── {ctrl_canu_quiver, ctrl_flye_quiver, proc_r1, proc_r2, proc_r3}/
     ├── assembly_stats.tsv   - contig statistics of the assembly
@@ -1540,9 +1544,10 @@ results/05_polish/   (25 files)
     ├── removed_contigs.tsv   - contigs removed by the contaminant screen
     └── time_memory.txt   - time and memory of the stage
 
-results/assembly/   (2 files)
-├── Hw2.1.fasta.gz   - the assembly Hw 2.1
-└── Hw2.1_contigs.tsv   - name, length and origin of each contig of Hw 2.1
+$HW_WORK/asm/   (10 files, 489M)
+└── {ctrl_canu_quiver, ctrl_flye_quiver, proc_r1, proc_r2, proc_r3}/
+    ├── final.fasta
+    └── polished.fasta
 
 $HW_WORK/polish/   (125 files, 53G)
 └── {ctrl_canu_quiver, ctrl_flye_quiver, proc_r1, proc_r2, proc_r3}/
@@ -1555,6 +1560,18 @@ $HW_WORK/polish/   (125 files, 53G)
     ├── ref.fa
     ├── ref.fa.fai
     └── ref.lock
+
+$HW_WORK/screen_contigs/   (45 files, 134K)
+└── {ctrl_canu_quiver_polished, ctrl_flye_quiver_polished, proc_r1_polished, proc_r2_polished, proc_r3_polished}/
+    ├── <name>_bacteria_1.minimap2.log
+    ├── <name>_bacteria_1.paf.gz
+    ├── <name>_bacteria_2.minimap2.log
+    ├── <name>_bacteria_2.paf.gz
+    ├── <name>_fungi.minimap2.log
+    ├── <name>_fungi.paf.gz
+    ├── <name>_other.minimap2.log
+    ├── <name>_other.paf.gz
+    └── lengths.tsv
 ```
 
 </details>
@@ -1577,16 +1594,13 @@ Time in the run reported here: the longest job took 1.6 hours of elapsed time; a
 
 <details><summary>Expected tree of the results of this step</summary>
 
-Tree of the folders that this step writes to, from a run of a fresh clone of the repository. A folder that several steps write to (for example `results/02_pacbio_reads/` and `$HW_WORK/asm/`) is shown in full under one step, so a tree can hold files that other steps write, and some files of a step are shown under another one (for example the files of the final assembly, which the summary job of step 11 writes, are shown under step 8). A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
+Tree of the files that are new after the commands of this step (the steps are run in the order 0 to 11), from a run of a fresh clone of the repository: a folder that several steps write to, for example `results/02_pacbio_reads/` or `$HW_WORK/asm/`, shows here only the files of this step. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
-results/06_transcripts/   (19 files)
-├── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
-│   ├── summary.json   - all measures of this assembly (or comparison) in one file
-│   └── transcripts.tsv.gz   - alignment of every Trinity transcript
+results/06_transcripts/   (1 file)
 └── trinity_assembly.json   - statistics of the Trinity transcripts
 
-$HW_WORK/trinity/   (2 files, 120M)
+$HW_WORK/trinity/   (2 files, 119M)
 ├── Trinity.fasta
 └── Trinity.fasta.gene_trans_map
 ```
@@ -2073,9 +2087,18 @@ Differences in the first and last 20 bases of a contig cannot be matched in the 
 
 <details><summary>Expected tree of the results of this step</summary>
 
-Tree of the folders that this step writes to, from a run of a fresh clone of the repository. A folder that several steps write to (for example `results/02_pacbio_reads/` and `$HW_WORK/asm/`) is shown in full under one step, so a tree can hold files that other steps write, and some files of a step are shown under another one (for example the files of the final assembly, which the summary job of step 11 writes, are shown under step 8). A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
+Tree of the files that are new after the commands of this step (the steps are run in the order 0 to 11), from a run of a fresh clone of the repository: a folder that several steps write to, for example `results/02_pacbio_reads/` or `$HW_WORK/asm/`, shows here only the files of this step. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
+results/02_pacbio_reads/   (45 files)
+└── screen_contigs/
+    └── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
+        ├── <name>_by_organism.tsv   - excluded contigs by organism
+        ├── <name>_counts.tsv   - contigs kept and excluded
+        ├── <name>_criterion.json   - criterion and thresholds of the contig screen
+        ├── <name>_excluded_contigs.txt   - names of the excluded contigs
+        └── <name>_per_contig.tsv.gz   - screen result for every contig
+
 results/06_tests/   (261 files)
 └── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
     ├── busco.json   - BUSCO counts
@@ -2107,6 +2130,11 @@ results/06_tests/   (261 files)
     ├── telomeres.json   - telomere result, as json
     ├── telomeres.tsv   - telomeric repeats at contig ends
     └── timings.tsv   - time of each test
+
+results/06_transcripts/   (18 files)
+└── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
+    ├── summary.json   - all measures of this assembly (or comparison) in one file
+    └── transcripts.tsv.gz   - alignment of every Trinity transcript
 
 results/07_comparator/   (81 files)
 ├── genbank_files/
@@ -2215,7 +2243,19 @@ results/08_illumina_accuracy/   (104 files)
         ├── proc_r3_status.tsv
         └── summary.json   - all measures of this assembly (or comparison) in one file
 
-$HW_WORK/aln/   (64 files, 241M)
+$HW_WORK/screen_contigs/   (81 files, 259K)
+└── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
+    ├── <name>_bacteria_1.minimap2.log
+    ├── <name>_bacteria_1.paf.gz
+    ├── <name>_bacteria_2.minimap2.log
+    ├── <name>_bacteria_2.paf.gz
+    ├── <name>_fungi.minimap2.log
+    ├── <name>_fungi.paf.gz
+    ├── <name>_other.minimap2.log
+    ├── <name>_other.paf.gz
+    └── lengths.tsv
+
+$HW_WORK/aln/   (64 files, 240M)
 ├── 06_transcripts/
 │   └── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
 ├── 07_compare/
@@ -2242,7 +2282,7 @@ $HW_WORK/map/   (963 files, 38G)
 └── illumina2013/
     └── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
 
-$HW_WORK/tests/   (198 files, 12G)
+$HW_WORK/tests/   (198 files, 11G)
 └── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
     ├── steps/
     ├── depth.mosdepth.global.dist.txt
@@ -2259,7 +2299,7 @@ $HW_WORK/tests/   (198 files, 12G)
     ├── star_<run>_Log.progress.out
     └── star_<run>_SJ.out.tab
 
-$HW_WORK/07_comparator/   (228 files, 8.6G)
+$HW_WORK/07_comparator/   (228 files, 8.5G)
 ├── {ctrl_canu, ctrl_flye, hw2, hw2_unscreened, proc_r1, proc_r2, proc_r3}/
 │   ├── asm.lengths
 │   ├── depth.mosdepth.global.dist.txt
@@ -2278,7 +2318,6 @@ $HW_WORK/07_comparator/   (228 files, 8.6G)
 │   ├── reads_used.txt
 │   ├── reads_vs_asm.bam
 │   └── reads_vs_asm.bam.bai
-├── genbank_files/
 ├── {mito_ctrl_canu, mito_ctrl_flye, mito_hw2, mito_proc_r1, mito_proc_r2, mito_proc_r3}/
 │   ├── db.ndb
 │   ├── db.nhr
@@ -2318,18 +2357,6 @@ $HW_WORK/07_comparator/   (228 files, 8.6G)
 │   └── ncbi_mito.fa
 └── {the22_vs_ctrl_canu, the22_vs_ctrl_flye, the22_vs_proc_r1, the22_vs_proc_r2, the22_vs_proc_r3}/
     └── the22.fa
-
-$HW_WORK/screen_contigs/   (126 files, 840K)
-└── {ctrl_canu, ctrl_canu_quiver, ctrl_canu_quiver_polished, ctrl_flye, ctrl_flye_quiver, ctrl_flye_quiver_polished, hw2, proc_r1, proc_r1_polished, proc_r1_raw, proc_r2, proc_r2_polished, proc_r3, proc_r3_polished}/
-    ├── <name>_bacteria_1.minimap2.log
-    ├── <name>_bacteria_1.paf.gz
-    ├── <name>_bacteria_2.minimap2.log
-    ├── <name>_bacteria_2.paf.gz
-    ├── <name>_fungi.minimap2.log
-    ├── <name>_fungi.paf.gz
-    ├── <name>_other.minimap2.log
-    ├── <name>_other.paf.gz
-    └── lengths.tsv
 ```
 
 </details>
@@ -2400,7 +2427,7 @@ The report `results/10_validation/validation_report.txt` starts with a summary (
 
 <details><summary>Expected tree of the results of this step</summary>
 
-Tree of the folders that this step writes to, from a run of a fresh clone of the repository. A folder that several steps write to (for example `results/02_pacbio_reads/` and `$HW_WORK/asm/`) is shown in full under one step, so a tree can hold files that other steps write, and some files of a step are shown under another one (for example the files of the final assembly, which the summary job of step 11 writes, are shown under step 8). A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
+Tree of the files that are new after the commands of this step (the steps are run in the order 0 to 11), from a run of a fresh clone of the repository: a folder that several steps write to, for example `results/02_pacbio_reads/` or `$HW_WORK/asm/`, shows here only the files of this step. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
 results/09_summary/   (24 files)
@@ -2432,6 +2459,10 @@ results/09_summary/   (24 files)
 results/10_validation/   (2 files)
 ├── closeness.tsv   - the same values as a table (value, first analysis, difference, usual variation, note)
 └── validation_report.txt   - how close the rerun is to validation/expected.tsv: summary and one line per value
+
+results/assembly/   (2 files)
+├── Hw2.1.fasta.gz   - the assembly Hw 2.1
+└── Hw2.1_contigs.tsv   - name, length and origin of each contig of Hw 2.1
 ```
 
 </details>
@@ -2690,6 +2721,10 @@ The programs are not part of the workflow. `envs/software.md` lists the ten envi
 | Substitution, insertion, deletion | a base replaced by another, a base added, a base removed |
 | GB | gigabyte, one thousand million bytes (of memory or disk) |
 | BAQ | base alignment quality: a correction of base qualities near insertions and deletions, applied by bcftools at its default setting |
+| AI | artificial intelligence: here the language models (claude-science, Codex, Antigravity) that helped to write the workflow and reviewed its code |
+| CLI | command-line interface: a program that is used by typing commands |
+| SLURM | the job scheduler of the computer cluster: it runs a job file (`sbatch`) when the resources are free and the jobs that it waits for have ended |
+| MB | megabyte, one million bytes (not to be confused with Mb, megabase, one million bases) |
 | Phred scale, quality value (QV) | a number Q that states an error probability p as Q = -10 x log10(p): Q10 means 1 error in 10, Q20 1 in 100, Q30 1 in 1,000; a higher value is more reliable |
 | insertion QV, deletion QV, substitution QV, merge QV | the four quality-value tracks that the PacBio RS II instrument records for every base: the estimated chance that the base is an extra base, that a base is missing before it, that it is the wrong base, or that it stands for two identical neighbouring bases called as one; stored in the BAM tags iq, dq, sq and mq (explained in the block under the quality-value figure) |
 | homopolymer | a run of the same base in the sequence (for example five adenine bases in a row) |
