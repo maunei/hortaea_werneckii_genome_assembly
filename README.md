@@ -8,19 +8,37 @@ The workflow was created with AI assistance: claude-science 0.1.67/Sonnet 5.5 (H
 
 A report of the code review is in section 7 (Validation).
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**The two assemblies in numbers** (all contigs; measured in the same way for both):
+
+|  | Hw 2.0 (published) | Hw 2.1 (this workflow) |
+|---|---|---|
+| Assembly size (bases) | 49,942,992 | 50,019,054 |
+| Number of contigs | 651 | 169 |
+| N50 (bases) | 153,735 | 581,225 |
+| L50 (contigs) | 100 | 31 |
+| Longest contig (bases) | 787,827 | 1,587,410 |
+
+N50: the length of the contig such that the contigs of that length or longer together contain at least half of the assembly; L50: the number of contigs that are needed to reach that half. A higher N50, a lower L50 and a longer longest contig mean a more contiguous assembly; the evaluations (section 3) test much more than this.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 **To get only the assembly Hw 2.1,** without running anything, download it from the release page of this repository (https://github.com/maunei/hortaea_werneckii_genome_assembly/releases/tag/v1.0): `curl -L -O https://github.com/maunei/hortaea_werneckii_genome_assembly/releases/download/v1.0/Hw2.1.fasta.gz` (15 MB; 169 contigs, 50.0 Mb). The checksums of the file are `f39e8fcf5f7f6c65d2378634ea97cf5f` (`md5sum Hw2.1.fasta.gz`) and `fc14171e978444dbdac9bb78d36e2a71d9eca3b1db24e00b102f5ea685966bf2` (`sha256sum Hw2.1.fasta.gz`; one of the two is enough), and the checksum of its sequences, which does not depend on the names of the contigs, is `befff43029a2e610b0bfffafd7fdaa15`. The file is not part of the repository: `git clone` does not download it, and a run of the workflow writes its own copy to `results/assembly/` without touching the file of the release. To obtain the assembly by running the workflow, follow the quick start below.
 
 Preliminary analyses to improve the assembly (not shown) led to the procedure described here. This document starts from that procedure: it explains the data and the procedure, explains how the assembly is evaluated, gives the results, and then gives the commands to run every step in order.
 
 Sections marked with a triangle open on a click. They hold explanations that are used further on in the text, the details of each step and the definitions of the measures.
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 ## Run everything: quick start
 
-What is needed: a computer cluster with the SLURM job scheduler, micromamba or conda, internet access for the downloads, and about 400 GB of free disk space (about 200 GB of working files, 85 GB of reference databases and 75 GB of input files; the software environments add about 15 GB in about 304,000 files). A download job that reaches its time limit on a slow network is submitted again by the script, and continues with the files that are missing. The analysis used 243 core-hours of processor time in the run reported here (section 5). From the submission of the first analysis job to the end of the last job it takes about 4 to 5 hours on a computer with short queue waits (3 h 55 min in the complete run of section 7); the longest single job, one run of the procedure, takes about 3 hours. The installation of the software takes 2 to 5 hours and the downloads 35 minutes to 8 hours, depending on the network; the stages of the complete run of section 7 together took 11 h 33 min (the sum of the times of its four stages, without queue waits). Count on longer when the queue is busy.
+What is needed: a computer cluster with the SLURM job scheduler, micromamba or conda, internet access for the downloads, and about 400 GB of free disk space (about 200 GB of working files, 85 GB of reference databases and 75 GB of input files; the software environments add about 15 GB in about 304,000 files). A download job that reaches its time limit on a slow network is submitted again by the script, and continues with the files that are missing. The analysis used 243 core-hours of processor time in the first analysis, whose results are reported here (section 5); it included some jobs that were repeated as checks, and the two complete runs of section 7 used 229 and 228 core-hours. From the submission of the first analysis job to the end of the last job it takes about 4 to 5 hours on a computer with short queue waits (3 h 55 min in the complete run of section 7); the longest single job, one run of the procedure, takes about 3 hours. The installation of the software takes 2 to 5 hours and the downloads 35 minutes to 8 hours, depending on the network; the stages of the complete run of section 7 together took 11 h 33 min (the sum of the times of its four stages, without queue waits). Count on longer when the queue is busy.
 
 1. **Get the repository** and go into its folder: `git clone https://github.com/maunei/hortaea_werneckii_genome_assembly.git` and `cd hortaea_werneckii_genome_assembly`.
 2. **Fill in `settings.yaml`.** It has one line for each value: the scheduler account, your e-mail address, how many messages you want, the software modules of your cluster (if any), and three folders for large files outside the repository. The work folder must be new and empty for each run. Nothing else has to be edited.
-3. **Run `bash setup_and_run_all.sh all > run.log 2>&1 &`.** It checks the settings, creates the software environments, downloads the reference databases and the input files, checks that everything works from a compute node, and submits the whole analysis (97 jobs with their dependencies). The script waits for each stage, so it stays running in the background; `tail -f run.log` shows its messages and `squeue -u $USER` the jobs. If the script is stopped (for example when the login computer is restarted), it can be started again in the same folder. The software, database and input stages skip the work that is finished and wait for their jobs that are still queued or running. The analysis stage behaves differently: it refuses to submit again while jobs of the earlier attempt are still queued or running, and tells you to wait for them or to look at the list of jobs; when none is active it submits the analysis again (with a new, empty work folder).
+3. **Run `bash setup_and_run_all.sh all > run.log 2>&1 &`.** It checks the settings, creates the software environments, downloads the reference databases and the input files, checks that everything works from a compute node, and submits the whole analysis (97 jobs with their dependencies). The script waits for each stage, so it stays running in the background; `tail -f run.log` shows its messages and `squeue -u $USER` the jobs. If the script is stopped (for example when the login computer is restarted), it can be started again in the same folder. The software, database and input stages skip the work that is finished and wait for their jobs that are still queued or running. The analysis stage behaves differently: it refuses to submit again while jobs of the earlier attempt are still queued or running, and tells you to wait for them or to look at the list of jobs; when none is active it submits the analysis again, with the `work_dir` of `settings.yaml`; to start a new analysis, give a new empty folder as `work_dir` and run the stage `settings` again.
 4. **When the analysis has finished** (one message arrives if you asked for messages, saying COMPLETED, or FAILED if a job of the analysis did not finish; `squeue -u $USER` shows nothing), the results are in `results/`: the assembly Hw 2.1 in `results/assembly/`, the verdict on the five evaluations in `results/09_summary/verdict.tsv` and the comparison with the first analysis in `results/10_validation/`.
 
 ```
@@ -34,7 +52,7 @@ squeue -u $USER        # the jobs
 
 <details><summary>The stages one by one (to run a part, or to repeat after a problem)</summary>
 
-The command is `bash setup_and_run_all.sh STAGE`. Every stage can be repeated: what is already there is not made again, and the script stops with a message at the first problem.
+The command is `bash setup_and_run_all.sh STAGE`. Every stage can be repeated: the stages that install or download keep what is already there, the stage `run` submits the analysis again, and the script stops with a message at the first problem.
 
 | Stage | What it does |
 |---|---|
@@ -46,15 +64,261 @@ The command is `bash setup_and_run_all.sh STAGE`. Every stage can be repeated: w
 | `run` | submits the whole analysis (`scripts/submit_all.sh`) and one short job that sends a message when the last job has ended, COMPLETED or FAILED (`DRYRUN=1` prints the submissions only) |
 | `all` | `settings`, `software`, `databases`, `inputs`, `check` and `run`, in this order |
 
-The job files are not changed. The script passes the account and the mail settings to every job when it is submitted, which overrides the placeholders `<ACCOUNT>` and `<ADDRESS>` in the header of each job file. A person who submits a single job by hand (section 5) replaces the placeholders as described in step 0.
+The job files are not changed. The script passes the account and the mail settings to every job when it is submitted, which overrides the placeholders `<ACCOUNT>` and `<ADDRESS>` in the header of each job file. A person who submits a single job on its own (section 5) replaces the placeholders as described in step 0.
 
 </details>
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ## Overview of the analysis
 
 ![Workflow of the analysis](figures/fig_workflow.png)
 
-The workflow of the whole analysis, from top to bottom. Each box is a step (numbers as in section 5) and each arrow shows which result is used by the next step. Colours: grey, the data; blue, preparation of the data (steps 0 to 6); orange, the procedure that gives the new assembly (steps 7 and 8); green, the new assembly Hw 2.1; pink, the five evaluations (steps 9 and 10); purple, the summary (step 11). The dashed grey line shows that the published assembly Hw 2.0 goes through the same five evaluations.
+The workflow of the whole analysis, from top to bottom. Each box is a step (numbers as in section 5) and each arrow shows which result is used by the next step. Colours: grey, the data; blue, preparation of the data (steps 0 to 6); orange, the procedure that gives the new assembly (steps 7 and 8); green, the new assembly Hw 2.1; pink, the five evaluations (steps 9 and 10); purple, the summary (step 11). The dashed grey line shows that the published assembly Hw 2.0 goes through the same five evaluations. The names in dark blue are the names of the jobs in the map of the whole run, below (a `*` stands for the part of the name that changes with the assembly: for example `tests_hw2`, `tests_proc_r1` and `tests_ctrl_canu_quiver`, or `align_r1` and `align_ctrl_flye`).
+
+<details><summary>Map of the whole run: stages, job files, scripts and dependencies</summary>
+
+The workflow has 32 job files (`jobs/*.sbatch`), 21 shell scripts (`scripts/*.sh`) and 40 Python scripts (`scripts/*.py`). The relation between them is not one to one: a job file calls zero, one or several scripts, a script can be called by several job files, and a job file can be submitted several times with different options (for example `06_tests.sbatch`, once for each assembly), so that the run is made of 97 jobs. The map below, in the order in which `setup_and_run_all.sh all` runs everything, shows all of it: each line is a job, with the step of the graph above (`S7` is step 7), its job file and, after `<-`, the jobs that it waits for; the first time that a job file appears, the lines under it give the scripts that it calls and the programs that it runs.
+
+Only the scripts that a job file names itself are listed first; a script that one of them calls in turn is given in parentheses (for example `screen_reads.sh` calls `screen_common.sh`). The line `programs:` gives the main programs that the job file, or a script that it calls, runs (`envs/software.md` describes them). Before the stage `run` the stages follow one another because `setup_and_run_all.sh` waits for each job to end; in the stage `run` all the jobs are submitted at once and SLURM starts each one when the jobs it points to have ended without error, so the jobs of one level (`L0` to `L10`) can run at the same time. The column "Jobs in the map" counts the lines of the map: the 97 jobs of the run, the 5 jobs that the stages before it submit (the index of the screen database is in the stage `databases` and again in the run) and the optional self-test of the screen, 103 in all.
+
+| Step | Title (section 5) | Job files | Jobs in the map |
+|---|---|---|---|
+| Step 0 | Get the workflow and set the locations | `00_preflight.sbatch` | 1 |
+| Step 1 | Create the software environments | `01_software.sbatch` | 1 |
+| Step 2 | Fetch the reference data and index the screen database | `02_fetch_databases.sbatch`, `02_screen_db_index.sbatch` | 3 |
+| Step 3 | Input files, their checksums and the published assembly Hw 2.0 | `01_check_inputs.sbatch`, `01_fetch_inputs.sbatch` | 2 |
+| Step 4 | PacBio reads: conversion, the two read sets, comparison with the authors' file | `02_compare_deposited.sbatch`, `02_merge_reads.sbatch`, `02_pacbio_reads.sbatch` | 3 |
+| Step 5 | Contaminant screen of the reads | `02_screen_reads.sbatch`, `02_screen_selftest.sbatch` (not part of the run) | 2 |
+| Step 6 | RNA-seq and Illumina 2013 reads: conversion and quality control | `03_convert.sbatch`, `03_qc.sbatch` | 4 |
+| Step 7 | The procedure: seeds, correction and assembly, three runs, and the two control assemblies | `04_control_canu.sbatch`, `04_control_flye.sbatch`, `04_procedure.sbatch` | 5 |
+| Step 8 | Polishing with Quiver and removal of contaminant contigs: the final assembly Hw 2.1 | `05_align_subreads.sbatch`, `05_polish.sbatch`, `05_remove_contaminant_contigs.sbatch` | 15 |
+| Step 9 | Transcripts assembled without a genome (used by evaluation 2) | `06_trinity_denovo.sbatch` | 1 |
+| Step 10 | Evaluations of every assembly | `02_screen_contigs.sbatch`, `06_tests.sbatch`, `06_transcript_alignment.sbatch`, `07_compare_adjudicate.sbatch`, `07_depth_unscreened.sbatch`, `07_genbank_files.sbatch`, `07_mito.sbatch`, `07_the22.sbatch`, `07_the22_vs_assembly.sbatch`, `08_illumina_accuracy.sbatch`, `08_shared_differences.sbatch` | 65 |
+| Step 11 | Summary, assessment of the evaluations and validation | `09_summary.sbatch` | 1 |
+
+```
+=== STAGE settings (bash setup_and_run_all.sh settings) - no job ===
+      checks settings.yaml, writes config/local.sh and makes the folders
+
+=== STAGE software (bash setup_and_run_all.sh software) - 1 job ===
+S1  01_software  [01_software.sbatch]   time limit 06:00:00, 4 cpus, 16G memory   <-  (nothing; the stage is skipped when the ten environments are complete)
+       scripts: make_environments.sh
+       programs: micromamba/conda
+       the stage itself runs make_environments.sh (CHECK=1) to see whether the environments are complete
+       if the job reaches the time limit it is submitted again (up to 3 attempts); the script waits for it to end before the next stage
+
+=== STAGE databases (bash setup_and_run_all.sh databases) - 2 jobs ===
+S2  02_fetch_databases  [02_fetch_databases.sbatch]   time limit 06:00:00, 4 cpus, 16G memory   <-  (nothing; skipped when the databases are present)
+       scripts: 06_fetch_databases.sh, 07_fetch_mito_refs.sh (calls 07_mito_refs.py), 07_fetch_rdna_refs.sh, fetch_screen_databases.sh (calls select_screen_genomes.py)
+       programs: BUSCO, curl
+S2  02_screen_db_index  [02_screen_db_index.sbatch]   time limit 02:00:00, 16 cpus, 128G memory   <-  02_fetch_databases (afterok)
+       scripts: screen_common.sh
+       programs: seqkit, minimap2
+       the download is submitted again if it reaches the time limit (up to 5 attempts)
+
+=== STAGE inputs (bash setup_and_run_all.sh inputs) - 1 job, or links ===
+S3  01_fetch_inputs  [01_fetch_inputs.sbatch]   time limit 06:00:00, 4 cpus, 8G memory   <-  (nothing; skipped when the four manifests, every file of input/CHECKSUMS.md5 and every file of the list of the deposited FASTQ files are present, or when input_source links them)
+       scripts: fetch_archive.py
+       programs: curl
+       the download is submitted again if it reaches the time limit (up to 5 attempts)
+
+=== STAGE check (bash setup_and_run_all.sh check) - 1 job + a dry run ===
+S0  00_preflight  [00_preflight.sbatch]   time limit 00:10:00, 1 cpu, 4G memory   <-  (nothing; checks programs, databases and folders from a compute node)
+       scripts: none
+       programs: samtools, seqkit, Python (it asks each for its version); for the other programs, the databases and the input checksums it checks that the files exist
+       then the dry run of scripts/submit_all.sh (prints the submissions, runs nothing)
+
+=== STAGE run (bash setup_and_run_all.sh run) - the 97 jobs of scripts/submit_all.sh + 1 message job; levels L0 to L10 ===
+       scripts/submit_all.sh first runs 01_prepare_hw2.sh (the preparation of Hw 2.0), then submits all the jobs at once; SLURM starts each job when the jobs it points to have ended
+
+--- level L0 (starts at once) - 2 jobs ---
+S3  check_inputs  [01_check_inputs.sbatch]   <-  (nothing: starts at once)
+       scripts: check_ncbi_input.py (calls hw07_common.py)
+       programs: none (Python only)
+S2  dbindex  [02_screen_db_index.sbatch]   <-  (nothing: starts at once)
+       the same job file as in the stage databases
+
+--- level L1 - 6 jobs ---
+S4  pacbio  [02_pacbio_reads.sbatch  --array=0-4]   <-  check_inputs
+       scripts: bax_metrics.py, filter_subreads.py
+       programs: seqkit, samtools, bax2bam
+S6  conv_miseq  [03_convert.sbatch  RUN=SRR5086621,GROUP=rna]   <-  check_inputs
+       scripts: none
+       programs: seqkit, SRA Toolkit, pigz
+S6  conv_hiseq  [03_convert.sbatch  RUN=SRR5086622,GROUP=rna]   <-  check_inputs
+S6  conv_ill  [03_convert.sbatch  RUN=SRR866616,GROUP=illumina2013]   <-  check_inputs
+S10 genbank  [07_genbank_files.sbatch]   <-  check_inputs
+       scripts: 07_genbank_files.py (calls hw07_common.py)
+       programs: minimap2
+S10 scr_hw2  [02_screen_contigs.sbatch  ASM=hw2]   <-  check_inputs, dbindex
+       scripts: screen_contigs.sh (calls screen_classify.py, screen_common.sh)
+       programs: seqkit, minimap2, pigz
+
+--- level L2 - 4 jobs ---
+S4  merge  [02_merge_reads.sbatch]   <-  pacbio
+       scripts: none
+       programs: seqkit
+S9  trinity  [06_trinity_denovo.sbatch]   <-  conv_miseq, conv_hiseq
+       scripts: 06_fasta_stats.py
+       programs: Trinity
+S6  qc  [03_qc.sbatch]   <-  conv_miseq, conv_hiseq, conv_ill
+       scripts: 03_make_tables.py
+       programs: fastp, FastQC, MultiQC
+S10 acc_hw2  [08_illumina_accuracy.sbatch  ASM=hw2]   <-  check_inputs, conv_ill
+       scripts: 08_illumina_accuracy.py (calls diff_common.py)
+       programs: samtools, mosdepth, bwa, bcftools
+
+--- level L3 - 3 jobs ---
+S4  deposited  [02_compare_deposited.sbatch]   <-  merge
+       scripts: compare_deposited_fastq.py, fetch_archive.py
+       programs: none (Python only)
+S5  screen_reads  [02_screen_reads.sbatch]   <-  merge, dbindex
+       scripts: screen_reads.sh (calls screen_classify.py, screen_common.sh)
+       programs: seqkit, minimap2, pigz
+S10 trans_hw2  [06_transcript_alignment.sbatch  ASM=hw2]   <-  check_inputs, trinity
+       scripts: 06_transcript_align_stats.py
+       programs: minimap2
+
+--- level L4 - 7 jobs ---
+S7  proc_r1  [04_procedure.sbatch  RUN=r1]   <-  screen_reads
+       scripts: none
+       programs: seqkit, Canu, BLASR, pbdagcon
+S7  proc_r2  [04_procedure.sbatch  RUN=r2]   <-  screen_reads
+S7  proc_r3  [04_procedure.sbatch  RUN=r3]   <-  screen_reads
+S7  ctrl_canu  [04_control_canu.sbatch]   <-  screen_reads
+       scripts: none
+       programs: seqkit, Canu
+S7  ctrl_flye  [04_control_flye.sbatch]   <-  screen_reads
+       scripts: none
+       programs: seqkit, Flye
+S10 mito_hw2  [07_mito.sbatch  ASM=hw2]   <-  screen_reads
+       scripts: 07_depth.sh, 07_fetch_mito_refs.sh (calls 07_mito_refs.py), 07_mito.py (calls hw07_common.py)
+       programs: samtools, minimap2, mosdepth, BLAST+, curl
+S10 tests_hw2  [06_tests.sbatch  ASM=hw2]   <-  check_inputs, conv_hiseq, screen_reads
+       scripts: 06_busco_summary.py, 06_collect.py, 06_contiguity.py, 06_depth.py, 06_miniprot_summary.py, 06_readback.py, 06_selfalign.py, 06_star_summary.py, 06_telomeres.py
+       programs: samtools, minimap2, mosdepth, STAR, BUSCO, miniprot
+
+--- level L5 - 24 jobs ---
+S8  align_r1  [05_align_subreads.sbatch  RAW=proc_r1_raw,OUTNAME=proc_r1]   <-  proc_r1
+       scripts: none
+       programs: samtools, pbalign, pbindex
+S10 tests_proc_r1_raw  [06_tests.sbatch  ASM=proc_r1_raw]   <-  proc_r1, conv_hiseq, screen_reads
+S10 trans_proc_r1_raw  [06_transcript_alignment.sbatch  ASM=proc_r1_raw]   <-  proc_r1, trinity
+S10 acc_proc_r1_raw  [08_illumina_accuracy.sbatch  ASM=proc_r1_raw]   <-  proc_r1, conv_ill
+S10 scr_proc_r1_raw  [02_screen_contigs.sbatch  ASM=proc_r1_raw]   <-  proc_r1, dbindex
+S8  align_r2  [05_align_subreads.sbatch  RAW=proc_r2_raw,OUTNAME=proc_r2]   <-  proc_r2
+S8  align_r3  [05_align_subreads.sbatch  RAW=proc_r3_raw,OUTNAME=proc_r3]   <-  proc_r3
+S8  align_ctrl_canu  [05_align_subreads.sbatch  RAW=ctrl_canu,OUTNAME=ctrl_canu_quiver]   <-  ctrl_canu
+S10 tests_ctrl_canu  [06_tests.sbatch  ASM=ctrl_canu]   <-  ctrl_canu, conv_hiseq, screen_reads
+S10 trans_ctrl_canu  [06_transcript_alignment.sbatch  ASM=ctrl_canu]   <-  ctrl_canu, trinity
+S10 acc_ctrl_canu  [08_illumina_accuracy.sbatch  ASM=ctrl_canu]   <-  ctrl_canu, conv_ill
+S10 scr_ctrl_canu  [02_screen_contigs.sbatch  ASM=ctrl_canu]   <-  ctrl_canu, dbindex
+S10 compare_ctrl_canu  [07_compare_adjudicate.sbatch  A_ASM=ctrl_canu,B_ASM=hw2]   <-  ctrl_canu
+       scripts: 07_adjudicate.py, 07_compact_read_alignments.py, 07_find_disagreements.py
+       programs: minimap2
+S10 mito_ctrl_canu  [07_mito.sbatch  ASM=ctrl_canu]   <-  ctrl_canu
+S10 the22_ctrl_canu  [07_the22_vs_assembly.sbatch  ASM=ctrl_canu]   <-  ctrl_canu, genbank
+       scripts: 07_the22_align.py (calls hw07_common.py), hw07_common.py
+       programs: minimap2
+S8  align_ctrl_flye  [05_align_subreads.sbatch  RAW=ctrl_flye,OUTNAME=ctrl_flye_quiver]   <-  ctrl_flye
+S10 tests_ctrl_flye  [06_tests.sbatch  ASM=ctrl_flye]   <-  ctrl_flye, conv_hiseq, screen_reads
+S10 trans_ctrl_flye  [06_transcript_alignment.sbatch  ASM=ctrl_flye]   <-  ctrl_flye, trinity
+S10 acc_ctrl_flye  [08_illumina_accuracy.sbatch  ASM=ctrl_flye]   <-  ctrl_flye, conv_ill
+S10 scr_ctrl_flye  [02_screen_contigs.sbatch  ASM=ctrl_flye]   <-  ctrl_flye, dbindex
+S10 compare_ctrl_flye  [07_compare_adjudicate.sbatch  A_ASM=ctrl_flye,B_ASM=hw2]   <-  ctrl_flye
+S10 mito_ctrl_flye  [07_mito.sbatch  ASM=ctrl_flye]   <-  ctrl_flye
+S10 the22_ctrl_flye  [07_the22_vs_assembly.sbatch  ASM=ctrl_flye]   <-  ctrl_flye, genbank
+S10 the22  [07_the22.sbatch]   <-  genbank, mito_hw2
+       scripts: 07_depth.sh, 07_fetch_mito_refs.sh (calls 07_mito_refs.py), 07_fetch_rdna_refs.sh, 07_the22.py (calls hw07_common.py), hw07_common.py, screen_contigs.sh (calls screen_classify.py, screen_common.sh)
+       programs: seqkit, samtools, minimap2, mosdepth, miniprot, BLAST+, pigz, curl
+
+--- level L6 - 9 jobs ---
+S8  polish_r1  [05_polish.sbatch  RAW=proc_r1_raw,OUTNAME=proc_r1]   <-  align_r1
+       scripts: none
+       programs: seqkit, pbmerge, Quiver
+S10 shared_proc_r1_raw  [08_shared_differences.sbatch  ASM_A=proc_r1_raw,ASM_B=hw2]   <-  acc_proc_r1_raw, acc_hw2
+       scripts: shared_differences.py (calls diff_common.py)
+       programs: none (Python only)
+S8  polish_r2  [05_polish.sbatch  RAW=proc_r2_raw,OUTNAME=proc_r2]   <-  align_r2
+S8  polish_r3  [05_polish.sbatch  RAW=proc_r3_raw,OUTNAME=proc_r3]   <-  align_r3
+S8  polish_ctrl_canu  [05_polish.sbatch  RAW=ctrl_canu,OUTNAME=ctrl_canu_quiver]   <-  align_ctrl_canu
+S10 shared_ctrl_canu  [08_shared_differences.sbatch  ASM_A=ctrl_canu,ASM_B=hw2]   <-  acc_ctrl_canu, acc_hw2
+S8  polish_ctrl_flye  [05_polish.sbatch  RAW=ctrl_flye,OUTNAME=ctrl_flye_quiver]   <-  align_ctrl_flye
+S10 shared_ctrl_flye  [08_shared_differences.sbatch  ASM_A=ctrl_flye,ASM_B=hw2]   <-  acc_ctrl_flye, acc_hw2
+S10 depth_unscreened  [07_depth_unscreened.sbatch]   <-  the22
+       scripts: 07_depth.sh
+       programs: samtools, minimap2, mosdepth
+
+--- level L7 - 5 jobs ---
+S8  remove_r1  [05_remove_contaminant_contigs.sbatch  OUTNAME=proc_r1]   <-  polish_r1
+       scripts: screen_contigs.sh (calls screen_classify.py, screen_common.sh)
+       programs: seqkit, minimap2, pigz
+S8  remove_r2  [05_remove_contaminant_contigs.sbatch  OUTNAME=proc_r2]   <-  polish_r2
+S8  remove_r3  [05_remove_contaminant_contigs.sbatch  OUTNAME=proc_r3]   <-  polish_r3
+S8  remove_ctrl_canu  [05_remove_contaminant_contigs.sbatch  OUTNAME=ctrl_canu_quiver]   <-  polish_ctrl_canu
+S8  remove_ctrl_flye  [05_remove_contaminant_contigs.sbatch  OUTNAME=ctrl_flye_quiver]   <-  polish_ctrl_flye
+
+--- level L8 - 31 jobs ---
+S10 tests_proc_r1  [06_tests.sbatch  ASM=proc_r1]   <-  remove_r1, conv_hiseq, screen_reads
+S10 trans_proc_r1  [06_transcript_alignment.sbatch  ASM=proc_r1]   <-  remove_r1, trinity
+S10 acc_proc_r1  [08_illumina_accuracy.sbatch  ASM=proc_r1]   <-  remove_r1, conv_ill
+S10 scr_proc_r1  [02_screen_contigs.sbatch  ASM=proc_r1]   <-  remove_r1, dbindex
+S10 compare_proc_r1  [07_compare_adjudicate.sbatch  A_ASM=proc_r1,B_ASM=hw2]   <-  remove_r1
+S10 mito_proc_r1  [07_mito.sbatch  ASM=proc_r1]   <-  remove_r1
+S10 the22_proc_r1  [07_the22_vs_assembly.sbatch  ASM=proc_r1]   <-  remove_r1, genbank
+S10 tests_proc_r2  [06_tests.sbatch  ASM=proc_r2]   <-  remove_r2, conv_hiseq, screen_reads
+S10 trans_proc_r2  [06_transcript_alignment.sbatch  ASM=proc_r2]   <-  remove_r2, trinity
+S10 acc_proc_r2  [08_illumina_accuracy.sbatch  ASM=proc_r2]   <-  remove_r2, conv_ill
+S10 scr_proc_r2  [02_screen_contigs.sbatch  ASM=proc_r2]   <-  remove_r2, dbindex
+S10 compare_proc_r2  [07_compare_adjudicate.sbatch  A_ASM=proc_r2,B_ASM=hw2]   <-  remove_r2
+S10 mito_proc_r2  [07_mito.sbatch  ASM=proc_r2]   <-  remove_r2
+S10 the22_proc_r2  [07_the22_vs_assembly.sbatch  ASM=proc_r2]   <-  remove_r2, genbank
+S10 tests_proc_r3  [06_tests.sbatch  ASM=proc_r3]   <-  remove_r3, conv_hiseq, screen_reads
+S10 trans_proc_r3  [06_transcript_alignment.sbatch  ASM=proc_r3]   <-  remove_r3, trinity
+S10 acc_proc_r3  [08_illumina_accuracy.sbatch  ASM=proc_r3]   <-  remove_r3, conv_ill
+S10 scr_proc_r3  [02_screen_contigs.sbatch  ASM=proc_r3]   <-  remove_r3, dbindex
+S10 compare_proc_r3  [07_compare_adjudicate.sbatch  A_ASM=proc_r3,B_ASM=hw2]   <-  remove_r3
+S10 mito_proc_r3  [07_mito.sbatch  ASM=proc_r3]   <-  remove_r3
+S10 the22_proc_r3  [07_the22_vs_assembly.sbatch  ASM=proc_r3]   <-  remove_r3, genbank
+S10 tests_ctrl_canu_quiver  [06_tests.sbatch  ASM=ctrl_canu_quiver]   <-  remove_ctrl_canu, conv_hiseq, screen_reads
+S10 trans_ctrl_canu_quiver  [06_transcript_alignment.sbatch  ASM=ctrl_canu_quiver]   <-  remove_ctrl_canu, trinity
+S10 acc_ctrl_canu_quiver  [08_illumina_accuracy.sbatch  ASM=ctrl_canu_quiver]   <-  remove_ctrl_canu, conv_ill
+S10 scr_ctrl_canu_quiver  [02_screen_contigs.sbatch  ASM=ctrl_canu_quiver]   <-  remove_ctrl_canu, dbindex
+S10 compare_ctrl_canu_quiver  [07_compare_adjudicate.sbatch  A_ASM=ctrl_canu_quiver,B_ASM=hw2]   <-  remove_ctrl_canu
+S10 tests_ctrl_flye_quiver  [06_tests.sbatch  ASM=ctrl_flye_quiver]   <-  remove_ctrl_flye, conv_hiseq, screen_reads
+S10 trans_ctrl_flye_quiver  [06_transcript_alignment.sbatch  ASM=ctrl_flye_quiver]   <-  remove_ctrl_flye, trinity
+S10 acc_ctrl_flye_quiver  [08_illumina_accuracy.sbatch  ASM=ctrl_flye_quiver]   <-  remove_ctrl_flye, conv_ill
+S10 scr_ctrl_flye_quiver  [02_screen_contigs.sbatch  ASM=ctrl_flye_quiver]   <-  remove_ctrl_flye, dbindex
+S10 compare_ctrl_flye_quiver  [07_compare_adjudicate.sbatch  A_ASM=ctrl_flye_quiver,B_ASM=hw2]   <-  remove_ctrl_flye
+
+--- level L9 - 5 jobs ---
+S10 shared_proc_r1  [08_shared_differences.sbatch  ASM_A=proc_r1,ASM_B=hw2]   <-  acc_proc_r1, acc_hw2
+S10 shared_proc_r2  [08_shared_differences.sbatch  ASM_A=proc_r2,ASM_B=hw2]   <-  acc_proc_r2, acc_hw2
+S10 shared_proc_r3  [08_shared_differences.sbatch  ASM_A=proc_r3,ASM_B=hw2]   <-  acc_proc_r3, acc_hw2
+S10 shared_ctrl_canu_quiver  [08_shared_differences.sbatch  ASM_A=ctrl_canu_quiver,ASM_B=hw2]   <-  acc_ctrl_canu_quiver, acc_hw2
+S10 shared_ctrl_flye_quiver  [08_shared_differences.sbatch  ASM_A=ctrl_flye_quiver,ASM_B=hw2]   <-  acc_ctrl_flye_quiver, acc_hw2
+
+--- level L10 - 1 job ---
+S11 summary  [09_summary.sbatch]   <-  ALL the other 96 jobs (afterany: it starts when they have all ended, even if some failed)
+       scripts: 09_qc_figures.py, 09_release.py, 09_replicates.sh, 09_resources.py, 09_summary.py, 09_workflow_figure.py, 10_validate.py
+       programs: samtools
+
+--- after the level L10 ---
+    hw_run_finished  [no job file: sbatch --wrap in setup_and_run_all.sh]   time limit 00:02:00, 1 cpu, 100M memory   <-  summary (afterany)
+       (submitted unless mail_when is NONE) it checks in the accounting (sacct) that all the jobs of the run, and all the tasks of the arrays, are COMPLETED; the scheduler message says COMPLETED or FAILED
+
+--- job files that no script submits (optional, not part of the run) ---
+S5  02_screen_selftest  [02_screen_selftest.sbatch]   time limit 02:00:00, 16 cpus, 96G memory   <-  (the user submits it after 02_merge_reads and 02_screen_db_index have ended)
+       scripts: screen_selftest.sh (calls screen_common.sh, screen_reads.sh, screen_classify.py, screen_selftest_summary.py, simulate_screen_test_reads.py)
+       programs: seqkit, minimap2, pigz
+```
+
+Scripts that the run does not use (no job file of the run, `setup_and_run_all.sh` or `scripts/submit_all.sh` calls them, directly or through another script): `02b_versions.sh`, `03_versions.sh`, `04_versions.sh`, `06_versions.sh`, `06b_collect_versions.sh`, `07_synthetic_check.py`, `07_versions.sh`, `08_versions.sh`, `fetch_screen_test_genomes.sh`, `screen_selftest.sh`, `screen_selftest_summary.py`, `simulate_screen_test_reads.py`. They are tools that a user can run on its own, most of them described in `docs/`: the `*_versions.sh` scripts and `06b_collect_versions.sh` record the versions of the programs of a step, `07_synthetic_check.py` is the synthetic test of the comparison of step 10, `fetch_screen_test_genomes.sh` fetches the genomes for the self-test of the screen, and `screen_selftest.sh`, `screen_selftest_summary.py` and `simulate_screen_test_reads.py` are used only by that optional self-test (`02_screen_selftest.sbatch`).
+
+</details>
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ## Summary
 
@@ -73,6 +337,8 @@ The workflow of the whole analysis, from top to bottom. Each box is a step (numb
 - The assembly is the file `results/assembly/Hw2.1.fasta.gz`: the polished contigs with the contaminant contigs removed (the removal deletes whole contigs and changes no base in the others).
 - Everything is run by `bash scripts/submit_all.sh` after the set-up of steps 0 to 3 (section 5); each step can also be run on its own.
 - The three runs of the procedure gave the same contigs, so the noise scale is practically zero.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ## 1. The organism, the published assembly and the data
 
@@ -94,7 +360,7 @@ The workflow of the whole analysis, from top to bottom. Each box is a step (numb
 - **ZMW** (zero-mode waveguide): one sequencing well of a SMRT cell. A well is *productive* when it holds a single active polymerase.
 - **High-quality set (`hq`).** All subreads, cut to the high-quality part of each polymerase read, of the productive wells. It is used where every read helps: polishing and the evaluations in which the reads act as referee.
 - **Filtered set (`filtered`).** The subreads of the `hq` set that also pass the default read filter of the original protocol: polymerase read score of at least 0.80 (a score the instrument gives to each read) and a length of at least 500 bases. It is used to make the corrected reads and the assembly, as in the original protocol.
-- **Screened sets (`hq_clean`, `filtered_clean`).** The same sets after the contaminant screen (step 02b), which removes whole reads that match bacteria, human or cloning vectors and no fungus. These are the reads that the later steps use.
+- **Screened sets (`hq_clean`, `filtered_clean`).** The same sets after the contaminant screen (step 5), which removes whole reads that match bacteria, human or cloning vectors and no fungus. These are the reads that the later steps use.
 - **Error rate.** A raw subread has about 15 percent errors. The errors are random, so the consensus of several reads of the same place is far more accurate than any read; the procedure below is built on this.
 
 </details>
@@ -152,7 +418,7 @@ RNA-seq and Illumina genomic reads (before any filtering; blue, HiSeq RNA-seq; g
 - In a paired-end run the DNA fragment (the insert) is read from both ends: the first mate reads the start of the fragment, the second mate reads the other end. If the fragment is shorter than two reads, the two mates overlap in the middle: they read some of the same bases.
 - fastp compares the first mate with the reverse complement of the second mate and looks for the overlap (it needs at least 30 bases). When it finds one, the insert size is the length of the first read plus the length of the second read minus the overlap. This is a real measurement of the length of the fragments of the library, not noise.
 - When the fragment is longer than two reads minus 30 bases, the mates do not overlap and fastp cannot find the size; these pairs are reported as unknown: 3.1 percent of the HiSeq pairs, 1.3 percent of the MiSeq pairs and 12.4 percent of the pairs of 2013. For this reason each curve ends at the longest measurable fragment (222 bases for the HiSeq reads of 126 bases, 122 bases for the reads of 76 bases); it does not mean that longer fragments do not exist.
-- The curves therefore show the lengths of the shorter fragments: for RNA-seq mostly 100 to 220 bases. The spike at 76 bases for the 2013 library is at the read length: it is consistent with many fragments that are as short as or shorter than one read, whose mates overlap completely; I did not check this further.
+- The curves therefore show the lengths of the shorter fragments: for RNA-seq mostly 100 to 220 bases. The spike at 76 bases for the 2013 library is at the read length: it is consistent with many fragments that are as short as or shorter than one read, whose mates overlap completely (this was not examined further).
 
 </details>
 
@@ -160,7 +426,7 @@ RNA-seq and Illumina genomic reads (before any filtering; blue, HiSeq RNA-seq; g
 
 a: the evenness of the PacBio read depth. The assembly is cut into windows of 1 kb and the depth of each window (the average number of reads over its bases) is divided by the median depth of the assembly. Horizontal axis: this relative depth, in classes of 0.05; vertical axis: the percentage of all the bases of the assembly that lie in windows of that class (so the bars of one assembly add up to 100 percent). One curve for Hw 2.0 (orange) and one for Hw 2.1 (blue). A single narrow peak at 1 means an even depth. b: the transcripts assembled without a genome.
 
-- Depth of the high-quality PacBio reads over Hw 2.1: median 37.3 times; 97.9 % of the bases lie in windows at 0.5 to 1.5 times the median (Hw 2.0: 97.5 %). An even depth means that the reads cover the whole genome and that no region is collapsed or very rare.
+- Depth of the high-quality PacBio reads over Hw 2.1: median 37.3 times; 97.9 % of the bases lie in windows at 0.5 to 1.5 times the median (Hw 2.0: 97.5 %). An even depth is what is expected when the reads cover the genome evenly; it does not exclude a small region that is collapsed or rare.
 - Transcripts assembled without a genome: 56,609 transcripts, 86,628,736 bases, N50 2,331 bases, from 25,000,000 read pairs (1:33:16; 123.3 GB).
 - Contig lengths of the assemblies are in the figure of section 4.
 
@@ -196,21 +462,21 @@ a: the evenness of the PacBio read depth. The assembly is cut into windows of 1 
 | RNA-seq HiSeq (SRR5086622) | GC content (%) | 56.3 |
 | RNA-seq HiSeq (SRR5086622) | insert size at the peak (bases) | 136 |
 | RNA-seq HiSeq (SRR5086622) | duplication (%) | 30.3 |
-| RNA-seq HiSeq (SRR5086622) | reads with adapter trimmed (%) | 14.3 |
+| RNA-seq HiSeq (SRR5086622) | reads with adapter found (%) | 14.3 |
 | RNA-seq MiSeq (SRR5086621) | read pairs | 3,333,452 |
 | RNA-seq MiSeq (SRR5086621) | read length (bases) | 122 |
 | RNA-seq MiSeq (SRR5086621) | bases at Q30 or better (%) | 87.3 |
 | RNA-seq MiSeq (SRR5086621) | GC content (%) | 55.7 |
 | RNA-seq MiSeq (SRR5086621) | insert size at the peak (bases) | 109 |
 | RNA-seq MiSeq (SRR5086621) | duplication (%) | 6.9 |
-| RNA-seq MiSeq (SRR5086621) | reads with adapter trimmed (%) | 1.1 |
+| RNA-seq MiSeq (SRR5086621) | reads with adapter found (%) | 1.1 |
 | Illumina genomic 2013 (SRR866616) | read pairs | 37,667,637 |
 | Illumina genomic 2013 (SRR866616) | read length (bases) | 76 |
 | Illumina genomic 2013 (SRR866616) | bases at Q30 or better (%) | 77.9 |
 | Illumina genomic 2013 (SRR866616) | GC content (%) | 51.3 |
 | Illumina genomic 2013 (SRR866616) | insert size at the peak (bases) | 76 |
 | Illumina genomic 2013 (SRR866616) | duplication (%) | 2.7 |
-| Illumina genomic 2013 (SRR866616) | reads with adapter trimmed (%) | 0.0 |
+| Illumina genomic 2013 (SRR866616) | reads with adapter found (%) | 0.0 |
 | PacBio depth over Hw 2.0 | median depth (times) | 37.4 |
 | PacBio depth over Hw 2.0 | bases in windows at 0.5 to 1.5 times the median (%) | 97.5 |
 | PacBio depth over Hw 2.1 | median depth (times) | 37.3 |
@@ -223,16 +489,18 @@ a: the evenness of the PacBio read depth. The assembly is cut into windows of 1 
 
 </details>
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 ## 2. The procedure that gives Hw 2.1
 
 The procedure follows the design of the HGAP protocol (Chin et al. 2013), with current programs where the original ones no longer exist. It has six stages, run once with fixed settings; the three runs differ only in the number of threads.
 
-1. **Reads (steps 02a and 02b).** The raw files are converted to subreads; the two read sets are made; reads that match contaminant sequence are removed.
+1. **Reads (steps 4 and 5).** The raw files are converted to subreads; the two read sets are made; reads that match contaminant sequence are removed.
 2. **Seeds.** The longest reads of the filtered set are chosen until they add up to 30 times the genome size (30 x 50 Mb = 1.5 Gb).
 3. **Correction.** Every filtered read is aligned to the seeds, and the consensus of the reads that align to a seed is the corrected read. A corrected read is far more accurate than a raw read.
 4. **Assembly.** The corrected reads are assembled with Canu, which joins two corrected reads only if the region where they overlap differs by at most 2.5 percent (about one base in 40). The result is the set of assembled contigs, made from the corrected reads.
-5. **Polishing (step 05).** The contigs of the assembly from the previous stage are polished: the raw subreads are aligned back to those contigs, and Quiver, the polisher of the original protocol (it also uses the quality-value tracks of the instrument), recomputes the consensus at every position. Where the consensus differs from the contig, the contig is changed: a base is replaced (substitution), a missing base is added (insertion) or an extra base is removed (deletion). Polishing is the stage after the assembly that changes bases; the number of changes by type is in `results/05_polish/<name>/quiver_changes.tsv`.
-6. **Removal of contaminant contigs (step 05c).** This is a second screen for contaminants, done on the finished contigs after the assembly and the polishing. The first screen (step 02b) works on the reads before the assembly and removes only reads; a few reads with cloning-vector sequence passed it and a vector contig was still assembled. The polished contigs are therefore screened again with the same tool and criteria, and a contig that is cloning-vector or other contaminant sequence is removed as a whole. No base of the contigs that remain changes in this stage. The result is Hw 2.1.
+5. **Polishing (step 8).** The contigs of the assembly from the previous stage are polished: the raw subreads are aligned back to those contigs, and Quiver, the polisher of the original protocol (it also uses the quality-value tracks of the instrument), recomputes the consensus at every position. Where the consensus differs from the contig, the contig is changed: a base is replaced (substitution), a missing base is added (insertion) or an extra base is removed (deletion). Polishing is the stage after the assembly that changes bases; the number of changes by type is in `results/05_polish/<name>/quiver_changes.tsv`.
+6. **Removal of contaminant contigs (step 8).** This is a second screen for contaminants, done on the finished contigs after the assembly and the polishing. The first screen (step 5) works on the reads before the assembly and removes only reads; a few reads with cloning-vector sequence passed it and a vector contig was still assembled. The polished contigs are therefore screened again with the same tool and criteria, and a contig that is cloning-vector or other contaminant sequence is removed as a whole. No base of the contigs that remain changes in this stage. The result is Hw 2.1.
 
 <details><summary>Why the reads are corrected before they are assembled</summary>
 
@@ -284,6 +552,8 @@ Both controls are then polished with Quiver and their contaminant contigs are re
 Programs that use several threads can give different results from the same input when the number of threads changes. The procedure is therefore run three times from the same reads with different thread settings (16, 12 and 8 threads for the correction and the assembly; 32, 24 and 16 threads for the polishing). The runs are `proc_r1`, `proc_r2` and `proc_r3`. For every measure, the range over the three runs is the **noise scale**: the variation the procedure shows when nothing but the thread count changes. A difference between Hw 2.1 and Hw 2.0 is called larger than the noise only when it exceeds this range; this is a descriptive rule that measures the repeatability of the computation, not a statistical test. Hw 2.0 is a single run, so its own variation is unknown.
 
 </details>
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ## 3. How Hw 2.1 is evaluated
 
@@ -361,9 +631,11 @@ The criterion for evaluation 3 asks that the Wilson interval excludes 50 percent
 | 4. Redundancy and collapse | less false duplication and a higher proportion of bases at 0.5 to 1.5 times the median depth | equal within the noise scale | more false duplication or collapse |
 | 5. Accuracy of the bases | fewer specific differences per Mb | equal within the noise scale | more specific differences per Mb |
 
-The noise scale is the range of a measure over the three runs of the procedure (section 2). The criteria are applied by `scripts/09_summary.py` without any judgement in between.
+The noise scale is the range of a measure over the three runs of the procedure (section 2). The criteria are applied by `scripts/09_summary.py` without any judgement in between. An evaluation with several measures is better when every measure is better beyond the noise scale, worse when any measure is worse beyond it, and not worse in the other cases (for example, equal complete BUSCO genes and more aligned transcripts: not worse, better in part). For the structure (evaluation 3) the rule is applied to each of the three runs: better when the interval of every run lies above one half, worse when every interval lies below it, and "mixed between runs" when every interval excludes one half but not all on the same side; if an interval includes one half, the result is "interval includes one half". If a result that an evaluation needs is missing, its verdict is incomplete.
 
 </details>
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ## 4. Results
 
@@ -469,7 +741,7 @@ Six key measures, one panel each. In every panel each row is one assembly and th
 
 Hw 2.0 therefore contains one contig of cloning vector. It is left in Hw 2.0 because Hw 2.0 is evaluated as published; its size is a very small part of the assembly.
 
-**The mitochondrial genome.** Every assembly holds one contig that is mitochondrial by the rules of step 07 (core gene families found, low GC, depth a multiple of the nuclear depth). The mitochondrial genome is not part of the five evaluations.
+**The mitochondrial genome.** Every assembly holds one contig that is mitochondrial by the rules of step 10 (core gene families found, low GC, depth a multiple of the nuclear depth). The mitochondrial contig is identified as a side analysis, not as a separate measure of the five evaluations; it stays in the assemblies that the evaluations use.
 
 | Assembly | Contig | Length (bases) | GC | GC of the nuclear contigs | Depth relative to the nuclear median | Core gene families found (of 14) | Ends overlap (circular) | Length of one copy (bases) |
 |---|---|---|---|---|---|---|---|---|
@@ -480,7 +752,7 @@ Hw 2.0 therefore contains one contig of cloning vector. It is left in Hw 2.0 bec
 
 In a circular genome the contig runs once around and then repeats its start, so the contig is longer than one copy of the genome; where the ends overlap, the length of one copy is the contig length minus the overlap. The estimated length of one copy is within a few bases for Hw 2.0, Hw 2.1 and the Canu control; the Flye control has no detectable end overlap, and its contig is about the length of one copy.
 
-**Removal of contaminant contigs (step 05c).** This is the second screen for contaminants; the first one, on the reads, was made before the assembly (step 02b). The screen of the contigs removes the contigs that match contaminant sequence and no fungal sequence:
+**Removal of contaminant contigs (step 8).** This is the second screen for contaminants; the first one, on the reads, was made before the assembly (step 5). The screen of the contigs removes the contigs that match contaminant sequence and no fungal sequence:
 
 | Assembly | Contigs before | Removed | Which | Contigs after (final assembly) |
 |---|---|---|---|---|
@@ -493,7 +765,7 @@ Of the 22 extra sequences of Hw 2.0, 20 are found in Hw 2.1 with at least 90 % o
 ### The final assembly Hw 2.1
 
 - `results/assembly/Hw2.1.fasta.gz`: the final assembly. It is the polished assembly of the procedure (Quiver) with the contaminant contigs removed. Bases are changed only by the polishing (Quiver); the removal of contaminant contigs deletes whole contigs and changes no base in the contigs that remain. This is the file to use as Hw 2.1.
-- `results/assembly/Hw2.1_contigs.tsv`: for every contig, the length, the class of the contaminant screen, whether it is the mitochondrial contig and the checksum of its sequence. The contigs keep the names that the assembler gave them and are written from the longest to the shortest; the gzip header holds no time. The file is therefore the same in every run unless Canu numbers two contigs in a different order (it exchanged the names `tig00000040` and `tig00000041` in some runs). The assembly is identified by the checksum of its sequences, names and orientation ignored: `befff43029a2e610b0bfffafd7fdaa15` in the run reported here and in every rerun made so far. Step 10 compares it with this value.
+- `results/assembly/Hw2.1_contigs.tsv`: for every contig, the length, the class of the contaminant screen, whether it is the mitochondrial contig and the checksum of its sequence. The contigs keep the names that the assembler gave them and are written from the longest to the shortest; the gzip header holds no time. The file is therefore the same in every run unless Canu numbers two contigs in a different order (it exchanged the names `tig00000040` and `tig00000041` in some runs). The assembly is identified by the checksum of its sequences, names and orientation ignored: `befff43029a2e610b0bfffafd7fdaa15` in the run reported here and in every rerun made so far. Step 11 compares it with this value.
 - The three runs of the procedure (`proc_r1`, `proc_r2`, `proc_r3`) gave the same contigs; the file is made from run 1.
 
 ### Are the three runs the same?
@@ -502,9 +774,11 @@ Of the 22 extra sequences of Hw 2.0, 20 are found in Hw 2.1 with at least 90 % o
 - The raw assemblies are the same, and the polished assemblies have the same contigs (only the order of contigs in the file differs).
 - The measures of the evaluations differ between the runs only in the fifth decimal or later (largest range relative to the mean: 0.020 percent, in the number of junctions with split reads). The noise scale is therefore practically zero and a difference of any size counts under the criteria; the size of each difference is given so that small differences can be recognised (for example the proportion of bases at the expected depth).
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 ## 5. Running the workflow step by step
 
-Each step below can be run on its own, in the order given. Every code block is a sequence of commands to paste one after the other in the same shell session (the job numbers are kept in shell variables, so that a job starts only when the job it needs has finished). Steps 0 to 3 prepare the software, the data and the settings; steps 4 to 11 are the analysis.
+Each step below can be run on its own, in the order given. Every code block is a sequence of commands to paste one after the other in the same shell session (the job numbers are kept in shell variables, so that a job starts only when the job it needs has finished). Steps 0 to 3 prepare the software, the data and the settings; steps 4 to 11 are the analysis. Two places need a wait: the preparation of Hw 2.0 in step 3 (when the download job has ended) and the commands of step 11 (the summary job is submitted when all the other jobs have ended; the automatic run, `scripts/submit_all.sh`, makes it wait for all of them).
 
 > **All at once.** After steps 0 to 3, the command `bash scripts/submit_all.sh` submits every job of steps 4 to 11 with its dependencies, including the final summary job (it starts when all other jobs have ended). Nothing else is needed to obtain all the results of this report. `DRYRUN=1 bash scripts/submit_all.sh` prints the commands without running them; the printout is below.
 
@@ -618,7 +892,7 @@ Everything is submitted; the last job (09_summary) runs when all others have end
 
 <details><summary>Step 0. Get the workflow and set the locations</summary>
 
-Steps 0 to 3 and the run are done by `setup_and_run_all.sh` (see "Run everything: quick start" at the beginning of this document); this section describes them one by one, for a person who wants to run a step by hand. The workflow is a folder of scripts, settings and documents. Large files (reads, alignments, assemblies), the software and the reference databases are kept outside it; their places are set once. All commands below are run from the workflow folder, because the scheduler logs are written relative to it. Every job file in `jobs/` starts with header lines for the scheduler; two of them name the account to be charged and the address for notices: `#SBATCH --account=<ACCOUNT>` and `#SBATCH --mail-user=<ADDRESS>`. The `sed` command below puts your two values in these lines of all job files at once.
+Steps 0 to 3 and the run are done by `setup_and_run_all.sh` (see "Run everything: quick start" at the beginning of this document); this section describes them one by one, for a person who wants to run a step on its own. The workflow is a folder of scripts, settings and documents. Large files (reads, alignments, assemblies), the software and the reference databases are kept outside it; their places are set once. All commands below are run from the workflow folder, because the scheduler logs are written relative to it. Every job file in `jobs/` starts with header lines for the scheduler; two of them name the account to be charged and the address for notices: `#SBATCH --account=<ACCOUNT>` and `#SBATCH --mail-user=<ADDRESS>`. The `sed` command below puts your two values in these lines of all job files at once.
 
 **Commands, in the order in which they are run:**
 
@@ -658,7 +932,7 @@ sbatch jobs/01_software.sbatch       # about 2 h 15 min; needs micromamba or con
 
 <details><summary>Expected tree of the results of this step</summary>
 
-Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
+Tree of the folders that this step writes to, from a run of a fresh clone of the repository. A folder that several steps write to (for example `results/02_pacbio_reads/` and `$HW_WORK/asm/`) is shown in full under one step, so a tree can hold files that other steps write, and some files of a step are shown under another one (for example the files of the final assembly, which the summary job of step 11 writes, are shown under step 8). A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
 $HW_ENVS/   (outside the repository)
@@ -681,7 +955,7 @@ $HW_ENVS/   (outside the repository)
 
 <details><summary>Step 2. Fetch the reference data and index the screen database</summary>
 
-Three reference sets are needed: the BUSCO lineage and the Swiss-Prot fungal proteins (evaluation 2), and the reference collection of the contaminant screen (step 02b). They are downloaded once by a job and used offline afterwards. The screen collection is then indexed by a second job. The same download job also fetches the small reference sequences of step 07 (the mitochondrial genomes of five fungi, the ribosomal DNA of *Hortaea werneckii* and the beta-lactamase marker). In a test of the stage from an empty folder, the screen collection, the BUSCO lineage and the index were identical to the copies used for the reported run (same checksums of the four database parts, same index sizes). Two points of the download can differ: a download that is stopped by the time limit of the job continues with the files that are missing, and the Swiss-Prot set is taken from the live UniProt interface, which gave 38,451 proteins in the reported run and 38,309 proteins a week later under the same release label (2026_03), so that the number of Swiss-Prot proteins found whole can change slightly when the data are downloaded again.
+Three reference sets are needed: the BUSCO lineage and the Swiss-Prot fungal proteins (evaluation 2), and the reference collection of the contaminant screen (step 5). They are downloaded once by a job and used offline afterwards. The screen collection is then indexed by a second job. The same download job also fetches the small reference sequences of step 10 (the mitochondrial genomes of five fungi, the ribosomal DNA of *Hortaea werneckii* and the beta-lactamase marker). In a test of the stage from an empty folder, the screen collection, the BUSCO lineage and the index were identical to the copies used for the reported run (same checksums of the four database parts, same index sizes). Two points of the download can differ: a download that is stopped by the time limit of the job continues with the files that are missing, and the Swiss-Prot set is taken from the live UniProt interface, which gave 38,451 proteins in the reported run and 38,309 proteins a week later under the same release label (2026_03), so that the number of Swiss-Prot proteins found whole can change slightly when the data are downloaded again.
 
 **Commands, in the order in which they are run:**
 
@@ -696,7 +970,7 @@ Time in the run reported here: the longest job took 0.1 hours of elapsed time; a
 
 <details><summary>Expected tree of the results of this step</summary>
 
-Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
+Tree of the folders that this step writes to, from a run of a fresh clone of the repository. A folder that several steps write to (for example `results/02_pacbio_reads/` and `$HW_WORK/asm/`) is shown in full under one step, so a tree can hold files that other steps write, and some files of a step are shown under another one (for example the files of the final assembly, which the summary job of step 11 writes, are shown under step 8). A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
 $HW_DBS/   (outside the repository; 84G)
@@ -718,9 +992,10 @@ The input files are downloaded from the archives and checked: the checksums of t
 **Commands, in the order in which they are run:**
 
 ```
-F=$(sbatch --parsable jobs/01_fetch_inputs.sbatch)               # skip if the files are already in input/
-sbatch --dependency=afterok:$F jobs/01_check_inputs.sbatch       # checksums of the files and of the archive records; the files of the NCBI record of Hw 2.0 that steps 07a to 07c read
-# when the download has finished:
+F=                                                                # stays empty when the files are already in input/
+F=$(sbatch --parsable jobs/01_fetch_inputs.sbatch)               # skip this line if the files are already in input/
+CI=$(sbatch --parsable ${F:+--dependency=afterok:$F} jobs/01_check_inputs.sbatch)   # checksums of the files and of the archive records; the files of the NCBI record of Hw 2.0 that step 10 reads
+# when the download job has ended:
 bash scripts/01_prepare_hw2.sh                                    # Hw 2.0 as $WORK/asm/hw2/final.fasta
 ```
 
@@ -745,7 +1020,7 @@ Two checks are made, and both can be repeated by anyone who uses the same data. 
 
 <details><summary>Expected tree of the results of this step</summary>
 
-Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
+Tree of the folders that this step writes to, from a run of a fresh clone of the repository. A folder that several steps write to (for example `results/02_pacbio_reads/` and `$HW_WORK/asm/`) is shown in full under one step, so a tree can hold files that other steps write, and some files of a step are shown under another one (for example the files of the final assembly, which the summary job of step 11 writes, are shown under step 8). A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
 results/01_inputs/   (2 files)
@@ -784,7 +1059,7 @@ The raw `.bax.h5` files are converted to subreads with their quality tracks (one
 **Commands, in the order in which they are run:**
 
 ```
-A=$(sbatch --parsable jobs/02_pacbio_reads.sbatch)                              # array of five tasks, one per run
+A=$(sbatch --parsable ${CI:+--dependency=afterok:$CI} jobs/02_pacbio_reads.sbatch)                              # array of five tasks, one per run
 M=$(sbatch --parsable --dependency=afterok:$A jobs/02_merge_reads.sbatch)       # the two read sets
 sbatch --dependency=afterok:$M jobs/02_compare_deposited.sbatch                 # optional comparison with SRR5086624
 ```
@@ -810,7 +1085,7 @@ The scraps (parts of the polymerase reads outside the high-quality regions) are 
 
 **Comparison with the authors' file**
 
-The authors deposited the filtered subreads they used as FASTQ (accession SRR5086624, file `Hw_PacBio.filtered_subreads.fastq.bz2`). `scripts/compare_deposited_fastq.py` compares it with the filtered set made here, read by read, by well number and subread coordinates. 334,997 of the 334,998 wells of the set made here are in the deposited file, 404,987 reads are identical, and 65,233 reads differ only in the end coordinate of the last subread of a well (one base), the sequence of one being contained in the other. The set made here has one extra well with one read. The two sets are therefore the same data for all practical purposes, and the set made here is used because it can be remade from the raw files by anyone.
+The authors deposited the filtered subreads they used as FASTQ (accession SRR5086624, file `Hw_PacBio.filtered_subreads.fastq.bz2`). `scripts/compare_deposited_fastq.py` compares it with the filtered set made here, read by read, by well number and subread coordinates. 334,997 of the 334,998 wells of the set made here are in the deposited file, 404,987 reads are identical, and 65,233 more reads have a counterpart in the other set with the same well number and the same start, in which the sequence of one is contained in the other (they differ in length at the end). The set made here also has one extra well with one read, and ten further reads (in the run reported here) that these categories do not explain. The two sets are therefore nearly the same data, and the set made here is used because it can be remade from the raw files by anyone.
 
 **Output files**
 
@@ -822,7 +1097,7 @@ The authors deposited the filtered subreads they used as FASTQ (accession SRR508
 
 <details><summary>Expected tree of the results of this step</summary>
 
-Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
+Tree of the folders that this step writes to, from a run of a fresh clone of the repository. A folder that several steps write to (for example `results/02_pacbio_reads/` and `$HW_WORK/asm/`) is shown in full under one step, so a tree can hold files that other steps write, and some files of a step are shown under another one (for example the files of the final assembly, which the summary job of step 11 writes, are shown under step 8). A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
 results/02_pacbio_reads/   (97 files)
@@ -863,13 +1138,13 @@ Reads that match contaminant sequence and no fungal sequence are removed whole; 
 
 ```
 bash scripts/fetch_screen_test_genomes.sh                  # optional: three small genomes for the self-test
-sbatch --dependency=afterok:$I jobs/02_screen_selftest.sbatch   # optional
+sbatch --dependency=afterok:$M:$I jobs/02_screen_selftest.sbatch   # optional; it samples the merged reads
 S=$(sbatch --parsable --dependency=afterok:$M:$I jobs/02_screen_reads.sbatch)
 ```
 
 **Expected output:** `hq_clean.fastq` and `filtered_clean.fastq` in `$WORK/reads/pacbio/` (with the marker `READY_02`) and the tables of `results/02_pacbio_reads/screen/`.
 
-Time in the run reported here: the longest job took 0.1 hours of elapsed time; all jobs of the step together used 2.2 core-hours of processor time; the largest peak memory was 86 GB.
+Time in the run reported here: the longest job took 0.1 hours of elapsed time; all jobs of the step together used 1.9 core-hours of processor time; the largest peak memory was 32 GB.
 
 <details><summary>Explanation, settings and details of this step</summary>
 
@@ -909,7 +1184,7 @@ The three numbers are set once in `scripts/screen_common.sh` (variables `MIN_ALN
 
 **The tool used (minimap2) and the reference collection**
 
-The reads are long (several kilobases) and carry roughly 14 % errors (the figure used for this chemistry in the simulations; real alignments to correct references reach an identity near 0.87), mostly insertions and deletions. The screen therefore uses an aligner that tolerates such errors: minimap2 with the preset `map-pb` (words of 19 bases collapsed in homopolymer runs, chaining of word hits, base-level alignment with the option `-c`). It aligns each read to a reference collection built for this screen and reports the aligned interval of every read, so the fraction of the read that is covered by a contaminant follows directly from the reported intervals, and the screen of all reads runs in minutes. The same program, with the preset `asm20` (accurate sequences, up to 20 % divergence), is used for contigs.
+The reads are long (several kilobases) and carry roughly 14 % errors (the figure used for this chemistry in the simulations; real alignments to correct references reach an identity near 0.87), mostly insertions and deletions. The screen therefore uses an aligner that tolerates such errors: minimap2 with the preset `map-pb` (words of 19 bases collapsed in homopolymer runs, chaining of word hits, base-level alignment with the option `-c`). It aligns each read to a reference collection built for this screen and reports the aligned interval of every read, so the fraction of the read that is covered by a contaminant follows directly from the reported intervals, and the screen of all reads runs in minutes. The same program, with the preset `asm20` (for sequences of assemblies, which are accurate), is used for contigs.
 
 **Reference collection.** It is built by `scripts/fetch_screen_databases.sh` from the public NCBI FTP site (run through the job `jobs/02_fetch_databases.sbatch`). Sequence names are rewritten as `GROUP|KEY|original name`, so that the group of every alignment is read from the name of its target. The database is split in four parts (sizes in `results/02_pacbio_reads/screen_db/parts_stats.tsv`), each with its own minimap2 index (`jobs/02_screen_db_index.sbatch`), because a single index of all parts would need about four times the memory.
 
@@ -938,7 +1213,7 @@ The table `results/02_pacbio_reads/screen_test/selftest_sensitivity.tsv` gives, 
 
 - `per_read.tsv.gz` (and `per_contig.tsv.gz`): `frac_<group>` is the fraction of the length covered by counted alignments to that group; `frac_contaminant_any` is the fraction covered by any contaminant group (overlaps counted once); `best_contaminant_organism` is the reference of the group with the largest covered fraction. The name of this organism is the closest entry of the database, not the identification of the contaminant: a read from an unsequenced bacterium is labelled with its nearest relative in the collection.
 - `by_organism.tsv`: which references account for the excluded reads, and which for the reads that carry a contaminant majority but a fungal match. A concentration on one or two references (for example a cloning vector) points to a single source of contamination; many references with a few reads each suggest chance matches.
-- For contigs, the output has the same layout. A contig of class `excluded` is a candidate contaminant; a contig of class `contaminant_majority_but_fungal_match_kept` needs a look at the two fractions (a contig that is mostly contaminant-like and partly fungal can be a repeat, a ribosomal or mitochondrial sequence, or a contaminant that carries a fungal-like gene). This step only flags contigs; the removal of the contigs it excludes from an assembly is step 05c. Hw 2.0 is analysed as published and nothing is removed from it.
+- For contigs, the output has the same layout. A contig of class `excluded` is a candidate contaminant; a contig of class `contaminant_majority_but_fungal_match_kept` needs a look at the two fractions (a contig that is mostly contaminant-like and partly fungal can be a repeat, a ribosomal or mitochondrial sequence, or a contaminant that carries a fungal-like gene). This step only flags contigs; the removal of the contigs it excludes from an assembly is step 8. Hw 2.0 is analysed as published and nothing is removed from it.
 
 **Limits**
 
@@ -953,13 +1228,11 @@ The table `results/02_pacbio_reads/screen_test/selftest_sensitivity.tsv` gives, 
 - Li H (2018) Minimap2: pairwise alignment for nucleotide sequences. Bioinformatics 34:3094-3100. doi:10.1093/bioinformatics/bty191
 - Nurk S, Koren S, Rhie A, et al. (2022) The complete sequence of a human genome. Science 376:44-53. doi:10.1126/science.abj6987
 
-(authors, year, volume, pages and DOI checked against Crossref)
-
 </details>
 
 <details><summary>Expected tree of the results of this step</summary>
 
-Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
+Tree of the folders that this step writes to, from a run of a fresh clone of the repository. A folder that several steps write to (for example `results/02_pacbio_reads/` and `$HW_WORK/asm/`) is shown in full under one step, so a tree can hold files that other steps write, and some files of a step are shown under another one (for example the files of the final assembly, which the summary job of step 11 writes, are shown under step 8). A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
 results/02_pacbio_reads/screen/   (12 files)
@@ -1016,9 +1289,9 @@ The archive files of the RNA-seq runs and of the Illumina run are converted to F
 **Commands, in the order in which they are run:**
 
 ```
-C1=$(sbatch --parsable --export=ALL,RUN=SRR5086621,GROUP=rna,EXPECTED=3333452 --time=01:00:00 --cpus-per-task=8 jobs/03_convert.sbatch)
-C2=$(sbatch --parsable --export=ALL,RUN=SRR5086622,GROUP=rna,EXPECTED=175019208 --time=08:00:00 --cpus-per-task=16 jobs/03_convert.sbatch)
-C3=$(sbatch --parsable --export=ALL,RUN=SRR866616,GROUP=illumina2013,EXPECTED=37667637 --time=04:00:00 --cpus-per-task=16 jobs/03_convert.sbatch)
+C1=$(sbatch --parsable ${CI:+--dependency=afterok:$CI} --export=ALL,RUN=SRR5086621,GROUP=rna,EXPECTED=3333452 --time=01:00:00 --cpus-per-task=8 jobs/03_convert.sbatch)
+C2=$(sbatch --parsable ${CI:+--dependency=afterok:$CI} --export=ALL,RUN=SRR5086622,GROUP=rna,EXPECTED=175019208 --time=08:00:00 --cpus-per-task=16 jobs/03_convert.sbatch)
+C3=$(sbatch --parsable ${CI:+--dependency=afterok:$CI} --export=ALL,RUN=SRR866616,GROUP=illumina2013,EXPECTED=37667637 --time=04:00:00 --cpus-per-task=16 jobs/03_convert.sbatch)
 sbatch --dependency=afterok:$C1:$C2:$C3 jobs/03_qc.sbatch
 ```
 
@@ -1081,7 +1354,7 @@ Programs and versions are listed in `envs/versions_03.tsv`.
 
 <details><summary>Expected tree of the results of this step</summary>
 
-Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
+Tree of the folders that this step writes to, from a run of a fresh clone of the repository. A folder that several steps write to (for example `results/02_pacbio_reads/` and `$HW_WORK/asm/`) is shown in full under one step, so a tree can hold files that other steps write, and some files of a step are shown under another one (for example the files of the final assembly, which the summary job of step 11 writes, are shown under step 8). A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
 results/03_rna_illumina/   (6 files)
@@ -1142,21 +1415,21 @@ The procedure follows the design of the hierarchical genome assembly process (HG
 1. **Seeds.** The filtered subreads are sorted by length and the longest are taken until they add up to 30 times the genome size (30 x 50 Mb = 1.5 Gb). The shortest seed is 2,783 bases. These 254,125 reads are the templates for the correction.
 2. **Correction.** All filtered subreads are aligned to the seeds with BLASR (up to 24 alignments per read, minimum exact match 12), and a consensus is computed for every seed from the reads aligned to it with pbdagcon (at least 4 reads covering, corrected reads of at least 500 bases). The result is a set of corrected reads, each the consensus of several raw reads, with a much lower error rate than a raw subread.
 3. **Assembly.** Canu is run in assembly-only mode on the corrected reads, with the maximum error rate between two corrected reads set to 0.025 (2.5 percent), the value suited to corrected reads. Canu's own correction and trimming are not used.
-4. **Polishing (step 05).** The contigs are polished with Quiver, the polisher of the original protocol, which uses the quality-value tracks of the sequencing instrument.
+4. **Polishing (step 8).** The contigs are polished with Quiver, the polisher of the original protocol, which uses the quality-value tracks of the sequencing instrument.
 
 **Why the correction is expected to help, and what it is compared with**
 
-This is the hypothesis the tests examine, not a result. Many regions of this genome occur in two copies that differ by a few percent: in Hw 2.0, 72.3 percent of the conserved fungal genes (BUSCO) are found in two copies. An assembler that tolerates the 15 percent error of a raw subread in an overlap cannot always tell a true overlap from the overlap of two similar copies, and the assembly graph then breaks or merges at those places. After correction against the longest reads, the error of each corrected read is small enough that the copies can be separated. Two **control assemblies** show what the two assemblers give without this step, from the same filtered reads and the same genome size of 50 Mb: Canu with its default settings and its own correction (`ctrl_canu`), and Flye with default settings (`ctrl_flye`, which includes Flye's own default polishing). Both controls are also polished with Quiver in step 05 (`ctrl_canu_quiver`, `ctrl_flye_quiver`), so that they can be compared with the polished assemblies of the procedure on the accuracy of the bases. The like-for-like comparison for the effect of the correction is `ctrl_canu` against `proc_r1_raw`, the first run before polishing, and `ctrl_canu_quiver` against `proc_r1`, both after polishing.
+This is the hypothesis the tests examine, not a result. Many regions of this genome occur in two copies that differ by a few percent: in Hw 2.0, 72.3 percent of the conserved fungal genes (BUSCO) are found in two copies. An assembler that tolerates the 15 percent error of a raw subread in an overlap cannot always tell a true overlap from the overlap of two similar copies, and the assembly graph then breaks or merges at those places. After correction against the longest reads, the error of each corrected read is small enough that the copies can be separated. Two **control assemblies** show what the two assemblers give without this step, from the same filtered reads and the same genome size of 50 Mb: Canu with its default settings and its own correction (`ctrl_canu`), and Flye with default settings (`ctrl_flye`, which includes Flye's own default polishing). Both controls are also polished with Quiver in step 8 (`ctrl_canu_quiver`, `ctrl_flye_quiver`), so that they can be compared with the polished assemblies of the procedure on the accuracy of the bases. The like-for-like comparison for the effect of the correction is `ctrl_canu` against `proc_r1_raw`, the first run before polishing, and `ctrl_canu_quiver` against `proc_r1`, both after polishing.
 
 **Three runs for the noise scale**
 
-The procedure is run three times from the same reads, with 16, 12 and 8 threads (`proc_r1`, `proc_r2`, `proc_r3`, named after their polished assemblies). Multithreaded programs can return different results from the same input, and the spread of any measure over the three runs is the noise scale against which differences from Hw 2.0 are judged (step 09). The raw assembly of each run (before polishing) is kept as `proc_r<N>_raw`; the tests are run on that of the first run.
+The procedure is run three times from the same reads, with 16, 12 and 8 threads (`proc_r1`, `proc_r2`, `proc_r3`, named after their polished assemblies). Multithreaded programs can return different results from the same input, and the spread of any measure over the three runs is the noise scale against which differences from Hw 2.0 are judged (step 11). The raw assembly of each run (before polishing) is kept as `proc_r<N>_raw`; the tests are run on that of the first run.
 
 </details>
 
 <details><summary>Expected tree of the results of this step</summary>
 
-Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
+Tree of the folders that this step writes to, from a run of a fresh clone of the repository. A folder that several steps write to (for example `results/02_pacbio_reads/` and `$HW_WORK/asm/`) is shown in full under one step, so a tree can hold files that other steps write, and some files of a step are shown under another one (for example the files of the final assembly, which the summary job of step 11 writes, are shown under step 8). A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
 results/04_procedure/   (19 files)
@@ -1229,13 +1502,13 @@ Time in the run reported here: the longest job took 0.5 hours of elapsed time; a
 
 **What is done and why**
 
-The contigs of the assembly of corrected reads still carry errors that were left in the corrected reads. Polishing aligns the raw subreads back to the contigs and recomputes the consensus. The polisher is **Quiver** (GenomicConsensus 2.3.3, algorithm `quiver`), the polishing program of the original HGAP protocol of Chin et al. (2013). It works on the base calls and also on the quality-value tracks that the RS II instrument records for every base (insertion, deletion, substitution and merge quality, and the base that was probably skipped). These tracks are kept by the conversion of step 02a (`bax2bam` is run with the pulse features). Quiver needs the model of the sequencing chemistry; the chemistry of this study, P4-C2, is among the parameter sets of GenomicConsensus 2.3.3, and the parameter set that was used is written in the Quiver log (`P4-C2.AllQVsMergingByChannelModel`).
+The contigs of the assembly of corrected reads still carry errors that were left in the corrected reads. Polishing aligns the raw subreads back to the contigs and recomputes the consensus. The polisher is **Quiver** (GenomicConsensus 2.3.3, algorithm `quiver`), the polishing program of the original HGAP protocol of Chin et al. (2013). It works on the base calls and also on the quality-value tracks that the RS II instrument records for every base (insertion, deletion, substitution and merge quality, and the base that was probably skipped). These tracks are kept by the conversion of step 4 (`bax2bam` is run with the pulse features). Quiver needs the model of the sequencing chemistry; the chemistry of this study, P4-C2, is among the parameter sets of GenomicConsensus 2.3.3, and the parameter set that was used is written in the Quiver log (`P4-C2.AllQVsMergingByChannelModel`).
 
-The subreads used are those that passed the contaminant screen of step 02b: the high-quality subreads of each run without the reads the screen excluded. Quiver is run once, with default settings.
+The subreads used are those that passed the contaminant screen of step 5: the high-quality subreads of each run without the reads the screen excluded. Quiver is run once, with default settings.
 
-The three runs of the procedure are polished separately (with different thread settings, like step 04), and so are the two control assemblies of step 04, so that the accuracy evaluation can compare polished assemblies with each other.
+The three runs of the procedure are polished separately (with different thread settings, like step 7), and so are the two control assemblies of step 7, so that the accuracy evaluation can compare polished assemblies with each other.
 
-After polishing, the contaminant screen of step 02b is applied to the contigs and the contigs it excludes are removed (step 05c). The reads were screened before the assembly, but some reads with cloning-vector sequence pass the read screen (it excludes a read only when more than half of it matches contaminant sequence and no part matches fungal sequence), and the contig screen recognises a short contig of vector sequence in the polished assembly. Removing it does not edit any base. The result is the **final assembly**, named Hw 2.1 in this document and `proc_r1`, `proc_r2`, `proc_r3` (the three runs) in file names and commands.
+After polishing, the contaminant screen of step 5 is applied to the contigs and the contigs it excludes are removed (step 8). The reads were screened before the assembly, but some reads with cloning-vector sequence pass the read screen (it excludes a read only when more than half of it matches contaminant sequence and no part matches fungal sequence), and the contig screen recognises a short contig of vector sequence in the polished assembly. Removing it does not edit any base. The result is the **final assembly**, named Hw 2.1 in this document and `proc_r1`, `proc_r2`, `proc_r3` (the three runs) in file names and commands.
 
 **Steps, in the order in which they are run**
 
@@ -1249,14 +1522,14 @@ Runs 2 and 3 (12 and 24, 8 and 16 threads) and the two controls (`RAW=ctrl_canu,
 
 - `results/05_polish/<OUTNAME>/assembly_stats.tsv`: statistics of the assembly before and after polishing.
 - `results/05_polish/<OUTNAME>/quiver_changes.tsv`: number of changes Quiver made, by type (insertion, deletion, substitution).
-- `results/05_polish/<OUTNAME>/removed_contigs.tsv` and `assembly_stats_after_removal.tsv`: the contigs removed by step 05c and the statistics after their removal.
+- `results/05_polish/<OUTNAME>/removed_contigs.tsv` and `assembly_stats_after_removal.tsv`: the contigs removed by step 8 and the statistics after their removal.
 - `results/05_polish/<OUTNAME>/time_memory.txt`: wall time and peak memory of Quiver.
 
 </details>
 
 <details><summary>Expected tree of the results of this step</summary>
 
-Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
+Tree of the folders that this step writes to, from a run of a fresh clone of the repository. A folder that several steps write to (for example `results/02_pacbio_reads/` and `$HW_WORK/asm/`) is shown in full under one step, so a tree can hold files that other steps write, and some files of a step are shown under another one (for example the files of the final assembly, which the summary job of step 11 writes, are shown under step 8). A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
 results/05_polish/   (25 files)
@@ -1304,7 +1577,7 @@ Time in the run reported here: the longest job took 1.6 hours of elapsed time; a
 
 <details><summary>Expected tree of the results of this step</summary>
 
-Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
+Tree of the folders that this step writes to, from a run of a fresh clone of the repository. A folder that several steps write to (for example `results/02_pacbio_reads/` and `$HW_WORK/asm/`) is shown in full under one step, so a tree can hold files that other steps write, and some files of a step are shown under another one (for example the files of the final assembly, which the summary job of step 11 writes, are shown under step 8). A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
 results/06_transcripts/   (19 files)
@@ -1324,7 +1597,7 @@ $HW_WORK/trinity/   (2 files, 120M)
 
 <details><summary>Step 10. Evaluations of every assembly</summary>
 
-The five evaluations are run on Hw 2.0, Hw 2.1 (three runs) and the two polished controls with the same jobs. The first block is for Hw 2.0 only (the files that carry it, its 22 extra sequences, its mitochondrion); the second block is for every assembly; the third compares each assembly with Hw 2.0 after the Illumina accuracy of both has been computed. Paste the whole block at once, in the same shell session as steps 7 and 8 (it uses the job numbers kept in shell variables there): every job is submitted with the dependencies it needs, so the scheduler starts each one when the files it reads exist, and nothing has to be awaited between the commands.
+The five evaluations are run on Hw 2.0, on Hw 2.1 (three runs, and run 1 also before polishing) and on the two controls (before and after polishing) with the same jobs. The first block is for Hw 2.0 only (the files that carry it, its 22 extra sequences, its mitochondrion); the second block is for every assembly; the third compares each assembly with Hw 2.0 after the Illumina accuracy of both has been computed. Paste the whole block at once, in the same shell session as the commands of steps 2 to 9 (it uses the job numbers that they keep in shell variables): every job is submitted with the dependencies it needs, so the scheduler starts each one when the files it reads exist, and nothing has to be awaited between the commands.
 
 **Commands, in the order in which they are run:**
 
@@ -1332,32 +1605,34 @@ The five evaluations are run on Hw 2.0, Hw 2.1 (three runs) and the two polished
 dep() { local d=""; for j in "$@"; do [ -n "$j" ] && d="$d:$j"; done; [ -n "$d" ] && echo "--dependency=afterok$d"; }   # helper: dependency on the given jobs
 
 # (a) Hw 2.0 only
-G=$(sbatch --parsable jobs/07_genbank_files.sbatch)                                     # the files that carry Hw 2.0
+G=$(sbatch --parsable $(dep $CI) jobs/07_genbank_files.sbatch)                                     # the files that carry Hw 2.0
 MH=$(sbatch --parsable --export=ALL,ASM=hw2 $(dep $S) jobs/07_mito.sbatch)             # mitochondrial genome of Hw 2.0
-sbatch $(dep $G $MH) jobs/07_the22.sbatch                                               # the 22 sequences that the NCBI record leaves out
-sbatch $(dep $G $MH) jobs/07_depth_unscreened.sbatch                                    # depth of those 22 with and without the read screen
+T22=$(sbatch --parsable $(dep $G $MH) jobs/07_the22.sbatch)                             # the 22 sequences that the NCBI record leaves out
+sbatch $(dep $T22) jobs/07_depth_unscreened.sbatch                                      # depth of those 22 with and without the read screen
 
 # (b) every assembly: evaluations 1 to 4, transcripts, evaluation 5 (accuracy), contig screen
+# the job that must have ended before the assembly exists: the procedure or control job for a raw assembly, the removal job for a polished one, the check of the inputs for Hw 2.0
+declare -A END=([hw2]=$CI [proc_r1_raw]=$P1 [proc_r1]=${R[proc_r1]} [proc_r2]=${R[proc_r2]} [proc_r3]=${R[proc_r3]} [ctrl_canu]=$K1 [ctrl_flye]=$K2 [ctrl_canu_quiver]=${R[ctrl_canu_quiver]} [ctrl_flye_quiver]=${R[ctrl_flye_quiver]})
 declare -A ACC
-for ASM in hw2 proc_r1 proc_r2 proc_r3 ctrl_canu_quiver ctrl_flye_quiver; do
-  sbatch $(dep ${R[$ASM]} $C2 $S) --export=ALL,ASM=$ASM jobs/06_tests.sbatch
-  sbatch $(dep ${R[$ASM]} $T) --export=ALL,ASM=$ASM jobs/06_transcript_alignment.sbatch
-  ACC[$ASM]=$(sbatch --parsable $(dep ${R[$ASM]} $C3) --export=ALL,ASM=$ASM,FASTA=$WORK/asm/$ASM/final.fasta jobs/08_illumina_accuracy.sbatch)
-  sbatch $(dep ${R[$ASM]} $I) --export=ALL,ASM=$ASM,FASTA=$WORK/asm/$ASM/final.fasta jobs/02_screen_contigs.sbatch
+for ASM in hw2 proc_r1_raw proc_r1 proc_r2 proc_r3 ctrl_canu ctrl_flye ctrl_canu_quiver ctrl_flye_quiver; do
+  sbatch $(dep ${END[$ASM]} $C2 $S) --export=ALL,ASM=$ASM jobs/06_tests.sbatch
+  sbatch $(dep ${END[$ASM]} $T) --export=ALL,ASM=$ASM jobs/06_transcript_alignment.sbatch
+  ACC[$ASM]=$(sbatch --parsable $(dep ${END[$ASM]} $C3) --export=ALL,ASM=$ASM,FASTA=$WORK/asm/$ASM/final.fasta jobs/08_illumina_accuracy.sbatch)
+  sbatch $(dep ${END[$ASM]} $I) --export=ALL,ASM=$ASM,FASTA=$WORK/asm/$ASM/final.fasta jobs/02_screen_contigs.sbatch
 done
 
 # (c) comparison of each assembly with Hw 2.0; mitochondrion and the 22 sequences in the new assemblies
-for ASM in proc_r1 proc_r2 proc_r3 ctrl_canu_quiver ctrl_flye_quiver; do
+for ASM in proc_r1_raw proc_r1 proc_r2 proc_r3 ctrl_canu ctrl_flye ctrl_canu_quiver ctrl_flye_quiver; do
   sbatch $(dep ${ACC[$ASM]} ${ACC[hw2]}) --export=ALL,ASM_A=$ASM,ASM_B=hw2 jobs/08_shared_differences.sbatch
-  sbatch $(dep ${R[$ASM]}) --export=ALL,A_ASM=$ASM,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
-done
-for ASM in proc_r1 proc_r2 proc_r3; do
-  sbatch $(dep ${R[$ASM]}) --export=ALL,ASM=$ASM jobs/07_mito.sbatch
-  sbatch $(dep ${R[$ASM]} $G) --export=ALL,ASM=$ASM jobs/07_the22_vs_assembly.sbatch
+  [ $ASM = proc_r1_raw ] && continue                      # no pairwise comparison and no side analyses for the raw assembly of run 1
+  sbatch $(dep ${END[$ASM]}) --export=ALL,A_ASM=$ASM,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
+  case $ASM in *_quiver) continue;; esac                  # the mitochondrion and the 22 sequences are examined in the unpolished controls only
+  sbatch $(dep ${END[$ASM]}) --export=ALL,ASM=$ASM jobs/07_mito.sbatch
+  sbatch $(dep ${END[$ASM]} $G) --export=ALL,ASM=$ASM jobs/07_the22_vs_assembly.sbatch
 done
 ```
 
-**Expected output:** for each assembly the folders `results/06_tests/<ASM>/`, `06_transcripts/<ASM>/`, `08_illumina_accuracy/<ASM>/` and `02_pacbio_reads/screen_contigs/<ASM>/`; `results/07_compare/<ASM>_vs_hw2/`, `08_illumina_accuracy/shared/<ASM>_vs_hw2/`; `results/07_comparator/` with the files of Hw 2.0, its 22 sequences and the mitochondrial genomes. Each folder has a `summary.json` with the key numbers.
+**Expected output:** for each assembly the folders `results/06_tests/<ASM>/`, `06_transcripts/<ASM>/`, `08_illumina_accuracy/<ASM>/` and `02_pacbio_reads/screen_contigs/<ASM>/`; `results/07_compare/<ASM>_vs_hw2/`, `08_illumina_accuracy/shared/<ASM>_vs_hw2/`; `results/07_comparator/` with the files of Hw 2.0, its 22 sequences and the mitochondrial genomes. The folders of the evaluations, of the transcript alignments and of the comparisons have a `summary.json` with the key numbers; the folders of the contig screen have prefixed count, per-contig, organism and criterion files.
 
 Time in the run reported here: the longest job took 0.5 hours of elapsed time; all jobs of the step together used 54 core-hours of processor time; the largest peak memory was 28 GB.
 
@@ -1365,9 +1640,9 @@ Time in the run reported here: the longest job took 0.5 hours of elapsed time; a
 
 **What the step does**
 
-One job per assembly carries out four of the five evaluations with the same programs, settings and thresholds for every assembly: contiguity (evaluation 1), gene-space completeness (evaluation 2), structural correctness against the PacBio reads (evaluation 3) and redundancy and collapse (evaluation 4). Evaluation 5, base accuracy from the Illumina reads, belongs to another step; the comparison of two assemblies with each other, the transcripts assembled without a genome and the mitochondrial genome also belong to other steps. The job writes one table per measure and a file `summary.json` with fixed key names, so that the later steps (the noise scale, the decision table, the figures) read numbers from files and never retype them.
+One job per assembly carries out four of the five evaluations with the same programs, settings and thresholds for every assembly: contiguity (evaluation 1), gene-space completeness (evaluation 2), structural correctness against the PacBio reads (evaluation 3) and redundancy and collapse (evaluation 4). Evaluation 5, base accuracy from the Illumina reads, the comparison of two assemblies with each other, the alignment of the transcripts and the mitochondrial genome are made by other jobs of the same step; the transcripts themselves are assembled once, in step 9. The job writes one table per measure and a file `summary.json` with fixed key names, so that the later steps (the noise scale, the decision table, the figures) read numbers from files and never retype them.
 
-The job is `jobs/06_tests.sbatch`. It takes the assembly name (`ASM`) and the FASTA file (`FASTA`) and nothing else is needed. It uses 16 cores and a few gigabytes of memory, and the steps run one after the other (a step that needs the result of another step, for example the transcript alignment of the contiguity step, is not run when that step has failed, and is run again when that step was run again), so an interrupted job can be submitted again: finished steps are skipped (a marker file per step is kept with the large files) unless `FORCE=1` is set. The marker of a step does not record the assembly or the reads it was made from: set `FORCE=1` after changing either.
+The job is `jobs/06_tests.sbatch`. It takes the assembly name (`ASM`) and the FASTA file (`FASTA`) and nothing else is needed. It uses 16 cores and a few gigabytes of memory, and the steps run one after the other (a step that needs the result of another step, for example the protein alignment and the RNA-seq alignment, which need the contiguity step, is not run when that step has failed, and is run again when that step was run again), so an interrupted job can be submitted again: finished steps are skipped (a marker file per step is kept with the large files) unless `FORCE=1` is set. The marker of a step does not record the assembly or the reads it was made from: set `FORCE=1` after changing either.
 
 **Reference data (fetched once, used offline)**
 
@@ -1376,7 +1651,108 @@ Two reference sets are needed and are stored outside the folder; the script `scr
 1. The lineage `fungi_odb10` of BUSCO (Benchmarking Universal Single-Copy Orthologs): 758 genes that are expected once in the genome of almost every fungus.
 2. The reviewed entries of UniProt (Swiss-Prot) for the taxonomy Fungi, taken through the UniProt REST (representational state transfer) interface. Reviewed means that the protein sequence was checked by a curator; the proteins come from many fungi, mostly not close relatives of *Hortaea werneckii*.
 
-ASM=hw2 bash jobs/06_tests.sbatch
+**The measures, and why each is made this way**
+
+<details><summary>Evaluation 1: contiguity</summary>
+
+File `contiguity.tsv` and `contiguity.json`. Contigs are sorted from the longest. **N50** is the length of the contig at which the running sum of lengths first reaches half of the total length, and **L50** is the number of contigs needed to get there. **NG50** and **LG50** are the same with half of the genome size (50 Mb) in place of half of the assembly length, so assemblies of different total length are comparable; they are 0 when the assembly is shorter than half of the genome size. **auN** is the sum of the squared contig lengths divided by the sum of the contig lengths. It answers the question: if one base of the assembly is picked at random, how long is the contig that contains it, on average? A contig of length L contains a fraction L/total of all bases, so it is picked with probability L/total, and the average of the lengths of the picked contigs is the sum of L x (L/total) over all contigs, which is the formula above. Example: an assembly of two contigs of 90 kb and 10 kb has auN = (90 x 90 + 10 x 10) / 100 = 82 kb, because nine bases in ten lie in the 90 kb contig, while the mean contig length is 50 kb. Unlike N50, auN changes smoothly when any contig changes length, so it summarises the whole length distribution in one number. GC content is the percentage of G and C among the unambiguous bases. Two rows are given, all contigs and contigs of at least 10 kb. A wrong join raises N50 as well, so this line is never read alone.
+
+</details>
+
+<details><summary>Evaluation 2: gene-space completeness (BUSCO, RNA-seq, proteins)</summary>
+
+1. **BUSCO** (`busco*.tsv`, `busco_full_table.tsv`). BUSCO is run in genome mode: it finds the genes of the lineage in the assembly with miniprot and classifies each as complete (found once: single; found more than once: duplicated), fragmented or missing. The counts are taken from the full table and checked against the one-line summary of BUSCO. In a genome with a real second set of similar copies, a high duplicated count is expected and is not an error by itself; it is read together with evaluation 4 (redundancy and collapse).
+2. **RNA-seq read pairs** (`star*.tsv`). All read pairs of the HiSeq run (SRR5086622, 175 million pairs) are aligned with STAR (Spliced Transcripts Alignment to a Reference). The MiSeq run of the same condition (SRR5086621, 3.3 million pairs, 2 percent of the HiSeq run) is used for quality control only, because it would add little to the alignment test. An intron is a stretch of the genome that is cut out of the RNA, so a read pair from RNA can align in two parts. The longest intron and the longest gap between the two mates are limited to 5,000 bases, which is long for a fungal intron, so that the limit does not decide the result; up to 20 places are allowed per read. The fractions of pairs aligned to one place, to several places, to more than 20 places and not aligned add up to 1. The splice junctions found are also counted, with the fraction that carry the usual splice signal (GT/AG, GC/AG or AT/AC at the intron ends); a high fraction means that the introns found are real. Only counts are kept by default, because the alignment file is large and no step of the workflow reads it.
+3. **Swiss-Prot fungal proteins** (`miniprot*.tsv.gz`, `miniprot.json`). Each protein is aligned to the assembly with miniprot, which aligns a protein to DNA across introns and reports frameshifts (a base inserted or missing, which shifts the reading frame) and in-frame stop codons. A protein is *found whole* if its best alignment covers at least 90 % of its length, and *intact* if it is whole and has no frameshift and no in-frame stop. Frameshifts and premature stops per megabase of coding sequence give a second view of base accuracy inside genes. Many proteins of the set are homologues of one gene, so counting every alignment would count the same place many times: whole alignments are sorted by score and one is kept only if less than half of it lies on a place already kept. The denominator is the coding sequence of the kept alignments. A frameshift can also be placed by miniprot to explain a difference between species, which happens for distant proteins; for this reason the same counts are given for the kept alignments with an amino-acid identity of at least 0.7 (keys ending in `_high_identity`). The counts are comparable between assemblies, not absolute error rates.
+
+</details>
+
+<details><summary>Evaluation 3: structural correctness (read-back, junctions, telomeres)</summary>
+
+**Read-back** (`readback*.tsv`, `readback.json`). All PacBio reads that passed the contaminant screen (the raw high-quality subreads of step 4, not the corrected reads used for the assembly) are aligned to the assembly with minimap2 (preset `map-pb`, secondary alignments off), so each read has one primary alignment and, when it aligns in several pieces, supplementary alignments for the other pieces. The definitions are:
+
+- *aligned over at least 80 %*: the aligned parts of all alignments of the read, merged, cover at least 80 % of the read. The same with the primary alignment alone is given as *one piece over at least 80 %*.
+- *identity*: 1 minus the edit distance divided by the alignment columns (matches, mismatches, insertions and deletions) of the primary alignment; the median over reads. Raw PacBio reads of this chemistry have an error of about 15 %, so the median is expected to be near 85 %, not near 100 %.
+- *in pieces*: two or more alignments of at least 500 read bases each, as a fraction of the reads that align.
+- *junction*: a position of a contig at least 1,000 bases from both contig ends; it is the place where two pieces of the assembly could have been joined wrongly. A junction is *spanned* when one alignment of one read crosses it with at least 1,000 aligned bases on each side. The positions that no read spans form gaps of support (`readback_unspanned_gaps.tsv`; one row per gap, 0-based start and end) and are counted per contig (`readback_per_contig.tsv`). Contigs shorter than 2,001 bases cannot be tested and are counted separately. Positions near a contig end are left out because a read cannot cross a contig end by construction; the spanning requirement on both sides is what makes the test about joins.
+- *discordant junction*: two neighbouring pieces of one read that do not follow each other on the assembly (different contig or strand, or a distance on the assembly below -1,000 or above 20,000 bases). The break points are the ends of the two pieces that face each other. Break points within 500 bases of a contig end are *at contig ends* (a read runs from the end of one contig into another one: a possible missing join); the others are *interior* (a possible wrong join, or a repeat that the reads cannot place). Break points of the same contig within 300 bases of each other are merged and clusters supported by at least 3 different reads are listed in `readback_discordant_junctions.tsv`. A read-supported interior cluster is a place to look at, not proof of an error; the step that compares two assemblies uses the reads as the referee.
+
+**Telomeres** (`telomeres.tsv`, `telomeres.json`; descriptive). An end of a contig carries a telomere repeat if the first or the last 400 bases contain at least 6 uninterrupted copies of TTAGGG, on either strand. Contigs are counted with repeats at both ends, at one end or at none. Contigs shorter than 800 bases have overlapping windows and are counted in a separate key.
+
+</details>
+
+<details><summary>Evaluation 4: redundancy and collapse (depth, self-alignment)</summary>
+
+1. **Depth** (`depth*.tsv`, `depth_1kb_windows.bed.gz`). mosdepth computes the depth of the PacBio reads in windows of 1 kb (the last window of a contig is shorter). The median is weighted by window length. The fraction of bases in windows from 0.5 to 1.5 times the median is the measure used: two copies merged into one contig give about twice the median, a region present twice by error gives about half. The windows at the two ends of each contig are left out in a second value (`_inner`), because depth falls at a contig end by construction. The fractions in the classes below 0.25, 0.25 to 0.5, 1.5 to 2.5 and at least 2.5 times the median are also written; the mitochondrial genome falls in the last class because it is present in many copies per cell.
+2. **DNA-level redundancy** (`redundancy*.tsv`, `redundancy.json`). minimap2 (preset `asm20`, the one of the assembly presets that tolerates the most divergence, with base-level alignment) aligns the contigs against each other; a contig is not aligned to itself, so repeats inside one contig are not examined. For each base of each contig the *best partner* is the alignment block (at least 1,000 columns) with the highest nucleotide identity (matches divided by alignment columns) among the blocks that cover the base, whether the contig is the query or the target of the block. By definition, bases with a best partner at 98 % identity or more are *false duplication* (a region present twice by error), and bases with a best partner from 80 % to below 95 % are *real similar copies* of this genome, not errors. Bases from 95 % to below 98 % belong to neither class and are written separately. A contig is *redundant* if at least 90 % of its bases have a partner at 98 % or more. This is DNA-level identity; it is not the identity of translated proteins. The classes start at 80 % identity: a base whose best alignment is below that is counted as having no partner. This is a limit of the classes used here, not a proof that no more distant copy exists.
+
+</details>
+
+**Expected output**
+
+- `results/06_tests/<ASM>/summary.json` and `summary.tsv` (the same numbers, one key per row). Key names are given below.
+- For the published assembly Hw 2.0 (651 contigs) the contiguity values are those published with it; compare 651, 49,942,992 and 153,735 (contigs, total bases and N50) with them.
+- `summary.json` has an empty list under `steps_failed`; if a step failed, its key holds `null` and the name of the step is listed.
+- The number of reads in `inputs.pacbio_reads` must be that of the screened set of high-quality reads that the job reads (`hq_clean.fastq`: 708,715 reads in the run reported here, that is the 718,442 high-quality reads before the contaminant screen without the 9,727 reads that the screen excluded), and `inputs.rna_pairs` that of the HiSeq run (175,019,208 read pairs). Smaller numbers mean that a sub-sample was used and every value is provisional.
+- `timings.tsv`: wall time and peak memory of every program in the job.
+
+<details><summary>Keys of summary.json</summary>
+
+All keys are fixed; a value that could not be computed is `null`. Fractions are between 0 and 1 unless the name says percent.
+
+| Key | Meaning |
+|---|---|
+| `assembly` | name of the assembly |
+| `inputs.pacbio_reads_file`, `inputs.pacbio_reads` | PacBio read file used for the read-back and the number of reads in it |
+| `inputs.rna_run`, `inputs.rna_pairs` | RNA-seq run aligned and the number of read pairs |
+| `contiguity.all.*`, `contiguity.ge10kb.*` | for all contigs and for contigs of at least 10 kb: `contigs`, `total_bp`, `n50`, `l50`, `ng50`, `lg50`, `aun`, `longest`, `gc_percent`, `ambiguous_bases` |
+| `contiguity.genome_size_used_for_ng50` | genome size used (50,000,000) |
+| `busco.busco_genes`, `busco.complete`, `busco.complete_single`, `busco.complete_duplicated`, `busco.fragmented`, `busco.missing` | counts of BUSCO genes (lineage `fungi_odb10`) |
+| `busco.complete_percent`, `busco.single_percent`, `busco.duplicated_percent`, `busco.fragmented_percent`, `busco.missing_percent` | the same as percent of the genes |
+| `star.input_pairs`, `star.unique_pairs`, `star.multiple_pairs`, `star.too_many_pairs`, `star.unmapped_pairs` | RNA read pairs by class |
+| `star.frac_unique`, `star.frac_multiple`, `star.frac_too_many`, `star.frac_unmapped` | the same as fractions of the input pairs |
+| `star.mismatch_rate_percent`, `star.deletion_rate_percent`, `star.insertion_rate_percent` | rates per aligned base, as reported by STAR |
+| `star.average_input_read_length`, `star.average_mapped_length` | read length of the input and of the aligned part |
+| `star.splice_junctions_detected`, `star.junction_reads_canonical`, `star.junction_reads_noncanonical`, `star.frac_junction_reads_canonical` | junctions found and reads across them by splice signal |
+| `miniprot.proteins_total`, `miniprot.proteins_aligned`, `miniprot.proteins_whole`, `miniprot.proteins_intact` | proteins of the set, aligned, found whole (coverage of at least `min_coverage_for_whole`) and intact |
+| `miniprot.frac_proteins_whole`, `miniprot.frac_proteins_intact`, `miniprot.median_identity_whole` | fractions of all proteins; median amino-acid identity of the whole alignments |
+| `miniprot.loci_kept`, `miniprot.coding_bases_kept` | places left after removal of repeated loci and their coding sequence |
+| `miniprot.frameshifts_in_kept`, `miniprot.stop_codons_in_kept` | counts over the kept alignments |
+| `miniprot.frameshifts_per_mb_coding`, `miniprot.stop_codons_per_mb_coding` | per megabase of kept coding sequence |
+| `miniprot.frameshifts_per_mb_assembly`, `miniprot.stop_codons_per_mb_assembly` | per megabase of assembly |
+| `miniprot.loci_kept_high_identity`, `miniprot.coding_bases_kept_high_identity`, `miniprot.frameshifts_high_identity`, `miniprot.stop_codons_high_identity`, `miniprot.frameshifts_per_mb_coding_high_identity`, `miniprot.stop_codons_per_mb_coding_high_identity` | the same for kept alignments with amino-acid identity of at least `min_identity_for_high` |
+| `miniprot.min_coverage_for_whole`, `miniprot.min_identity_for_high` | the thresholds used (0.9 and 0.7) |
+| `readback.reads_total`, `readback.reads_unmapped`, `readback.reads_with_alignment` | reads, reads without alignment, reads with a primary alignment |
+| `readback.frac_reads_aligned_ge80pct`, `readback.frac_reads_one_piece_ge80pct` | fraction of all reads aligned over at least 80 % of their length (all pieces merged; primary alignment alone) |
+| `readback.median_identity` | median identity of the primary alignments |
+| `readback.reads_in_pieces`, `readback.frac_reads_in_pieces` | reads aligned in two or more pieces, and their fraction of the reads with an alignment |
+| `readback.discordant_junction_pairs` | pairs of neighbouring pieces of a read that are not collinear on the assembly |
+| `readback.discordant_junction_clusters_interior_ge_min_reads`, `readback.discordant_junction_clusters_at_contig_ends_ge_min_reads` | clusters of break points supported by at least `parameters.min_reads` reads, away from and at contig ends |
+| `readback.junction_test_contigs_too_short`, `readback.junction_tested_bases` | contigs that cannot be tested, and the bases of the contigs that are tested (without the 1,000 bases at each end) |
+| `readback.unspanned_bases`, `readback.unspanned_gaps`, `readback.frac_tested_bases_unspanned` | tested positions that no read spans, the number of gaps they form, and their fraction |
+| `readback.parameters.*` | thresholds used: `flank`, `min_piece`, `end_margin`, `cluster_window`, `min_reads` |
+| `depth.median_depth`, `depth.mean_depth`, `depth.windows`, `depth.bases`, `depth.windows_terminal` | median (weighted by window length) and mean depth, windows, bases, windows at contig ends |
+| `depth.frac_below_0_25`, `depth.frac_0_25_to_0_5`, `depth.frac_0_5_to_1_5`, `depth.frac_1_5_to_2_5`, `depth.frac_at_least_2_5` | fraction of the bases in windows by depth relative to the median; `frac_0_5_to_1_5` is the measure used for the evaluation (its criterion was fixed before the results were seen) |
+| `depth.frac_0_5_to_1_5_inner` | the same without the windows at contig ends |
+| `redundancy.assembly_bases` | bases of the assembly |
+| `redundancy.false_duplication_bases_ge98`, `redundancy.false_duplication_fraction` | bases whose best partner has 98 % identity or more, and their fraction |
+| `redundancy.between_95_98_bases` | bases whose best partner has 95 % to below 98 % identity |
+| `redundancy.real_similar_bases_80_to_95`, `redundancy.real_similar_fraction` | bases whose best partner has 80 % to below 95 % identity, and their fraction |
+| `redundancy.no_partner_bases` | bases without a partner of 80 % or more |
+| `redundancy.redundant_contigs_ge90pct` | contigs with at least 90 % of their bases in false duplication |
+| `redundancy.paf_records`, `redundancy.paf_records_used`, `redundancy.min_block` | alignment records read, records used (between different contigs and at least `min_block` columns), the minimum block (1,000) |
+| `telomeres.contigs`, `telomeres.with_repeat_at_both_ends`, `telomeres.with_repeat_at_one_end`, `telomeres.with_no_repeat` | contigs by number of ends with a telomere repeat |
+| `telomeres.contigs_shorter_than_two_windows`, `telomeres.window_bases`, `telomeres.min_repeats` | contigs shorter than 800 bases, window (400) and repeat number (6) |
+| `steps_failed` | names of the steps that did not finish (empty list when all finished) |
+
+</details>
+
+**Limits**
+
+- The alignment of contigs against each other does not look at repeats inside one contig and does not report partners below 80 % identity: a base whose best alignment is below that is counted as having no partner, which is not a proof that it has none; the classes used here (98 % and above, 80 % to 95 %) start at 80 %.
+- Raw-read depth and the read-back depend on the read set; for every assembly the same reads are used, so differences between assemblies come from the assemblies.
+- The count of frameshifts and stops in proteins depends on how close the proteins are to *H. werneckii*; it is used to compare assemblies, not as an absolute error rate.
+- The thresholds (80 % of the read length, 1,000 bases of flank, 3 reads for a cluster, 98 % and 80 to 95 % identity) were fixed before the results were seen and are the same for every assembly.
 
 </details>
 
@@ -1395,15 +1771,13 @@ Script: `jobs/06_trinity_denovo.sbatch`. It runs once.
 | Setting | Value | Reason |
 |---|---|---|
 | Reads | the first 25,000,000 read pairs of the HiSeq run SRR5086622, in sequencing order | A practical choice, not an impossibility: with 25 million pairs the run takes about an hour and a half and 123 GB of memory (see below), whereas the whole run (175,019,208 pairs, seven times more) would need several times more memory and time (an extrapolation, not measured), which is possible on a large-memory node but is heavy to repeat. A fixed subset in file order is reproducible and does not depend on any choice. The MiSeq run is used for quality control only. |
-| Reads are not trimmed | as decided in step 03 | Trinity tolerates adapter remnants at the depth used here; the quality-control reports of step 03 show how much adapter there is. |
+| Reads are not trimmed | as decided in step 6 | Trinity tolerates adapter remnants at the depth used here; the quality-control reports of step 6 show how much adapter there is. |
 | Program | Trinity 2.5.1, 16 threads, 130 GB of memory for k-mer counting (the job requests 180 GB, because the program starts several processes at once) | Trinity first counts k-mers (short words of 25 bases) of the reads with Jellyfish, builds contigs from them (Inchworm), groups the contigs into components (Chrysalis) and resolves each component into transcripts with the read pairs (Butterfly). |
 | Working folder | the local disk of the compute node | Trinity writes a very large number of small files, which is slow on shared storage and would use up the file-count quota. Only the transcript file and its gene map are copied back. |
 | `--no_version_check` | set | Without it the program asks a web service for the latest version at start; from a compute node this query can fail (no internet access, or a request limit of the service) and then stops the run. |
 | Output folder name | contains the word `trinity` but does not end with it | The program refuses an output folder whose name lacks the word `trinity` (a safety check, because it may delete the folder). A name that ends with `trinity` makes it write the transcripts beside the folder as `<folder>.Trinity.fasta`. The script accepts both file names. |
 
-Before Trinity starts, the script checks that exactly 25,000,000 pairs were read from each mate file and that the two mates of every pair carry the same read name; either failure stops the job. It also refuses to start unless the marker file written by step 03 exists.
-
-Run, from the workflow folder:
+Before Trinity starts, the script checks that exactly 25,000,000 pairs were read from each mate file and that the two mates of every pair carry the same read name; either failure stops the job. It also refuses to start unless the marker file written by step 6 exists.
 
 Output:
 
@@ -1414,7 +1788,7 @@ What to expect: the transcript set holds 56,609 transcripts with a total of 86,6
 
 **Part 2: aligning the transcripts to one assembly**
 
-Script: `jobs/06_transcript_alignment.sbatch` (counting script `scripts/06_transcript_align_stats.py`). It runs once for each assembly, with the name of the assembly given in the variable `ASM`:
+Script: `jobs/06_transcript_alignment.sbatch` (counting script `scripts/06_transcript_align_stats.py`). It runs once for each assembly, with the name of the assembly given in the variable `ASM`.
 
 The assembly is read from `$WORK/asm/<ASM>/final.fasta` (another file can be given in `FASTA`). Run time and memory are small compared with the assembly steps (a splice alignment of the transcript set to one assembly on 8 cores; the job requests 8 GB and 1 hour).
 
@@ -1422,7 +1796,7 @@ The assembly is read from `$WORK/asm/<ASM>/final.fasta` (another file can be giv
 
 The transcripts are aligned with minimap2 in its splice mode (`-x splice`). A transcript is the spliced product of a gene, so it aligns to the genome in several blocks (the exons) separated by gaps (the introns). A spliced aligner scores such a long gap as an intron, with a preference for the splice signal GT at the start and AG at the end of the intron, instead of as a very long deletion. The settings are:
 
-- `-G 5000`: the longest intron is 5,000 bases, the same limit that is given to the RNA read aligner STAR in step 06, and long for a fungal intron.
+- `-G 5000`: the longest intron is 5,000 bases, the same limit that is given to the RNA read aligner STAR in step 10, and long for a fungal intron.
 - `-u b`: the splice signal is looked for on both strands, because the RNA-seq libraries are not strand-specific and Trinity gives each transcript an arbitrary orientation.
 - `-c`: write the base-level alignment, from which the identity is computed.
 - `--secondary=no`: report only the best place for each part of a transcript. Alternative places of a part (for example the second copy of a gene pair) are therefore not counted.
@@ -1457,13 +1831,13 @@ For Hw 2.0 the values are 0.8826 (passing) and 0.9878 (aligned at all) among 56,
 
 <details><summary>The published assembly, its 22 extra sequences and the mitochondrial genome</summary>
 
-Summary. Hw 2.0 (the published assembly of strain EXF-2000) is the comparator of the whole workflow, so before it is used we establish exactly what the files that carry it contain (part 7a), what the 22 sequences are that the NCBI (National Center for Biotechnology Information) record leaves out (part 7b), and which contig is the mitochondrial genome, in Hw 2.0 and in every other assembly (part 7c). The three parts have separate scripts and separate result folders under `results/07_comparator/`. Every number quoted below is written to a file by a script; the placeholders in double braces name the file and the key.
+Summary. Hw 2.0 (the published assembly of strain EXF-2000) is the comparator of the whole workflow, so before it is used we establish exactly what the files that carry it contain (part 10a), what the 22 sequences are that the NCBI (National Center for Biotechnology Information) record leaves out (part 10b), and which contig is the mitochondrial genome, in Hw 2.0 and in every other assembly (part 10c). The three parts have separate scripts and separate result folders under `results/07_comparator/`. Every number quoted below is written to a file by a script.
 
-**7a. The files that carry Hw 2.0**
+**10a. The files that carry Hw 2.0**
 
 **Idea**
 
-Several files claim to hold Hw 2.0: the complete file of the GitHub repository (`Hw2.fasta.gz`), the genome files that were prepared for submission to GenBank (`Hw2.MTedit.fasta` and the files `genome.fasta` of the folders `annotated1` and `fixed1`), and the record GCA_002127715.1 at NCBI. The workflow uses the first one in every test, so it must be known whether the others are the same sequence. The comparison is done contig by contig: contig names and lengths, then a checksum of the sequence of each contig (MD5, a 128-bit fingerprint that changes if a single base changes). Where two sequences of the same contig differ, they are aligned (minimap2, preset `asm5`, which accepts up to 5 % divergence) and the substitutions and insertions or deletions are counted. Letter case is compared separately, because soft-masked (lower-case) bases do not change the sequence.
+Several files claim to hold Hw 2.0: the complete file of the GitHub repository (`Hw2.fasta.gz`), the genome files that were prepared for submission to GenBank (`Hw2.MTedit.fasta` and the files `genome.fasta` of the folders `annotated1` and `fixed1`), and the record GCA_002127715.1 at NCBI. The workflow uses the first one in every test, so it must be known whether the others are the same sequence. The comparison is done contig by contig: contig names and lengths, then a checksum of the sequence of each contig (MD5, a 128-bit fingerprint that changes if a single base changes). Where two sequences of the same contig differ, they are aligned (minimap2, preset `asm5`, the assembly preset that tolerates the least divergence) and the substitutions and insertions or deletions are counted. Letter case is compared separately, because soft-masked (lower-case) bases do not change the sequence.
 
 **What was found**
 
@@ -1473,23 +1847,23 @@ Several files claim to hold Hw 2.0: the complete file of the GitHub repository (
 - `Hw2.MTedit.fasta` carries the same sequences; one contig has another name: the mitochondrial contig `unitig_320` is called `MT`. The sequence of `MT` is identical to the sequence of `unitig_320` (`only_in_one_file.tsv`). The list of sequences that differ (`differing_sequences.tsv`) is therefore empty: no substitution, no insertion or deletion, nothing mitochondrial that differs. The annotation file `MT_genome.gff3` of the repository uses the name `MT`.
 - The file `annotation/GenBank/Hw2.fasta` named in the repository is a soft link to `assemblies/Hw2/Hw2.fasta`, which is not in the repository (the repository stores only the compressed file). The link is broken and nothing could be compared; the status is recorded in `file_summary.tsv`.
 - The NCBI record places `unitig_320` (33,327 bases, accession MUNK01000629.1) in a separate non-nuclear unit as the mitochondrion.
-- 22 sequences of the GitHub file are absent from the NCBI record; they are present in the other genome files of the repository (part 7b examines them).
+- 22 sequences of the GitHub file are absent from the NCBI record; they are present in the other genome files of the repository (part 10b examines them).
 
 In plain terms: all the GenBank files of the repository contain the complete GitHub file, only renamed in one contig; the NCBI record contains the same sequence for all of its contigs, but not for the 22 short ones. The workflow therefore loses nothing by using the GitHub file, and it knows what the NCBI record leaves out.
 
-**7b. The 22 sequences**
+**10b. The 22 sequences**
 
 **Idea**
 
 Neither the paper nor the NCBI record says why 22 short sequences (1,051 to 20,300 bases, 165,666 bases in all) were left out. They are not removed from the statistics in advance. Each is examined from five sides, so that its nature can be named from evidence:
 
-1. **Redundancy.** The sequence is aligned (minimap2, preset `asm20`, up to about 20 % divergence, all alignments kept) to every other contig of Hw 2.0; for each sequence the fraction covered by an alignment, the same at 98 % identity or more (the threshold of the false-duplication criterion), the best partner contig and its identity are reported. A sequence covered over its whole length at 98 % or more is a second copy of sequence that Hw 2.0 already holds.
-2. **Mitochondrial origin.** The sequence is aligned to the NCBI mitochondrion record, and its genes are searched with the mitochondrial proteins of related fungi (see 7c).
+1. **Redundancy.** The sequence is aligned (minimap2, preset `asm20`, the assembly preset that tolerates the most divergence, all alignments kept) to every other contig of Hw 2.0; for each sequence the fraction covered by an alignment, the same at 98 % identity or more (the threshold of the false-duplication criterion), the best partner contig and its identity are reported. A sequence covered over its whole length at 98 % or more is a second copy of sequence that Hw 2.0 already holds.
+2. **Mitochondrial origin.** The sequence is aligned to the NCBI mitochondrion record, and its genes are searched with the mitochondrial proteins of related fungi (see 10c).
 3. **Gene content.** Reviewed fungal proteins of Swiss-Prot are aligned with miniprot (a protein-to-genome aligner that models introns); a protein counts when at least half of it is covered at 35 % amino-acid identity or more. Three ribosomal DNA records of *Hortaea werneckii* (18S, internal transcribed spacers, 28S; accessions in `envs/databases.tsv`) are aligned with BLAST (blastn) to show whether the sequence is ribosomal DNA, and the beta-lactamase protein TEM-1 of *Escherichia coli* (the ampicillin-resistance gene carried by many cloning vectors) is aligned with tblastn as a marker of vector sequence.
 4. **Composition.** GC content (the proportion of G and C bases) of each sequence is given beside the GC content of the nuclear genome (0.5351).
 5. **PacBio read depth.** All high-quality subreads are aligned to Hw 2.0 with minimap2 (preset `map-pb`); the mean depth over each sequence is divided by the median depth of 1-kb windows of the contigs that are not among the 22 and not mitochondrial. Two ratios are given: all primary alignments, and reads of mapping quality 20 or more only. A sequence that is a near-identical copy of another one receives few reads of high mapping quality, because the aligner cannot tell the two copies apart and assigns each read to one of them; the two ratios together show this, and a sequence of true high copy number has a high ratio in both.
 
-The last columns give the contaminant screen of the 22 sequences (step 02b, the criterion of the screen of reads applied to contigs): the proportion of each sequence aligned to each contaminant group and its class.
+The last columns give the contaminant screen of the 22 sequences (step 5, the criterion of the screen of reads applied to contigs): the proportion of each sequence aligned to each contaminant group and its class.
 
 **What was found**
 
@@ -1510,9 +1884,40 @@ Reading of the table, from the evidence tags of the table (`evidence_tags`; the 
 
 The depth in the table is computed from the screened set `hq_clean.fastq` (named in `summary.json` as `depth_reads_file`). The side table `depth_unscreened_and_screened_reads.tsv` gives the depth of the 22 sequences with and without the screen (job `jobs/07_depth_unscreened.sbatch`).
 
-sbatch --export=ALL,ASM=proc_r3 jobs/07_the22_vs_assembly.sbatch
+**10c. The mitochondrial genome**
 
-cd "$HW" sbatch --export=ALL,ASM=hw2 jobs/07_mito.sbatch          # Hw 2.0: about 40 minutes (the alignment of the reads dominates), 48 GB, 16 cores sbatch --export=ALL,ASM=proc_r3 jobs/07_mito.sbatch      # any assembly named ASM; FASTA and READS can be given too
+**Idea**
+
+A mitochondrial genome is recognised by three independent kinds of evidence, which together are stronger than any one:
+
+1. **Protein evidence.** The mitochondrial proteins of related fungi (reference sequences of RefSeq, the curated collection of NCBI) are aligned to the contigs with tblastn, which translates the contigs in all frames. The genetic code is code 4 (the code of mould and protozoan mitochondria, in which the codon TGA codes for tryptophan instead of a stop). With the standard code the genes would be broken at every TGA. A core gene family (`nad1`-`nad6`, `nad4L`, `cox1`-`cox3`, `cob`, `atp6`, `atp8`, `atp9`) counts as found when one reference protein is covered over at least half of its length. A contig with at least 4 of the 14 core families is classified mitochondrial. The references are the mitochondrial genomes of four Dothideomycetes (the class of *Hortaea*), *Zymoseptoria tritici* (NC_010222.1), *Pseudocercospora fijiensis* (NC_044132.1), *Cladosporium sphaerospermum* (NC_050879.1), *Zasmidium cellare* (NC_030334.1) and, as an outgroup, *Saccharomyces cerevisiae* (NC_001224.1); accessions and download date are in `envs/databases.tsv`. Nuclear genes similar to a mitochondrial gene (for instance a nuclear copy of `atp9`) produce one or two hits on nuclear contigs; the threshold of 4 families prevents them from being called mitochondrial.
+2. **Genome evidence.** The contigs are aligned to the five reference mitochondrial genomes with minimap2 (preset `asm20`); the number of aligned bases is reported for every contig.
+3. **Depth and composition.** The mitochondrial genome is present in many copies per cell, so its read depth is a multiple of the nuclear depth, and its GC content is lower than that of the nucleus. A contig with only part of the evidence (one core family or 1,000 aligned bases) is called a candidate when its depth ratio is 3 or more; without depth data it is listed as a candidate without depth.
+
+The script then reports, for each mitochondrial contig: length, GC content, number of core families, depth and depth ratio, and **circularity**. A circular genome assembled into a linear contig usually has its two ends overlapping, because the assembler read around the circle more than once. The script looks for the beginning of the contig at its end, exactly (at least 30 bases) and by alignment (at least 100 aligned bases at 90 % identity or more), and reports the overlap; the length of the circle is then the contig length minus the overlap. Finally the mitochondrial contigs are aligned to the NCBI mitochondrion record (`unitig_320` of Hw 2.0, accession MUNK01000629.1) and the proportion of each sequence covered, the identity of the alignment and the numbers of substitutions and of inserted and deleted bases are reported. The statistics of the assembly are given with and without the mitochondrial contigs.
+
+**What was found for Hw 2.0**
+
+Read from `results/07_comparator/mito/hw2/summary.json`:
+
+- number of mitochondrial contigs (pieces): 1, total length 33,327 bases; core families found: 14 of 14;
+- the contig unitig_320 has 33,327 bases and a GC content of 0.2813 (nuclear 0.535); its mean depth is 257.5, which is 7.209 times the nuclear median (35.72); the depth is computed from the file named under `depth_reads_file` (the screened set `hq_clean.fastq`);
+- circularity: the two ends overlap over 5,435 aligned bases (exact identical bases at the very ends: 0), so the sequence is a circle of about 27,892 bases written with a repeated end;
+- coverage of the NCBI mitochondrion record: 1, identity of the alignment 1.
+
+Because the mitochondrial contig of Hw 2.0 is the sequence of the NCBI record, its comparison with the record is a check that the script finds the record and nothing more: identity and coverage should be 1. The comparison becomes informative for the new assemblies.
+
+When the same assembly has been through the read alignment already (`$WORK/07_comparator/<ASM>/reads_vs_asm.bam` and the depth tables), the alignment is reused and the job takes a few minutes. Output in `results/07_comparator/mito/<ASM>/`: `summary.json` (key numbers), `mito_contigs.tsv`, `candidate_contigs.tsv`, `contigs_with_evidence.tsv` (every contig with any evidence or a depth ratio of 5 or more), `tblastn_hits.tsv`, `ref_genome_alignments.paf`, `ncbi_mito_alignments.paf`, `ncbi_mito_vs_assembly.paf`.
+
+The reference set is fetched once by `scripts/07_fetch_mito_refs.sh` (called by the job when `$DBS/mito_refs` is empty); the ribosomal DNA records by `scripts/07_fetch_rdna_refs.sh`.
+
+**What is not done and the limits**
+
+- The depth of a sequence is the depth of primary alignments of long, noisy reads. Near-identical copies divide their reads among them, so the depth of a copy is below its true value and the sum over the copies is closer to the truth; this is why two ratios are given in 10b.
+- The mitochondrial genes are searched by protein similarity to related fungi. A divergent gene that falls below the coverage threshold would not be counted; the number of families found is a minimum.
+- Circularity is judged from the overlap of the ends of a contig. A contig without an overlap may still be a circle (the assembler may have trimmed the overlap), and an overlap does not by itself prove circularity; the reads that span the junction would be the proof and are not examined here.
+- The contaminant screen of the 22 sequences uses the screening script of step 5; the contigs of the other assemblies are screened by `jobs/02_screen_contigs.sbatch`, not by the jobs of this step.
+- Programs and versions are in `envs/versions_07.tsv`; databases in `envs/databases.tsv`.
 
 </details>
 
@@ -1522,11 +1927,11 @@ cd "$HW" sbatch --export=ALL,ASM=hw2 jobs/07_mito.sbatch          # Hw 2.0: abou
 
 Two assemblies built from the same reads can differ in structure: one has joined two pieces that the other keeps apart, one carries a segment that the other lacks, one has a stretch in the opposite orientation. Contiguity statistics (N50, number of contigs) cannot tell which of the two is right; a wrong join raises N50 just as a right one does. The reads can: each PacBio read is a piece of the real genome, so a read that crosses the place where the assemblies differ shows which arrangement the genome has.
 
-This step lists every such difference between assembly A and assembly B and counts, for each, the reads that agree with A, the reads that agree with B and the reads that agree with neither. A difference is decided when at least 3 reads span it. The result is the proportion of the differences that the reads decide for A and for B.
+This step lists every such difference between assembly A and assembly B and counts, for each, the reads that agree with A, the reads that agree with B and the reads that agree with neither. A difference is decided for one assembly when at least 3 reads support its arrangement and at least twice as many reads support it as support the other. The result is the proportion of the differences that the reads decide for A and for B.
 
 **Step 1: aligning A to B**
 
-minimap2 aligns A (the query) to B (the target) with the preset `asm10`, which allows about 1 percent divergence between the two sequences. Both assemblies come from the same reads, so the aligned parts differ only by consensus errors, which are small after polishing; the preset `asm5` (about 0.1 percent) would cut the alignment at the many small differences of an assembly that is not yet polished, and `asm20` (about 5 percent) would start to align the copies of similar gene pairs to each other. The choice can be changed with the variable `PRESET`. The option `--secondary=no` keeps for each part of A only its best place in B.
+minimap2 aligns A (the query) to B (the target) with the preset `asm10`, the middle one of the three assembly presets `asm5`, `asm10` and `asm20`, which tolerate increasing divergence. Both assemblies come from the same reads, so the aligned parts differ only by consensus errors, which are small after polishing; the preset `asm5`, which tolerates the least divergence, would cut the alignment at the many small differences of an assembly that is not yet polished, and `asm20`, which tolerates the most, would start to align the copies of similar gene pairs to each other. The choice can be changed with the variable `PRESET`. The option `--secondary=no` keeps for each part of A only its best place in B.
 
 **Step 2: what counts as a difference**
 
@@ -1547,7 +1952,7 @@ Types, for a junction in the focus assembly F (A or B) with the other assembly O
 
 A break in A is therefore a join in B, and the table lists it as `join_in_B`. Size is the length of the insertion or deletion, of the duplicated segment or of the inverted segment, in bases.
 
-What is not detected: differences below 1,000 bases (the Illumina-based base accuracy of step 08 covers small differences), inversions with an inverted piece shorter than 5,000 bases, regions of A that do not align to B at all (reported as the bases of A that lie in pieces in `alignment_stats.json`), and differences inside repeats that minimap2 places with low confidence.
+What is not detected: differences below 1,000 bases (the Illumina-based base accuracy of step 10 covers small differences), inversions with an inverted piece shorter than 5,000 bases, regions of A that do not align to B at all (reported as the bases of A that lie in pieces in `alignment_stats.json`), and differences inside repeats that minimap2 places with low confidence.
 
 **Step 3: the reads decide**
 
@@ -1571,9 +1976,20 @@ The summary of the pair A = proc_r3 and B = hw2 shows 0.8747 of the differences 
 
 **Check on a case with a known answer**
 
-`scripts/07_synthetic_check.py` builds two assemblies of a synthetic genome with eleven planted differences (deletions, insertions of 1,500 to 30,000 bases, a tandem duplication, inversions, a break and a join) and reads drawn from the true genome with 12 percent errors, and checks that the decision for every planted difference is the true one and that no other difference is listed:
+`scripts/07_synthetic_check.py` builds two assemblies of a synthetic genome with eleven planted differences (deletions, insertions of 1,500 to 30,000 bases, a tandem duplication, inversions, a break and a join) and reads drawn from the true genome with 12 percent errors, and checks that the decision for every planted difference is the true one and that no other difference is listed. First the synthetic data are made and the comparison is submitted:
 
-The last command prints one line for every planted difference and ends with status 0 when all are decided correctly. This check shows that the rules above do what they say; it does not show how they behave in the real, repetitive genome, where many differences sit in repeats and will be undecided.
+```
+python3 scripts/07_synthetic_check.py make $WORK/synthetic_07
+sbatch --export=ALL,A_ASM=synA,B_ASM=synB,FASTA_A=$WORK/synthetic_07/A.fa,FASTA_B=$WORK/synthetic_07/B.fa,READS=$WORK/synthetic_07/reads.fastq,READS_TAG=synthetic,OUT=$WORK/synthetic_07/out jobs/07_compare_adjudicate.sbatch
+```
+
+When that job has ended successfully, the check is run:
+
+```
+python3 scripts/07_synthetic_check.py check $WORK/synthetic_07/out/disagreements.tsv
+```
+
+The check prints one line for every planted difference and ends with status 0 when all are decided correctly. This check shows that the rules above do what they say; it does not show how they behave in the real, repetitive genome, where many differences sit in repeats and will be undecided.
 
 **Resources**
 
@@ -1657,7 +2073,7 @@ Differences in the first and last 20 bases of a contig cannot be matched in the 
 
 <details><summary>Expected tree of the results of this step</summary>
 
-Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
+Tree of the folders that this step writes to, from a run of a fresh clone of the repository. A folder that several steps write to (for example `results/02_pacbio_reads/` and `$HW_WORK/asm/`) is shown in full under one step, so a tree can hold files that other steps write, and some files of a step are shown under another one (for example the files of the final assembly, which the summary job of step 11 writes, are shown under step 8). A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
 results/06_tests/   (261 files)
@@ -1973,13 +2389,18 @@ The usual variation of each kind of value is:
 - the measures of the control assemblies (a single run each of programs whose results vary between computers): 25 percent;
 - the numbers of reads of the two PacBio sets and the checksum of the sequences of the assembly are compared exactly and reported as "same" or "differs". The checksum is the md5 of the contig sequences with names and orientation ignored: the sequences of the assembly are identical to those of the first analysis when it is the same.
 
+```
+cd $HW
+python3 scripts/10_validate.py check results     # after steps 7 to 11 have been rerun; give the results folder of the rerun
+```
+
 The report `results/10_validation/validation_report.txt` starts with a summary (how many values are within the usual variation, and whether the sequences of the assembly and the numbers of reads are the same), followed by one line per value; `results/10_validation/closeness.tsv` holds the same values as a table. When only some steps have been rerun, the values of the others are "not available".
 
 </details>
 
 <details><summary>Expected tree of the results of this step</summary>
 
-Tree of the files of this step, from a run of a fresh clone of the repository. A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
+Tree of the folders that this step writes to, from a run of a fresh clone of the repository. A folder that several steps write to (for example `results/02_pacbio_reads/` and `$HW_WORK/asm/`) is shown in full under one step, so a tree can hold files that other steps write, and some files of a step are shown under another one (for example the files of the final assembly, which the summary job of step 11 writes, are shown under step 8). A folder that holds the same files as its siblings is shown once, as {a, b, c}/; <name> and <run> stand for the name of the assembly or of the sequencing run in a file name; (xN) means N files of that kind. Large files are in the work folder ($HW_WORK) and are listed with their number and size.
 
 ```
 results/09_summary/   (24 files)
@@ -2017,6 +2438,8 @@ results/10_validation/   (2 files)
 
 </details>
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 ## 6. Limits of the evaluation and decisions taken
 
 - **How the procedure was defined.** Preliminary analyses on the same reads (not shown) led to the procedure described here, including the choice of Quiver for polishing. The evaluations were applied to the final procedure only. The assessment therefore tests a procedure that was defined with knowledge of the data, not one fixed blindly. The accuracy evaluation uses Illumina reads that play no part in building or polishing either assembly.
@@ -2026,16 +2449,18 @@ results/10_validation/   (2 files)
 - **Adapters.** Adapter sequence was found in 14.3 percent of the HiSeq read pairs; the reads were not trimmed because the aligners soft-clip them. The effect on the RNA-seq evaluation is expected to be small and was not measured.
 - **RNA-seq reads and transcripts.** Only the HiSeq run is used for the alignment of RNA-seq pairs; the MiSeq run is used for quality control only. The transcripts assembled without a genome come from the first 25 million of the 175 million HiSeq pairs, a practical choice of time and memory, not an impossibility; genes expressed weakly in the culture are missing from the transcripts. Using all the pairs is possible with a larger job.
 - **Contaminant screen.** It uses a reference collection with one genome per genus and an alignment criterion, and detects contaminants that have a relative within about 10 percent divergence in the collection. Reads are removed whole; no base is masked or edited. Contigs excluded by the contig screen are removed from Hw 2.1 and from the controls; Hw 2.0 is kept as published.
-- **Comparison with the authors' filtered reads.** The set of filtered subreads made here differs from the file the authors deposited only in the end coordinate of the last subread of 65,233 reads (one base) and one extra well. The set made here is used because it can be rebuilt from the raw files.
+- **Comparison with the authors' filtered reads.** The set of filtered subreads made here has 65,233 reads that have a counterpart in the file the authors deposited with the same well and the same start, where the sequence of one is contained in that of the other, one extra well, and a few further reads (ten in this run) that these categories do not explain. The set made here is used because it can be rebuilt from the raw files.
 - **The Illumina reads come from another culture** of the strain than the PacBio reads and were sequenced at another time; this is why differences shared by both assemblies are set aside.
 - **Not covered.** A gene annotation of Hw 2.1; the nucleosome-positioning data (MNase-seq) of the study; other strains or species.
 - **Downloaded data can differ from the first analysis.** The download of the databases and of the input files was repeated from empty folders: the input files, the contaminant-screen collection (RefSeq release 237), the BUSCO lineage and the small reference sequences were identical to those of the first analysis. The viral genomes and UniVec of the screen collection, like the Swiss-Prot proteins, are taken from sources that are updated, so they can differ in a later download. The Swiss-Prot proteins are fetched from UniProt, which changes them from month to month (38,451 proteins in the first analysis, 38,309 in a later download), so the proportion of proteins found whole can move by about 0.2 percent. Each download is recorded with its source and date in `envs/databases.tsv`.
 - **What the evaluations show and do not show.** They measure how well each assembly agrees with the PacBio reads (the reads the assembly was made from), the RNA-seq reads, the Swiss-Prot proteins, the Illumina reads of 2013 and Hw 2.0. They do not prove that every join is correct, nor that similar copies of a region are kept apart rather than merged. Most of the disagreements with Hw 2.0 that the reads decide are joins of contigs that Hw 2.0 leaves apart; the interior rearrangements are few and most of them are not decided by the reads. Counting alignments within a contig, as well as between contigs, changes the proportion of bases with a partner at 98 percent identity or more by less than 0.1 percentage point. The rates of single-base differences that lie alone are based on few events: only the total rate of specific differences is claimed.
 - **One computer and one set of program versions.** The reproducibility shown is that of three runs on one computer; the versions are in the section on software, and the environments can be recreated from the lock files.
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 ## 7. Validation
 
-The workflow was tested step by step and as a whole: the installation of the software from an empty folder, the downloads of the databases and of the input files from empty folders, and one complete run of `bash setup_and_run_all.sh all` in which every stage started from nothing. The comparison of the results with the first analysis is made by the workflow itself (step 10); it reports how close the values are and never makes a run FAILED.
+The workflow was tested step by step and as a whole: the installation of the software from an empty folder, the downloads of the databases and of the input files from empty folders, and one complete run of `bash setup_and_run_all.sh all` in which every stage started from nothing. The comparison of the results with the first analysis is made by the workflow itself (step 11); it reports how close the values are and never makes a run FAILED.
 
 <details><summary>Complete run from empty folders (2 to 3 November 2026)</summary>
 
@@ -2049,7 +2474,7 @@ A fresh clone of the repository (version 1.0.1, commit f24f2dd) with new, empty 
 | Analysis (first job to last job, 229 core-hours) | 3 h 55 min |
 | Sum of the stages | 11 h 33 min |
 
-The downloads account for most of the time. Result: all 97 jobs of the analysis completed (121 tasks, counting the tasks of array jobs) and the message of the run said COMPLETED. The assembly has 169 contigs, 50,019,054 bases and an N50 of 581,225; the checksum of the file `results/assembly/Hw2.1.fasta.gz` is `f39e8fcf5f7f6c65d2378634ea97cf5f` and the checksum of its sequences is `befff43029a2e610b0bfffafd7fdaa15` in the three runs of the procedure. The verdicts on the five evaluations are better, not worse (better in part), better, better and better. All 149 values compared with the first analysis are within the usual variation. The 647 input files agree with `input/CHECKSUMS.md5` and the 19 archive files with the archive, the package lists of the ten software environments are identical to their lock files, and the Swiss-Prot download held 38,451 proteins (38,309 in an earlier complete run).
+The downloads and the indexing took 3 h 42 min; the installation of the software and the analysis took about four hours each. Result: all 97 jobs of the analysis completed (121 tasks, counting the tasks of array jobs) and the message of the run said COMPLETED. The assembly has 169 contigs, 50,019,054 bases and an N50 of 581,225; the checksum of the file `results/assembly/Hw2.1.fasta.gz` is `f39e8fcf5f7f6c65d2378634ea97cf5f` and the checksum of its sequences is `befff43029a2e610b0bfffafd7fdaa15` in the three runs of the procedure. The verdicts on the five evaluations are better, not worse (better in part), better, better and better. All 149 values compared with the first analysis are within the usual variation. The 647 input files agree with `input/CHECKSUMS.md5` and the 19 archive files with the archive, the package lists of the ten software environments are identical to their lock files, and the Swiss-Prot download held 38,451 proteins (38,309 in an earlier complete run).
 
 </details>
 
@@ -2063,16 +2488,16 @@ The analysis was run again from a fresh clone of the repository (version 1.0.2) 
 
 Result: all 97 jobs of the analysis completed (121 tasks) and the message of the run said COMPLETED. The checksum of the file `results/assembly/Hw2.1.fasta.gz` is `f39e8fcf5f7f6c65d2378634ea97cf5f`, the checksum of the sequences is `befff43029a2e610b0bfffafd7fdaa15` in the three runs of the procedure, the verdicts on the five evaluations are better, not worse (better in part), better, better and better, and all 149 values compared with the first analysis are within the usual variation. The check of the input files covered the 20 archive files and the 649 entries of `input/CHECKSUMS.md5`. The 25 timed alignment stages of the polishing are all in `results/09_summary/resources_stages.tsv`. As in the first complete run, only the values of the Flye control assembly differ a little between runs (2,261 contigs against 2,263).
 
-The last changes of the version, made after this run started, concern the handling of failures, the tests and the documentation. The tables of the summary and of the comparison with the first analysis (steps 09 and 10) were made again with the final code from the results of this run and are identical to the files of the run, and the 73 tests in `tests/` pass with these results (the test t09 repeats the summary and the comparison).
+The last changes of the version, made after this run started, concern the handling of failures, the tests and the documentation. The tables of the summary and of the comparison with the first analysis (step 11) were made again with the final code from the results of this run and are identical to the files of the run, and the 73 tests in `tests/` pass with these results (the test t09 repeats the summary tables and compares them with the files of the run when `HW_TEST_RESULTS` points to the results; it does not repeat the validation).
 
 </details>
 
-Programs that give a different result at every run, with the same input: Trinity assembled 57,071 transcripts in one run and 56,609 in another, and the percentage of transcripts that align well to an assembly differed by up to 0.6 percent (relative), for every assembly alike (so the comparison between assemblies is unchanged). Flye, used only for a control assembly, gave 2,276 contigs against 2,263 and a longest contig of 363,769 against 411,508 bases. The polished Canu control had up to 21 percent more places that no read crosses (5,515 against 4,564). The comparison with the first analysis (step 10) therefore reports these values with a wider usual variation: 1.5 percent for the transcript measures and 25 percent for the control assemblies. The proteins of Swiss-Prot are downloaded from UniProt, which changes them from month to month (38,451 proteins in the first analysis, 38,309 in a later download): the proportion of proteins found whole moved by about 0.2 percent for the assembly Hw 2.0 of the authors, and 1 percent is taken as usual. The numbering of the contigs by Canu can also differ between runs (two contigs exchanged their names in some runs of the same data); the sequences are the same, and the assembly is identified by the checksum of its sequences (check 2 below).
+Programs that give a different result at every run, with the same input: Trinity assembled 57,071 transcripts in one run and 56,609 in another, and the percentage of transcripts that align well to an assembly differed by up to 0.6 percent (relative), for every assembly alike (so the comparison between assemblies is unchanged). Flye, used only for a control assembly, gave 2,276 contigs against 2,263 and a longest contig of 363,769 against 411,508 bases. The polished Canu control had up to 21 percent more places that no read crosses (5,515 against 4,564). The comparison with the first analysis (step 11) therefore reports these values with a wider usual variation: 1.5 percent for the transcript measures and 25 percent for the control assemblies. The proteins of Swiss-Prot are downloaded from UniProt, which changes them from month to month (38,451 proteins in the first analysis, 38,309 in a later download): the proportion of proteins found whole moved by about 0.2 percent for the assembly Hw 2.0 of the authors, and 1 percent is taken as usual. The numbering of the contigs by Canu can also differ between runs (two contigs exchanged their names in some runs of the same data); the sequences are the same, and the assembly is identified by the checksum of its sequences (check 2 below).
 
 Four checks tie the workflow to its results; the last compares a rerun with the first analysis and only reports how close it is:
 
 1. **The input files are the files of the archives.** All archive files agree with the checksums and sizes published by the archive (`results/01_inputs/archive_check.tsv`), and the checksums of all input files are in `input/CHECKSUMS.md5` for anyone to compare.
-2. **The procedure is reproducible on one computer.** The three runs, made with different numbers of threads, produced the same corrected reads, raw assemblies and polished contigs (`results/09_summary/replicate_check.tsv`). The last column of that file is a checksum of the sequences of the final assembly, names and orientation ignored; it is the same for the three runs (`befff43029a2e610b0bfffafd7fdaa15`), and step 10 reports whether it is the same as in the first analysis.
+2. **The procedure is reproducible on one computer.** The three runs, made with different numbers of threads, produced the same corrected reads, raw assemblies and polished contigs (`results/09_summary/replicate_check.tsv`). The last column of that file is a checksum of the sequences of the final assembly, names and orientation ignored; it is the same for the three runs (`befff43029a2e610b0bfffafd7fdaa15`), and step 11 reports whether it is the same as in the first analysis.
 3. **The contaminant screen is reproducible.** A second run of the screen of reads on the same input gave the same counts (9,727 reads excluded from the high-quality set and 7,737 from the filtered set).
 4. **A rerun is compared with the first analysis.** `scripts/10_validate.py` compares the results of a rerun with `validation/expected.tsv`, which lists every measure of this report with the variation that is usual for it, and the checksum of the sequences of the assembly. The report (`results/10_validation/validation_report.txt` and `closeness.tsv`) gives, for each value, the difference to the first analysis and a note, "within the usual variation" or "larger than usual"; it does not judge and never makes the run FAILED. The table was made from the run reported here, so a comparison of this run with itself shows no difference; the useful comparison is a rerun.
 
@@ -2082,81 +2507,83 @@ Not validated: a rerun on another computer or with other versions of the program
 
 The scripts were reviewed by two AI reviewers (Codex and Antigravity, see the first paragraph) that worked separately from each other and from claude-science, which wrote the code. They read the scripts, tried to break them, and proposed fixes. Only claude-science changed the code, and every fix has a test, written by a reviewer, that fails on the code without the fix. The list gives the 73 tests of `tests/` one by one (`bash tests/run_tests.sh`; no cluster is needed), grouped by the part of the code that they check. Each item gives the test file, the author of the test, the part of the code, what the test checks, and the result of each of the three on the final version of the code: each one ran the 73 tests itself.
 
-1. `t01_syntax.sh`, written by claude-science. **Syntax.** every shell script and job file passes `bash -n`; every Python script compiles. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-2. `t03_settings.sh`, written by claude-science. **Settings (`setup_and_run_all.sh settings`).** an empty value followed by a comment and a quoted value reach `config/local.sh` unchanged; folder names with a space, a quote, a backslash, a comma or `;`, and relative `input_source`, are refused with a message and never shortened. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-3. `fx11_quoted_comments.sh`, written by Codex. **Settings (`setup_and_run_all.sh settings`).** a `#` inside a quoted value is data, a comment after it is not; an escaped quote or text after the closing quote is refused, not cut. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-4. `fx46_settings_all_keys_and_abs_input_source.sh`, written by Antigravity. **Settings (`setup_and_run_all.sh settings`).** account, mail address, modules, job name and mail setting with a quote, backslash, backtick or `$` are refused; `input_source` must be an absolute path. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-5. `t02_submission.sh`, written by claude-science. **Submission of the analysis (`submit_all.sh`, `setup_and_run_all.sh run`).** with a mock `sbatch`: the dependencies of the jobs, a failed submission stops with an error, a dry run changes nothing. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-6. `fx08_ledger_identity.sh`, written by Codex. **Submission of the analysis (`submit_all.sh`, `setup_and_run_all.sh run`).** one job list per attempt is used by the submission, the cancellation, the search for the summary job and the message job; an old list is never read. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-7. `fx24_ledger_io.sh`, written by Codex. **Submission of the analysis (`submit_all.sh`, `setup_and_run_all.sh run`).** an unwritable old job list sends no job number to the cancellation; an accepted job that cannot be recorded is cancelled at once. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-8. `fx36_old_ledger.sh`, written by Codex. **Restart and parallel start.** the stage run refuses to start while jobs of the old job list are queued, array tasks included; it starts when none is queued or the list is empty or absent. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-9. `fx51_submission_safety.sh`, written by Codex. **Restart and parallel start.** a queue that cannot be read stops the stage with the job list kept; a second stage run at the same time is refused. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-10. `fx57_stage_run_lock_and_squeue.sh`, written by Antigravity. **Restart and parallel start.** the submission lock is exclusive and not waited for; a failing `squeue` stops the run; an old array range in the queue is detected. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-11. `t12_array_coverage.sh`, written by claude-science. **Message at the end of the run.** the number of accounting rows the job list requires (one per job, one per array task) and the command of the message job: FAILED if a job has no row, an array has too few rows, a job number is only the beginning of another, or a task did not complete. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-12. `fx22_notification_coverage.sh`, written by Codex. **Message at the end of the run.** the message job cannot say COMPLETED from partial, empty or failed accounting. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-13. `fx10_wait_accounting.sh`, written by Codex. **Message at the end of the run.** the wait for a stage stops when the accounting of a job is missing or not COMPLETED. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-14. `fx45_resources_tasks_and_final_cmd.sh`, written by Antigravity. **Message at the end of the run.** exact task numbers in the resource table and the command of the message job, with job numbers that are prefixes of each other. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-15. `t07_resources.sh`, written by claude-science. **Table of resources (`09_resources.py`).** with a mock `sacct`: tasks of array jobs are counted; one task that did not complete makes the job not completed, in either order; controls are grouped by the key of the job list. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-16. `t14_resources_array_identity.sh`, written by claude-science. **Table of resources (`09_resources.py`).** exactly the tasks declared by the array (job list or `#SBATCH --array`): a missing task, a task not in the array or the allocation row instead of a task refuses the table. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-17. `fx04_resources_array_state.sh`, written by Antigravity. **Table of resources (`09_resources.py`).** an array job with any task not COMPLETED is not COMPLETED and its processor time is not counted, whatever the order of the tasks. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-18. `fx05_resources_array_stages.sh`, written by Antigravity. **Table of resources (`09_resources.py`).** the time files of all array tasks are kept (25 of 25 alignment files of the run), files of jobs not in the list are ignored. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-19. `fx06_resources_ctrl_group.sh`, written by Antigravity. **Table of resources (`09_resources.py`).** polishing of the control assemblies is counted as controls; the total stays 228.7 core-hours for the first complete run. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-20. `fx10_resources_sacct_errors.sh`, written by Antigravity. **Table of resources (`09_resources.py`).** failing, empty or partial `sacct` gives an error and no table of zeros; complete output works. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-21. `fx55_resources_bracketed_rows.sh`, written by Antigravity. **Table of resources (`09_resources.py`).** an unexpanded array range such as `7002_[0-2]` in the accounting refuses the table. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-22. `t04_fetch_archive.sh`, written by claude-science. **Downloads (`fetch_archive.py`).** never writes through a link (final or temporary name); replaces a file of the wrong size; no temporary file after a failure; a wrong checksum is rejected. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-23. `fx02_download_paths.sh`, written by Codex. **Downloads (`fetch_archive.py`).** no write through a link or a shared file in the download, the report, the marker and the linking of `input_source`; reports and markers are owned files. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-24. `fx12_verification_markers.sh`, written by Codex. **Downloads (`fetch_archive.py`).** a marker is trusted only when it holds the expected checksum; a wrong marker forces a check of the content and a repair; a marker cannot approve a file of the wrong size; a failed repair leaves no bad file under the final name. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-25. `fx28_metadata_hardlinks.sh`, written by Codex. **Downloads (`fetch_archive.py`).** a marker or a report that is a second name of another file is replaced, never written through; report history is kept. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-26. `fx30_fetch_archive_part_and_fd.sh`, written by Antigravity. **Downloads (`fetch_archive.py`).** unfinished `.part` files of earlier attempts are removed; the file is closed when the disk is full; an unwritable report does not fail the download. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-27. `fx35_folder_lock.sh`, written by Codex. **Downloads (`fetch_archive.py`).** two downloaders of one folder: no lost report rows, a failed downloader does not delete the file another installed. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-28. `fx50_lock_failure.sh`, written by Codex. **Downloads (`fetch_archive.py`).** when the folder lock cannot be opened or taken, the downloader stops with exit 2 and changes nothing. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-29. `fx56_fetch_archive_lock_fail.sh`, written by Antigravity. **Downloads (`fetch_archive.py`).** same check, written independently: lock failure exit 2, existing `.part` files and report untouched. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-30. `t15_fetch_lock.sh`, written by claude-science. **Downloads (`fetch_archive.py`).** a second downloader of the same folder waits for the first; a downloader of another folder does not wait. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-31. `t08_inputs_list.sh`, written by claude-science. **Input files (check and inputs stage).** the checksum list has 649 entries, no git-lfs file, no duplicate. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-32. `t13_inputs_missing.sh`, written by claude-science. **Input files (check and inputs stage).** a missing file counts as missing, including the file deposited by the authors, which older lists do not name. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-33. `fx14_checksum_coverage.sh`, written by Codex. **Input files (check and inputs stage).** a missing checksum is reported as unavailable, not as a difference between runs; complete equal checksums are reported identical. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-34. `fx15_check_inputs_archive.sh`, written by Antigravity. **Input files (check and inputs stage).** the archive check marks a damaged or missing file as not ok in every form that `md5sum -c` reports. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-35. `fx16_stage_inputs_deposited.sh`, written by Antigravity. **Input files (check and inputs stage).** the inputs stage downloads and verifies the file deposited by the authors; the comparison job keeps its fallback. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-36. `fx29_deposited_stage.sh`, written by Codex. **Input files (check and inputs stage).** the real inputs stage: a complete folder downloads nothing; a missing deposited file starts the download. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-37. `fx32_check_inputs_deposited_and_diff.sh`, written by Antigravity. **Input files (check and inputs stage).** the check includes the deposited manifest and stops with exit 5 when a file differs from the archive record. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-38. `fx37_manifest_check.sh`, written by Codex. **Input files (check and inputs stage).** each of the four manifests missing or empty stops the inputs stage. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-39. `fx47_input_source_skip_lock_and_part.sh`, written by Antigravity. **Input files (check and inputs stage).** linking from `input_source` skips lock files, `.part` files and reports. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-40. `fx23_prepare_hw2_fail.sh`, written by Antigravity. **Preparation of Hw 2.0, databases and software.** a damaged compressed Hw 2.0 file stops the preparation with an error. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-41. `fx25_prepare_tmp.sh`, written by Codex. **Preparation of Hw 2.0, databases and software.** the preparation of Hw 2.0 uses a unique temporary file (not a fixed name that a link could redirect) and keeps the earlier file when it fails. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-42. `fx23_ncbi_temporary.sh`, written by Codex. **Preparation of Hw 2.0, databases and software.** the NCBI downloads never write through a shared `.part` link; a failed download publishes nothing. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-43. `fx48_fetch_ncbi_stale_part_cleanup.sh`, written by Antigravity. **Preparation of Hw 2.0, databases and software.** stale `.part` files of the NCBI downloads are removed before a new download; the temporary file is removed when `curl` fails. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-44. `fx52_ncbi_lock.sh`, written by Codex. **Preparation of Hw 2.0, databases and software.** two NCBI downloaders: the active temporary file of one survives, both end with the file. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-45. `fx58_fetch_ncbi_folder_lock.sh`, written by Antigravity. **Preparation of Hw 2.0, databases and software.** the NCBI download takes the folder lock; a lock that cannot be opened is exit 6 without deleting parts. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-46. `fx27_grep_error.sh`, written by Codex. **Preparation of Hw 2.0, databases and software.** an error of the search in the table of databases is not hidden and the old table is kept. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-47. `fx38_grep_query.sh`, written by Codex. **Preparation of Hw 2.0, databases and software.** the first search of the same table: present, absent and failing (exit 2) cases. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-48. `fx17_screen_dbindex_readonly.sh`, written by Antigravity. **Preparation of Hw 2.0, databases and software.** the database index job does not rewrite the statistics of the databases when they exist and are newer than the parts (it works when the folder is read-only); the descriptor files in `results/` are still written. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-49. `fx19_make_envs_dryrun.sh`, written by Antigravity. **Preparation of Hw 2.0, databases and software.** a dry run of the software installation creates nothing on disk. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-50. `t10_screen_worker.sh`, written by claude-science. **Preparation of Hw 2.0, databases and software.** the worker that downloads one genome of the screen database receives its arguments in the right order. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-51. `t05_step_errexit.sh`, written by claude-science. **Steps of the tests of one assembly (`06_tests.sbatch`, `06_collect.py`).** a command that fails in the middle of a step makes the step fail. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-52. `t06_collect_stale.sh`, written by claude-science. **Steps of the tests of one assembly (`06_tests.sbatch`, `06_collect.py`).** the file of a step that failed earlier is not used by the collection. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-53. `fx07_step06_deps_and_tm.sh`, written by Antigravity. **Steps of the tests of one assembly (`06_tests.sbatch`, `06_collect.py`).** a step is not run when the step it needs failed, its dependents are not used, and failed commands are recorded in the timings. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-54. `fx26_failed_marker.sh`, written by Codex. **Steps of the tests of one assembly (`06_tests.sbatch`, `06_collect.py`).** a failed step blocks its consumer even when its old marker cannot be removed. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-55. `fx31_step06_prereq_newer.sh`, written by Antigravity. **Steps of the tests of one assembly (`06_tests.sbatch`, `06_collect.py`).** a step runs again when the step it needs is newer than its own marker. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-56. `fx40_marker_freshness.sh`, written by Codex. **Steps of the tests of one assembly (`06_tests.sbatch`, `06_collect.py`).** the same decision with an unremovable marker: a fresh marker skips, a newer producer reruns. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-57. `fx01_cache_failure.sh`, written by Codex. **Cache of the comparison of two assemblies.** a failing aligner, compressor, gzip check or rename does not publish the cache that later steps read. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-58. `fx13_conversion_failures.sh`, written by Codex. **Final copies, renames and conversions.** the two files of a read pair are published only when the read names of both agree and the conversion and compression succeeded; a failure stops the job. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-59. `fx33_step07_fetch_and_callers.sh`, written by Antigravity. **Final copies, renames and conversions.** the step 07 download scripts write under temporary names and clean up; the jobs stop with exit 2 when they fail. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-60. `fx39_depth_status.sh`, written by Codex. **Final copies, renames and conversions.** errors in the depth calculation (first or second `awk`, the final rename) stop the script. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-61. `fx49_step07_depth_awk_failure.sh`, written by Antigravity. **Final copies, renames and conversions.** same, written independently: exit 5 and no partial depth table. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-62. `t09_archived_results.sh`, written by claude-science. **Summary and comparison with the first analysis.** on the results of a complete run the summary is made again on a copy; the tables and verdicts are identical. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-63. `fx09_zero_decisions.sh`, written by Codex. **Summary and comparison with the first analysis.** a comparison with no decided disagreement does not crash the summary. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-64. `fx22_summary_partial_runs.sh`, written by Antigravity. **Summary and comparison with the first analysis.** with one replicate or missing data the summary does not declare better or worse; the verdict is incomplete. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-65. `fx03_archived_test_mutant.sh`, written by Codex. **Summary and comparison with the first analysis.** the test of the archived results fails for a copy of the code that loses a table. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-66. `fx18_replicates_missing_fasta.sh`, written by Antigravity. **Check that the three runs are the same (`09_replicates.sh`).** a missing FASTA file gives the word missing, not the checksum of an empty file. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-67. `t11_readme_dryrun.sh`, written by claude-science. **The README.** the submission lines in the README are the lines that the dry run prints now. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-68. `fx21_suite_discovery.sh`, written by Codex. **The test runner and the tests themselves.** a new test file is found and run by the runner; its failure fails the suite. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-69. `fx34_runner_family_filters.sh`, written by Antigravity. **The test runner and the tests themselves.** the filter `t03` runs only `t03`, `fx03` only that family, `03` both. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-70. `fx03_runner_filters.sh`, written by Codex. **The test runner and the tests themselves.** the runner runs the tests selected by the filters `t03`, `03` and `t03_settings.sh`. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-71. `fx03_t07_mutant.sh`, written by Antigravity. **The test runner and the tests themselves.** the resource test fails for a copy of `09_resources.py` that always says COMPLETED. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-72. `fx03_download_test_mutants.sh`, written by Codex. **The test runner and the tests themselves.** the download tests fail for deliberately broken copies of `fetch_archive.py`. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
-73. `fx03_ledger_test_mutant.sh`, written by Codex. **The test runner and the tests themselves.** the job list test fails for a deliberately broken copy of the submission code. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+1. `t01_syntax.sh`, written by claude-science. **Syntax.** Every shell script and job file passes `bash -n`; every Python script compiles. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+2. `t03_settings.sh`, written by claude-science. **Settings (`setup_and_run_all.sh settings`).** An empty value followed by a comment and a quoted value reach `config/local.sh` unchanged; folder names with a space, a quote, a backslash, a comma or `;`, and relative `input_source`, are refused with a message and never shortened. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+3. `fx11_quoted_comments.sh`, written by Codex. **Settings (`setup_and_run_all.sh settings`).** A `#` inside a quoted value is data, a comment after it is not; an escaped quote or text after the closing quote is refused, not cut. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+4. `fx46_settings_all_keys_and_abs_input_source.sh`, written by Antigravity. **Settings (`setup_and_run_all.sh settings`).** Account, mail address, modules, job name and mail setting with a quote, backslash, backtick or `$` are refused; `input_source` must be an absolute path. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+5. `t02_submission.sh`, written by claude-science. **Submission of the analysis (`submit_all.sh`, `setup_and_run_all.sh run`).** With a mock `sbatch`: the dependencies of the jobs, a failed submission stops with an error, a dry run changes nothing. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+6. `fx08_ledger_identity.sh`, written by Codex. **Submission of the analysis (`submit_all.sh`, `setup_and_run_all.sh run`).** One job list per attempt is used by the submission, the cancellation, the search for the summary job and the message job; an old list is never read. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+7. `fx24_ledger_io.sh`, written by Codex. **Submission of the analysis (`submit_all.sh`, `setup_and_run_all.sh run`).** An unwritable old job list sends no job number to the cancellation; an accepted job that cannot be recorded is cancelled at once. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+8. `fx36_old_ledger.sh`, written by Codex. **Restart and parallel start.** The stage run refuses to start while jobs of the old job list are queued, array tasks included; it starts when none is queued or the list is empty or absent. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+9. `fx51_submission_safety.sh`, written by Codex. **Restart and parallel start.** A queue that cannot be read stops the stage with the job list kept; a second stage run at the same time is refused. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+10. `fx57_stage_run_lock_and_squeue.sh`, written by Antigravity. **Restart and parallel start.** The submission lock is exclusive and not waited for; a failing `squeue` stops the run; an old array range in the queue is detected. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+11. `t12_array_coverage.sh`, written by claude-science. **Message at the end of the run.** The number of accounting rows the job list requires (one per job, one per array task) and the command of the message job: FAILED if a job has no row, an array has too few rows, a job number is only the beginning of another, or a task did not complete. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+12. `fx22_notification_coverage.sh`, written by Codex. **Message at the end of the run.** The message job cannot say COMPLETED from partial, empty or failed accounting. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+13. `fx10_wait_accounting.sh`, written by Codex. **Message at the end of the run.** The wait for a stage stops when the accounting of a job is missing or not COMPLETED. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+14. `fx45_resources_tasks_and_final_cmd.sh`, written by Antigravity. **Message at the end of the run.** Exact task numbers in the resource table and the command of the message job, with job numbers that are prefixes of each other. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+15. `t07_resources.sh`, written by claude-science. **Table of resources (`09_resources.py`).** With a mock `sacct`: tasks of array jobs are counted; one task that did not complete makes the job not completed, in either order; controls are grouped by the key of the job list. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+16. `t14_resources_array_identity.sh`, written by claude-science. **Table of resources (`09_resources.py`).** Exactly the tasks declared by the array (job list or `#SBATCH --array`): a missing task, a task not in the array or the allocation row instead of a task refuses the table. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+17. `fx04_resources_array_state.sh`, written by Antigravity. **Table of resources (`09_resources.py`).** An array job with any task not COMPLETED is not COMPLETED and its processor time is not counted, whatever the order of the tasks. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+18. `fx05_resources_array_stages.sh`, written by Antigravity. **Table of resources (`09_resources.py`).** The time files of all array tasks are kept (25 of 25 alignment files of the run), files of jobs not in the list are ignored. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+19. `fx06_resources_ctrl_group.sh`, written by Antigravity. **Table of resources (`09_resources.py`).** Polishing of the control assemblies is counted as controls; the mock ledger keeps its total of 41.0 core-hours (20.0 for the procedure, 21.0 for the controls). Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+20. `fx10_resources_sacct_errors.sh`, written by Antigravity. **Table of resources (`09_resources.py`).** Failing, empty or partial `sacct` gives an error and no table of zeros; complete output works. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+21. `fx55_resources_bracketed_rows.sh`, written by Antigravity. **Table of resources (`09_resources.py`).** An unexpanded array range such as `7002_[0-2]` in the accounting refuses the table. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+22. `t04_fetch_archive.sh`, written by claude-science. **Downloads (`fetch_archive.py`).** Never writes through a link (final or temporary name); replaces a file of the wrong size; no temporary file after a failure; a wrong checksum is rejected. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+23. `fx02_download_paths.sh`, written by Codex. **Downloads (`fetch_archive.py`).** No write through a link or a shared file in the download, the report, the marker and the linking of `input_source`; reports and markers are owned files. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+24. `fx12_verification_markers.sh`, written by Codex. **Downloads (`fetch_archive.py`).** A marker is trusted only when it holds the expected checksum; a wrong marker forces a check of the content and a repair; a marker cannot approve a file of the wrong size; a failed repair leaves no bad file under the final name. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+25. `fx28_metadata_hardlinks.sh`, written by Codex. **Downloads (`fetch_archive.py`).** A marker or a report that is a second name of another file is replaced, never written through; report history is kept. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+26. `fx30_fetch_archive_part_and_fd.sh`, written by Antigravity. **Downloads (`fetch_archive.py`).** Unfinished `.part` files of earlier attempts are removed; the file is closed when the disk is full; an unwritable report does not fail the download. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+27. `fx35_folder_lock.sh`, written by Codex. **Downloads (`fetch_archive.py`).** Two downloaders of one folder: no lost report rows, a failed downloader does not delete the file another installed. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+28. `fx50_lock_failure.sh`, written by Codex. **Downloads (`fetch_archive.py`).** When the folder lock cannot be opened or taken, the downloader stops with exit 2 and changes nothing. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+29. `fx56_fetch_archive_lock_fail.sh`, written by Antigravity. **Downloads (`fetch_archive.py`).** Same check, written independently: lock failure exit 2, existing `.part` files and report untouched. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+30. `t15_fetch_lock.sh`, written by claude-science. **Downloads (`fetch_archive.py`).** A second downloader of the same folder waits for the first; a downloader of another folder does not wait. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+31. `t08_inputs_list.sh`, written by claude-science. **Input files (check and inputs stage).** The checksum list has 649 entries, no git-lfs file, no duplicate. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+32. `t13_inputs_missing.sh`, written by claude-science. **Input files (check and inputs stage).** A missing file counts as missing, including the file deposited by the authors, which older lists do not name. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+33. `fx14_checksum_coverage.sh`, written by Codex. **Input files (check and inputs stage).** A missing checksum is reported as unavailable, not as a difference between runs; complete equal checksums are reported identical. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+34. `fx15_check_inputs_archive.sh`, written by Antigravity. **Input files (check and inputs stage).** The archive check marks a damaged or missing file as not ok in every form that `md5sum -c` reports. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+35. `fx16_stage_inputs_deposited.sh`, written by Antigravity. **Input files (check and inputs stage).** The inputs stage downloads and verifies the file deposited by the authors; the comparison job keeps its fallback. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+36. `fx29_deposited_stage.sh`, written by Codex. **Input files (check and inputs stage).** The real inputs stage: a complete folder downloads nothing; a missing deposited file starts the download. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+37. `fx32_check_inputs_deposited_and_diff.sh`, written by Antigravity. **Input files (check and inputs stage).** The check includes the deposited manifest and stops with exit 5 when a file differs from the archive record. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+38. `fx37_manifest_check.sh`, written by Codex. **Input files (check and inputs stage).** Each of the four manifests missing or empty stops the inputs stage. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+39. `fx47_input_source_skip_lock_and_part.sh`, written by Antigravity. **Input files (check and inputs stage).** Linking from `input_source` skips lock files, `.part` files and reports. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+40. `fx23_prepare_hw2_fail.sh`, written by Antigravity. **Preparation of Hw 2.0, databases and software.** A damaged compressed Hw 2.0 file stops the preparation with an error. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+41. `fx25_prepare_tmp.sh`, written by Codex. **Preparation of Hw 2.0, databases and software.** The preparation of Hw 2.0 uses a unique temporary file (not a fixed name that a link could redirect) and keeps the earlier file when it fails. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+42. `fx23_ncbi_temporary.sh`, written by Codex. **Preparation of Hw 2.0, databases and software.** The NCBI downloads never write through a shared `.part` link; a failed download publishes nothing. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+43. `fx48_fetch_ncbi_stale_part_cleanup.sh`, written by Antigravity. **Preparation of Hw 2.0, databases and software.** Stale `.part` files of the NCBI downloads are removed before a new download; the temporary file is removed when `curl` fails. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+44. `fx52_ncbi_lock.sh`, written by Codex. **Preparation of Hw 2.0, databases and software.** Two NCBI downloaders: the active temporary file of one survives, both end with the file. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+45. `fx58_fetch_ncbi_folder_lock.sh`, written by Antigravity. **Preparation of Hw 2.0, databases and software.** The NCBI download takes the folder lock; a lock that cannot be opened is exit 6 without deleting parts. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+46. `fx27_grep_error.sh`, written by Codex. **Preparation of Hw 2.0, databases and software.** An error of the search in the table of databases is not hidden and the old table is kept. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+47. `fx38_grep_query.sh`, written by Codex. **Preparation of Hw 2.0, databases and software.** The first search of the same table: present, absent and failing (exit 2) cases. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+48. `fx17_screen_dbindex_readonly.sh`, written by Antigravity. **Preparation of Hw 2.0, databases and software.** The database index job does not rewrite the statistics of the databases when they exist and are newer than the parts (it works when the folder is read-only); the descriptor files in `results/` are still written. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+49. `fx19_make_envs_dryrun.sh`, written by Antigravity. **Preparation of Hw 2.0, databases and software.** A dry run of the software installation creates nothing on disk. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+50. `t10_screen_worker.sh`, written by claude-science. **Preparation of Hw 2.0, databases and software.** The worker that downloads one genome of the screen database receives its arguments in the right order. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+51. `t05_step_errexit.sh`, written by claude-science. **Steps of the tests of one assembly (`06_tests.sbatch`, `06_collect.py`).** A command that fails in the middle of a step makes the step fail. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+52. `t06_collect_stale.sh`, written by claude-science. **Steps of the tests of one assembly (`06_tests.sbatch`, `06_collect.py`).** The file of a step that failed earlier is not used by the collection. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+53. `fx07_step06_deps_and_tm.sh`, written by Antigravity. **Steps of the tests of one assembly (`06_tests.sbatch`, `06_collect.py`).** A step is not run when the step it needs failed, its dependents are not used, and failed commands are recorded in the timings. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+54. `fx26_failed_marker.sh`, written by Codex. **Steps of the tests of one assembly (`06_tests.sbatch`, `06_collect.py`).** A failed step blocks its consumer even when its old marker cannot be removed. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+55. `fx31_step06_prereq_newer.sh`, written by Antigravity. **Steps of the tests of one assembly (`06_tests.sbatch`, `06_collect.py`).** A step runs again when the step it needs is newer than its own marker. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+56. `fx40_marker_freshness.sh`, written by Codex. **Steps of the tests of one assembly (`06_tests.sbatch`, `06_collect.py`).** The same decision with an unremovable marker: a fresh marker skips, a newer producer reruns. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+57. `fx01_cache_failure.sh`, written by Codex. **Cache of the comparison of two assemblies.** A failing aligner, compressor, gzip check or rename does not publish the cache that later steps read. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+58. `fx13_conversion_failures.sh`, written by Codex. **Final copies, renames and conversions.** The two files of a read pair are published only when the read names of both agree and the conversion and compression succeeded; a failure stops the job. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+59. `fx33_step07_fetch_and_callers.sh`, written by Antigravity. **Final copies, renames and conversions.** The step 10 download scripts write under temporary names and clean up; the jobs stop with exit 2 when they fail. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+60. `fx39_depth_status.sh`, written by Codex. **Final copies, renames and conversions.** Errors in the depth calculation (first or second `awk`, the final rename) stop the script. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+61. `fx49_step07_depth_awk_failure.sh`, written by Antigravity. **Final copies, renames and conversions.** Same, written independently: exit 5 and no partial depth table. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+62. `t09_archived_results.sh`, written by claude-science. **Summary and comparison with the first analysis.** On the results of a complete run the summary is made again on a copy; the tables and verdicts are identical. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+63. `fx09_zero_decisions.sh`, written by Codex. **Summary and comparison with the first analysis.** A comparison with no decided disagreement does not crash the summary. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+64. `fx22_summary_partial_runs.sh`, written by Antigravity. **Summary and comparison with the first analysis.** With one replicate or missing data the summary does not declare better or worse; the verdict is incomplete. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+65. `fx03_archived_test_mutant.sh`, written by Codex. **Summary and comparison with the first analysis.** The test of the archived results fails for a copy of the code that loses a table. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+66. `fx18_replicates_missing_fasta.sh`, written by Antigravity. **Check that the three runs are the same (`09_replicates.sh`).** A missing FASTA file gives the word missing, not the checksum of an empty file. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+67. `t11_readme_dryrun.sh`, written by claude-science. **The README.** The submission lines in the README are the lines that the dry run prints now. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+68. `fx21_suite_discovery.sh`, written by Codex. **The test runner and the tests themselves.** A new test file is found and run by the runner; its failure fails the suite. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+69. `fx34_runner_family_filters.sh`, written by Antigravity. **The test runner and the tests themselves.** The filter `t03` runs only `t03`, `fx03` only that family, `03` both. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+70. `fx03_runner_filters.sh`, written by Codex. **The test runner and the tests themselves.** The runner runs the tests selected by the filters `t03`, `03` and `t03_settings.sh`. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+71. `fx03_t07_mutant.sh`, written by Antigravity. **The test runner and the tests themselves.** The resource test fails for a copy of `09_resources.py` that always says COMPLETED. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+72. `fx03_download_test_mutants.sh`, written by Codex. **The test runner and the tests themselves.** The download tests fail for deliberately broken copies of `fetch_archive.py`. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
+73. `fx03_ledger_test_mutant.sh`, written by Codex. **The test runner and the tests themselves.** The job list test fails for a deliberately broken copy of the submission code. Result on the final code: PASS (claude-science), PASS (Codex), PASS (Antigravity).
 
 </details>
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ## 8. Folder layout
 
@@ -2164,10 +2591,11 @@ The scripts were reviewed by two AI reviewers (Codex and Antigravity, see the fi
 settings.yaml               the values to fill in: scheduler account, e-mail address, folders (see "Run everything: quick start")
 setup_and_run_all.sh        sets up from settings.yaml and runs everything, stage by stage
 config/                     config.sh (locations, places of the programs), lib.sh (job logging), modules.sh (software modules of the jobs)
-docs/                       one explanatory document per step (shown as collapsible sections in this report)
-jobs/                       scheduler job scripts, one per step (numbered as the steps)
+docs/                       one explanatory document per step (shown as collapsible sections in this report); the number at the start of a file name here and in jobs/ and scripts/ is not the step number
+jobs/                       32 scheduler job files (the number at the start of a name is not the step number; the table in the overview gives the step of each)
 scripts/                    programs called by the jobs; submit_all.sh (all jobs), make_environments.sh, 09_summary.py, 10_validate.py
 envs/                       software notes, versions by step, databases, lock files of the environments
+figures/                    the figures of this document (.png and .svg)
 input/                      input files, their checksums and the download lists (PacBio, RNA-seq, Illumina 2013, Hw 2.0)
 results/                    tables, figures and summary files by step; results/assembly/ holds Hw 2.1
 validation/                 expected.tsv: the values of the first analysis with the variation that is usual for each
@@ -2175,37 +2603,39 @@ tests/                      tests of the scripts that need no cluster run (bash 
 logs/                       logs of every job (scheduler output, program output, time and memory)
 ```
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 ## 9. Software
 
-The programs are not part of the workflow. `envs/software.md` lists the ten environments; `envs/lockfiles/` holds the exact workflow builds, from which `scripts/make_environments.sh` recreates them; `envs/versions_*.tsv` give the version of each program by step. The reference data (BUSCO lineage, Swiss-Prot fungal proteins, mitochondrial and ribosomal reference records, the screen collection) are described in `envs/databases.tsv` with source, version and checksum.
+The programs are not part of the workflow. `envs/software.md` lists the ten environments; `envs/lockfiles/` holds the exact workflow builds, from which `scripts/make_environments.sh` recreates them; `envs/versions_*.tsv` give the version of each program by step; a program that is used in several steps or environments is listed once, with its main uses. Other programs of the environments (`pbindex`, `pbmerge`, `blastn`, `bedtools`) are listed in `envs/software.md`, and their versions are in the lock files. The reference data (BUSCO lineage, Swiss-Prot fungal proteins, mitochondrial and ribosomal reference records, the screen collection) are described in `envs/databases.tsv` with source, version and checksum.
 
 | Program | Version | Used for |
 |---|---|---|
-| minimap2 | 2.31-r1302 | alignment of reads (preset map-pb) and contigs (preset asm20) to the screen database |
-| seqkit | v2.14.0 | read lengths, removal of excluded reads, counts |
-| pigz | 2.8 | compression of the filtered alignments |
-| python | 3.12.15 | classification of reads and contigs (scripts/screen_classify.py), selection of reference genomes, test reads |
-| numpy | 2.5.4 | simulation of test reads |
-| pandas | 3.0.6 | selection of reference genomes from the RefSeq assembly summary |
-| curl | 8.4.0 | download of the screen databases |
+| minimap2 | 2.31-r1302 | contaminant screen of the reads and of the contigs (presets map-pb and asm20); alignment of the PacBio reads for the read-back and the depth (map-pb); alignment of the contigs to each other, of the 22 sequences and of the mitochondrial genomes (asm20), of two assemblies (asm10) and of the transcripts (splice mode) |
+| seqkit | v2.14.0 | read lengths, removal of excluded reads, counts; counting read pairs in the FASTQ files; read statistics, seed selection, FASTQ to FASTA (steps 4, 7) |
+| pigz | 2.8 or 2.7 (in different environments) | compression of the filtered alignments; parallel compression of the FASTQ files |
+| python | 3.12.15 or 3.11.17 (in different environments) | the scripts of the workflow: classification of reads and contigs, tables, statistics, figures, summary and validation |
+| numpy | 2.5.4 or 2.4.6 (in different environments) | arrays and statistics in the analysis scripts; simulation of test reads |
+| pandas | 3.0.6 | selection of reference genomes from the RefSeq assembly summary; tables |
+| curl | 8.4.0 | downloads: the screen databases, the protein set, the mitochondrial and ribosomal reference records and the input records of the NCBI |
 | fasterq-dump (SRA Toolkit) | 3.4.1 | conversion of SRA archive files to FASTQ |
 | FastQC | v0.13.0 | quality control of all reads |
 | fastp | 1.4.0 | report-only quality, adapter, duplication and insert-size evaluation |
 | MultiQC | 1.35 | summary report of all runs |
-| bax2bam | 0.0.9-1 (the program prints 0.0.8) | conversion of the .bax.h5 files to subreads (step 02) |
-| samtools | samtools 1.24 | BAM to FASTQ (step 02) |
-| blasr | 5.3.5-0 | alignment of the reads to the seeds (step 04) |
-| pbdagcon | 0.1-boost1.60_0 | consensus per seed, the corrected reads (step 04) |
-| Canu | canu 2.2 | assembly of the corrected reads; control run with default settings (step 04) |
-| Flye | 2.9.6-b1802 | control assembly with default settings (step 04) |
-| GenomicConsensus-Quiver | 2.3.3 | polishing of the contigs with Quiver (step 05) |
-| pbalign | 0.3.2-py_1 | alignment of the subreads with their quality tracks for Quiver (step 05) |
+| bax2bam | 0.0.9-1 (the program prints 0.0.8) | conversion of the .bax.h5 files to subreads (step 4) |
+| samtools | 1.24 | conversion of BAM to FASTQ; sorting, indexing and reading of alignments; flagstat, statistics and read counts; also used inside Trinity |
+| blasr | 5.3.5-0 | alignment of the reads to the seeds (step 7) |
+| pbdagcon | 0.1-boost1.60_0 | consensus per seed, the corrected reads (step 7) |
+| Canu | 2.2 | assembly of the corrected reads; control run with default settings (step 7) |
+| Flye | 2.9.6-b1802 | control assembly with default settings (step 7) |
+| GenomicConsensus-Quiver | 2.3.3 | polishing of the contigs with Quiver (step 8) |
+| pbalign | 0.3.2-py_1 | alignment of the subreads with their quality tracks for Quiver (step 8) |
 | BUSCO | 6.1.0 | gene-space completeness, lineage fungi_odb10, genome mode |
-| miniprot | 0.18-r281 | alignment of Swiss-Prot fungal proteins to the assembly (also the gene finder used inside BUSCO) |
+| miniprot | 0.18-r281 | alignment of Swiss-Prot fungal proteins to the assembly (also the gene finder used inside BUSCO); alignment of Swiss-Prot fungal proteins to the 22 sequences |
 | STAR | 2.7.11b | alignment of the RNA-seq read pairs |
-| mosdepth | 0.3.14 | read depth in windows of 1 kb |
+| mosdepth | 0.3.14 | read depth in windows of 1 kb, per contig and at callable positions |
 | GNU time | 1.9 | wall time and peak memory of each program in timings.tsv |
-| Trinity | 2.5.1 | de novo assembly of transcripts from RNA-seq reads without a genome (step 06) |
+| Trinity | 2.5.1 | de novo assembly of transcripts from RNA-seq reads without a genome (step 9) |
 | Jellyfish | 2.2.10 | k-mer counting inside Trinity |
 | Bowtie2 | 2.5.5 | used inside Trinity |
 | tblastn | 2.16.0+ | alignment of mitochondrial proteins (genetic code 4) to contigs |
@@ -2213,6 +2643,8 @@ The programs are not part of the workflow. `envs/software.md` lists the ten envi
 | biopython | 1.88 | reading GenBank records of the mitochondrial reference genomes |
 | bwa | 0.7.19-r1273 | index and mapping of the Illumina read pairs (bwa-mem) |
 | bcftools | 1.24 | mpileup, haploid calling, normalisation, filtering of the differences |
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ## 10. Glossary
 
@@ -2250,30 +2682,22 @@ The programs are not part of the workflow. `envs/software.md` lists the ten envi
 | FASTQ | text format of reads with their quality values |
 | MNase-seq | sequencing of DNA protected from micrococcal nuclease; not used in this workflow |
 | contig | a contiguous piece of assembled sequence |
-| N50 | the contig length such that contigs of that length or longer hold half of the assembled bases |
+| N50 | the contig length such that contigs of that length or longer hold at least half of the assembled bases |
 | L50 | the number of contigs needed to reach half of the assembled bases |
 | NG50 | like N50, but half of the genome size (here 50 Mb) is used in place of half of the assembly |
 | auN | a single number: the sum of the squared contig lengths divided by the sum of the contig lengths, that is the average length of the contig that holds a randomly chosen base (an example is given in section 3). It is equal to the area under the curve of N(x) against x, and it is not an area that has to be measured |
 | Q30 | a base quality of 30 on the Phred scale: an error probability of 1 in 1,000 |
-| Quiver | the polishing program of the original PacBio protocol, which recomputes the consensus of the contigs from the raw reads and their quality tracks |
 | Substitution, insertion, deletion | a base replaced by another, a base added, a base removed |
-| BAM | binary file of reads aligned to an assembly (Binary Alignment Map) |
-| FASTA | text file of nucleotide sequences, one header line per sequence |
-| GC | proportion of the bases G and C in a sequence (GC content) |
 | GB | gigabyte, one thousand million bytes (of memory or disk) |
-| CPU | central processing unit, the computing core of a computer; "CPU hours" count the core time used |
-| JSON | text file format for structured values (JavaScript Object Notation) |
-| FTP | file transfer protocol, used by public archives to serve files |
-| EXF | prefix of the strain numbers of the Ex Culture Collection (Ljubljana); EXF-2000 is the strain sequenced |
 | BAQ | base alignment quality: a correction of base qualities near insertions and deletions, applied by bcftools at its default setting |
-| RS II | the PacBio sequencing instrument used for the reads |
 | Phred scale, quality value (QV) | a number Q that states an error probability p as Q = -10 x log10(p): Q10 means 1 error in 10, Q20 1 in 100, Q30 1 in 1,000; a higher value is more reliable |
-| Q30 | a base (or the percentage of bases) with a quality value of 30 or more, that is an estimated error probability of 1 in 1,000 or less |
 | insertion QV, deletion QV, substitution QV, merge QV | the four quality-value tracks that the PacBio RS II instrument records for every base: the estimated chance that the base is an extra base, that a base is missing before it, that it is the wrong base, or that it stands for two identical neighbouring bases called as one; stored in the BAM tags iq, dq, sq and mq (explained in the block under the quality-value figure) |
 | homopolymer | a run of the same base in the sequence (for example five adenine bases in a row) |
 | Wilson interval | the 95 percent interval for a proportion k / n used in this report (the score interval of Wilson, 1927); explained in the block "How the 95 percent Wilson interval of this proportion is made" in section 3 |
 
 </details>
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ## 11. References
 
@@ -2295,16 +2719,22 @@ The programs are not part of the workflow. `envs/software.md` lists the ten envi
 16. Ewels, P. et al. MultiQC: summarize analysis results for multiple tools and samples in a single report. *Bioinformatics* 32, 3047-3048 (2016). https://doi.org/10.1093/bioinformatics/btw354
 17. Pedersen, B. S. and Quinlan, A. R. Mosdepth: quick coverage calculation for genomes and exomes. *Bioinformatics* 34, 867-868 (2018). https://doi.org/10.1093/bioinformatics/btx699
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 ## 12. How to cite
 
 If you use this workflow or the assembly Hw 2.1, please cite this repository and the paper that produced the sequencing reads. GitHub shows a button "Cite this repository" from the file `CITATION.cff`.
 
-1. Neira, M. (2026). *Hortaea werneckii genome assembly Hw 2.1: a reproducible workflow.* Software, version 1.0. https://github.com/maunei/hortaea_werneckii_genome_assembly
+1. Neira, M. (2026). *Hortaea werneckii genome assembly Hw 2.1: a reproducible workflow.* Software, version 1.0.2. https://github.com/maunei/hortaea_werneckii_genome_assembly
 2. Sinha, S. et al. Insight into the recent genome duplication of the halophilic yeast *Hortaea werneckii*: combining an improved genome with gene expression and chromatin structure. *G3* 7, 2015-2022 (2017). https://doi.org/10.1534/g3.117.040691
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ## 13. License
 
 MIT License. Copyright (c) 2026 Mauricio Neira. The software may be used, copied, modified and distributed provided that the copyright notice and the license text (file `LICENSE`) are kept.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ## 14. Acknowledgements
 

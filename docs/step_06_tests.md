@@ -1,10 +1,10 @@
-## Step 06: evaluations 1 to 4 for each assembly
+## Step 10: evaluations 1 to 4 for each assembly
 
 ### What the step does
 
-One job per assembly carries out four of the five evaluations with the same programs, settings and thresholds for every assembly: contiguity (evaluation 1), gene-space completeness (evaluation 2), structural correctness against the PacBio reads (evaluation 3) and redundancy and collapse (evaluation 4). Evaluation 5, base accuracy from the Illumina reads, belongs to another step; the comparison of two assemblies with each other, the transcripts assembled without a genome and the mitochondrial genome also belong to other steps. The job writes one table per measure and a file `summary.json` with fixed key names, so that the later steps (the noise scale, the decision table, the figures) read numbers from files and never retype them.
+One job per assembly carries out four of the five evaluations with the same programs, settings and thresholds for every assembly: contiguity (evaluation 1), gene-space completeness (evaluation 2), structural correctness against the PacBio reads (evaluation 3) and redundancy and collapse (evaluation 4). Evaluation 5, base accuracy from the Illumina reads, the comparison of two assemblies with each other, the alignment of the transcripts and the mitochondrial genome are made by other jobs of the same step; the transcripts themselves are assembled once, in step 9. The job writes one table per measure and a file `summary.json` with fixed key names, so that the later steps (the noise scale, the decision table, the figures) read numbers from files and never retype them.
 
-The job is `jobs/06_tests.sbatch`. It takes the assembly name (`ASM`) and the FASTA file (`FASTA`) and nothing else is needed. It uses 16 cores and a few gigabytes of memory, and the steps run one after the other (a step that needs the result of another step, for example the transcript alignment of the contiguity step, is not run when that step has failed, and is run again when that step was run again), so an interrupted job can be submitted again: finished steps are skipped (a marker file per step is kept with the large files) unless `FORCE=1` is set. The marker of a step does not record the assembly or the reads it was made from: set `FORCE=1` after changing either.
+The job is `jobs/06_tests.sbatch`. It takes the assembly name (`ASM`) and the FASTA file (`FASTA`) and nothing else is needed. It uses 16 cores and a few gigabytes of memory, and the steps run one after the other (a step that needs the result of another step, for example the protein alignment and the RNA-seq alignment, which need the contiguity step, is not run when that step has failed, and is run again when that step was run again), so an interrupted job can be submitted again: finished steps are skipped (a marker file per step is kept with the large files) unless `FORCE=1` is set. The marker of a step does not record the assembly or the reads it was made from: set `FORCE=1` after changing either.
 
 ### Reference data (fetched once, used offline)
 
@@ -49,7 +49,7 @@ File `contiguity.tsv` and `contiguity.json`. Contigs are sorted from the longest
 
 <details><summary>Evaluation 3: structural correctness (read-back, junctions, telomeres)</summary>
 
-**Read-back** (`readback*.tsv`, `readback.json`). All PacBio reads that passed the contaminant screen (the raw high-quality subreads of step 02, not the corrected reads used for the assembly) are aligned to the assembly with minimap2 (preset `map-pb`, secondary alignments off), so each read has one primary alignment and, when it aligns in several pieces, supplementary alignments for the other pieces. The definitions are:
+**Read-back** (`readback*.tsv`, `readback.json`). All PacBio reads that passed the contaminant screen (the raw high-quality subreads of step 4, not the corrected reads used for the assembly) are aligned to the assembly with minimap2 (preset `map-pb`, secondary alignments off), so each read has one primary alignment and, when it aligns in several pieces, supplementary alignments for the other pieces. The definitions are:
 
 - *aligned over at least 80 %*: the aligned parts of all alignments of the read, merged, cover at least 80 % of the read. The same with the primary alignment alone is given as *one piece over at least 80 %*.
 - *identity*: 1 minus the edit distance divided by the alignment columns (matches, mismatches, insertions and deletions) of the primary alignment; the median over reads. Raw PacBio reads of this chemistry have an error of about 15 %, so the median is expected to be near 85 %, not near 100 %.
@@ -64,7 +64,7 @@ File `contiguity.tsv` and `contiguity.json`. Contigs are sorted from the longest
 <details><summary>Evaluation 4: redundancy and collapse (depth, self-alignment)</summary>
 
 1. **Depth** (`depth*.tsv`, `depth_1kb_windows.bed.gz`). mosdepth computes the depth of the PacBio reads in windows of 1 kb (the last window of a contig is shorter). The median is weighted by window length. The fraction of bases in windows from 0.5 to 1.5 times the median is the measure used: two copies merged into one contig give about twice the median, a region present twice by error gives about half. The windows at the two ends of each contig are left out in a second value (`_inner`), because depth falls at a contig end by construction. The fractions in the classes below 0.25, 0.25 to 0.5, 1.5 to 2.5 and at least 2.5 times the median are also written; the mitochondrial genome falls in the last class because it is present in many copies per cell.
-2. **DNA-level redundancy** (`redundancy*.tsv`, `redundancy.json`). minimap2 (preset `asm20`, which accepts up to about 20 % difference, with base-level alignment) aligns the contigs against each other; a contig is not aligned to itself, so repeats inside one contig are not examined. For each base of each contig the *best partner* is the alignment block (at least 1,000 columns) with the highest nucleotide identity (matches divided by alignment columns) among the blocks that cover the base, whether the contig is the query or the target of the block. By definition, bases with a best partner at 98 % identity or more are *false duplication* (a region present twice by error), and bases with a best partner from 80 % to below 95 % are *real similar copies* of this genome, not errors. Bases from 95 % to below 98 % belong to neither class and are written separately. A contig is *redundant* if at least 90 % of its bases have a partner at 98 % or more. This is DNA-level identity; it is not the identity of translated proteins. Because the best partner is chosen among alignments of 80 % identity and higher, the 80 % limit is also the limit of what the aligner can find: regions more different than that are counted as having no partner.
+2. **DNA-level redundancy** (`redundancy*.tsv`, `redundancy.json`). minimap2 (preset `asm20`, the one of the assembly presets that tolerates the most divergence, with base-level alignment) aligns the contigs against each other; a contig is not aligned to itself, so repeats inside one contig are not examined. For each base of each contig the *best partner* is the alignment block (at least 1,000 columns) with the highest nucleotide identity (matches divided by alignment columns) among the blocks that cover the base, whether the contig is the query or the target of the block. By definition, bases with a best partner at 98 % identity or more are *false duplication* (a region present twice by error), and bases with a best partner from 80 % to below 95 % are *real similar copies* of this genome, not errors. Bases from 95 % to below 98 % belong to neither class and are written separately. A contig is *redundant* if at least 90 % of its bases have a partner at 98 % or more. This is DNA-level identity; it is not the identity of translated proteins. The classes start at 80 % identity: a base whose best alignment is below that is counted as having no partner. This is a limit of the classes used here, not a proof that no more distant copy exists.
 
 </details>
 
@@ -73,7 +73,7 @@ File `contiguity.tsv` and `contiguity.json`. Contigs are sorted from the longest
 - `results/06_tests/<ASM>/summary.json` and `summary.tsv` (the same numbers, one key per row). Key names are given below.
 - For the published assembly Hw 2.0 (651 contigs) the contiguity values are those published with it; compare {{results/06_tests/hw2/summary.json:contiguity.all.contigs}}, {{results/06_tests/hw2/summary.json:contiguity.all.total_bp}} and {{results/06_tests/hw2/summary.json:contiguity.all.n50}} (contigs, total bases and N50) with them.
 - `summary.json` has an empty list under `steps_failed`; if a step failed, its key holds `null` and the name of the step is listed.
-- The number of reads in `inputs.pacbio_reads` must be that of the read set of step 02 (718,442 high-quality reads before the contaminant screen), and `inputs.rna_pairs` that of the HiSeq run (175,019,208 read pairs). Smaller numbers mean that a sub-sample was used and every value is provisional.
+- The number of reads in `inputs.pacbio_reads` must be that of the screened set of high-quality reads that the job reads (`hq_clean.fastq`: 708,715 reads in the run reported here, that is the 718,442 high-quality reads before the contaminant screen without the 9,727 reads that the screen excluded), and `inputs.rna_pairs` that of the HiSeq run (175,019,208 read pairs). Smaller numbers mean that a sub-sample was used and every value is provisional.
 - `timings.tsv`: wall time and peak memory of every program in the job.
 
 <details><summary>Keys of summary.json</summary>
@@ -86,7 +86,7 @@ All keys are fixed; a value that could not be computed is `null`. Fractions are 
 | `inputs.pacbio_reads_file`, `inputs.pacbio_reads` | PacBio read file used for the read-back and the number of reads in it |
 | `inputs.rna_run`, `inputs.rna_pairs` | RNA-seq run aligned and the number of read pairs |
 | `contiguity.all.*`, `contiguity.ge10kb.*` | for all contigs and for contigs of at least 10 kb: `contigs`, `total_bp`, `n50`, `l50`, `ng50`, `lg50`, `aun`, `longest`, `gc_percent`, `ambiguous_bases` |
-| `contiguity.genome_size_used_for_ng50` | genome size of the plan (50,000,000) |
+| `contiguity.genome_size_used_for_ng50` | genome size used (50,000,000) |
 | `busco.busco_genes`, `busco.complete`, `busco.complete_single`, `busco.complete_duplicated`, `busco.fragmented`, `busco.missing` | counts of BUSCO genes (lineage `fungi_odb10`) |
 | `busco.complete_percent`, `busco.single_percent`, `busco.duplicated_percent`, `busco.fragmented_percent`, `busco.missing_percent` | the same as percent of the genes |
 | `star.input_pairs`, `star.unique_pairs`, `star.multiple_pairs`, `star.too_many_pairs`, `star.unmapped_pairs` | RNA read pairs by class |
@@ -112,7 +112,7 @@ All keys are fixed; a value that could not be computed is `null`. Fractions are 
 | `readback.unspanned_bases`, `readback.unspanned_gaps`, `readback.frac_tested_bases_unspanned` | tested positions that no read spans, the number of gaps they form, and their fraction |
 | `readback.parameters.*` | thresholds used: `flank`, `min_piece`, `end_margin`, `cluster_window`, `min_reads` |
 | `depth.median_depth`, `depth.mean_depth`, `depth.windows`, `depth.bases`, `depth.windows_terminal` | median (weighted by window length) and mean depth, windows, bases, windows at contig ends |
-| `depth.frac_below_0_25`, `depth.frac_0_25_to_0_5`, `depth.frac_0_5_to_1_5`, `depth.frac_1_5_to_2_5`, `depth.frac_at_least_2_5` | fraction of the bases in windows by depth relative to the median; `frac_0_5_to_1_5` is the measure of the plan |
+| `depth.frac_below_0_25`, `depth.frac_0_25_to_0_5`, `depth.frac_0_5_to_1_5`, `depth.frac_1_5_to_2_5`, `depth.frac_at_least_2_5` | fraction of the bases in windows by depth relative to the median; `frac_0_5_to_1_5` is the measure used for the evaluation (its criterion was fixed before the results were seen) |
 | `depth.frac_0_5_to_1_5_inner` | the same without the windows at contig ends |
 | `redundancy.assembly_bases` | bases of the assembly |
 | `redundancy.false_duplication_bases_ge98`, `redundancy.false_duplication_fraction` | bases whose best partner has 98 % identity or more, and their fraction |
@@ -129,7 +129,7 @@ All keys are fixed; a value that could not be computed is `null`. Fractions are 
 
 ### Limits
 
-- The alignment of contigs against each other does not look at repeats inside one contig and cannot see similar regions below about 80 % identity; the classes used here (98 % and above, 80 % to 95 %) lie inside what it can find.
+- The alignment of contigs against each other does not look at repeats inside one contig and does not report partners below 80 % identity: a base whose best alignment is below that is counted as having no partner, which is not a proof that it has none; the classes used here (98 % and above, 80 % to 95 %) start at 80 %.
 - Raw-read depth and the read-back depend on the read set; for every assembly the same reads are used, so differences between assemblies come from the assemblies.
 - The count of frameshifts and stops in proteins depends on how close the proteins are to *H. werneckii*; it is used to compare assemblies, not as an absolute error rate.
 - The thresholds (80 % of the read length, 1,000 bases of flank, 3 reads for a cluster, 98 % and 80 to 95 % identity) were fixed before the results were seen and are the same for every assembly.

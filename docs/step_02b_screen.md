@@ -1,4 +1,4 @@
-## Step 02b: screen of the PacBio reads and of contigs for contaminants
+## Step 5: screen of the PacBio reads and of contigs for contaminants
 
 ### What this step does
 
@@ -36,7 +36,7 @@ The three numbers are set once in `scripts/screen_common.sh` (variables `MIN_ALN
 
 ### The tool used (minimap2) and the reference collection
 
-The reads are long (several kilobases) and carry roughly 14 % errors (the figure used for this chemistry in the simulations; real alignments to correct references reach an identity near 0.87), mostly insertions and deletions. The screen therefore uses an aligner that tolerates such errors: minimap2 with the preset `map-pb` (words of 19 bases collapsed in homopolymer runs, chaining of word hits, base-level alignment with the option `-c`). It aligns each read to a reference collection built for this screen and reports the aligned interval of every read, so the fraction of the read that is covered by a contaminant follows directly from the reported intervals, and the screen of all reads runs in minutes. The same program, with the preset `asm20` (accurate sequences, up to 20 % divergence), is used for contigs.
+The reads are long (several kilobases) and carry roughly 14 % errors (the figure used for this chemistry in the simulations; real alignments to correct references reach an identity near 0.87), mostly insertions and deletions. The screen therefore uses an aligner that tolerates such errors: minimap2 with the preset `map-pb` (words of 19 bases collapsed in homopolymer runs, chaining of word hits, base-level alignment with the option `-c`). It aligns each read to a reference collection built for this screen and reports the aligned interval of every read, so the fraction of the read that is covered by a contaminant follows directly from the reported intervals, and the screen of all reads runs in minutes. The same program, with the preset `asm20` (for sequences of assemblies, which are accurate), is used for contigs.
 
 **Reference collection.** It is built by `scripts/fetch_screen_databases.sh` from the public NCBI FTP site (run through the job `jobs/02_fetch_databases.sbatch`). Sequence names are rewritten as `GROUP|KEY|original name`, so that the group of every alignment is read from the name of its target. The database is split in four parts (sizes in `results/02_pacbio_reads/screen_db/parts_stats.tsv`), each with its own minimap2 index (`jobs/02_screen_db_index.sbatch`), because a single index of all parts would need about four times the memory.
 
@@ -84,7 +84,7 @@ Cost: elapsed time and peak memory of each job are in the job accounting (`sacct
 
 * `per_read.tsv.gz` (and `per_contig.tsv.gz`): `frac_<group>` is the fraction of the length covered by counted alignments to that group; `frac_contaminant_any` is the fraction covered by any contaminant group (overlaps counted once); `best_contaminant_organism` is the reference of the group with the largest covered fraction. The name of this organism is the closest entry of the database, not the identification of the contaminant: a read from an unsequenced bacterium is labelled with its nearest relative in the collection.
 * `by_organism.tsv`: which references account for the excluded reads, and which for the reads that carry a contaminant majority but a fungal match. A concentration on one or two references (for example a cloning vector) points to a single source of contamination; many references with a few reads each suggest chance matches.
-* For contigs, the output has the same layout. A contig of class `excluded` is a candidate contaminant; a contig of class `contaminant_majority_but_fungal_match_kept` needs a look at the two fractions (a contig that is mostly contaminant-like and partly fungal can be a repeat, a ribosomal or mitochondrial sequence, or a contaminant that carries a fungal-like gene). This step only flags contigs; the removal of the contigs it excludes from an assembly is step 05c. Hw 2.0 is analysed as published and nothing is removed from it.
+* For contigs, the output has the same layout. A contig of class `excluded` is a candidate contaminant; a contig of class `contaminant_majority_but_fungal_match_kept` needs a look at the two fractions (a contig that is mostly contaminant-like and partly fungal can be a repeat, a ribosomal or mitochondrial sequence, or a contaminant that carries a fungal-like gene). This step only flags contigs; the removal of the contigs it excludes from an assembly is step 8. Hw 2.0 is analysed as published and nothing is removed from it.
 
 ### Limits
 
@@ -99,4 +99,3 @@ Cost: elapsed time and peak memory of each job are in the job accounting (`sacct
 * Li H (2018) Minimap2: pairwise alignment for nucleotide sequences. Bioinformatics 34:3094-3100. doi:10.1093/bioinformatics/bty191
 * Nurk S, Koren S, Rhie A, et al. (2022) The complete sequence of a human genome. Science 376:44-53. doi:10.1126/science.abj6987
 
-(authors, year, volume, pages and DOI checked against Crossref)

@@ -1,4 +1,4 @@
-## Step 03. RNA-seq and Illumina 2013 reads: conversion to FASTQ, read counts and quality control
+## Step 6. RNA-seq and Illumina 2013 reads: conversion to FASTQ, read counts and quality control
 
 ### What this step does and why
 

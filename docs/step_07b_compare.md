@@ -1,10 +1,10 @@
-## Step 07b: comparing two assemblies, with the PacBio reads as referee
+## Step 10: comparing two assemblies, with the PacBio reads as referee
 
 ### What this step answers
 
 Two assemblies built from the same reads can differ in structure: one has joined two pieces that the other keeps apart, one carries a segment that the other lacks, one has a stretch in the opposite orientation. Contiguity statistics (N50, number of contigs) cannot tell which of the two is right; a wrong join raises N50 just as a right one does. The reads can: each PacBio read is a piece of the real genome, so a read that crosses the place where the assemblies differ shows which arrangement the genome has.
 
-This step lists every such difference between assembly A and assembly B and counts, for each, the reads that agree with A, the reads that agree with B and the reads that agree with neither. A difference is decided when at least 3 reads span it. The result is the proportion of the differences that the reads decide for A and for B.
+This step lists every such difference between assembly A and assembly B and counts, for each, the reads that agree with A, the reads that agree with B and the reads that agree with neither. A difference is decided for one assembly when at least 3 reads support its arrangement and at least twice as many reads support it as support the other. The result is the proportion of the differences that the reads decide for A and for B.
 
 ### Commands
 
@@ -22,7 +22,7 @@ The assemblies are read from `$WORK/asm/<name>/final.fasta`, the reads from `$WO
 
 ### Step 1: aligning A to B
 
-minimap2 aligns A (the query) to B (the target) with the preset `asm10`, which allows about 1 percent divergence between the two sequences. Both assemblies come from the same reads, so the aligned parts differ only by consensus errors, which are small after polishing; the preset `asm5` (about 0.1 percent) would cut the alignment at the many small differences of an assembly that is not yet polished, and `asm20` (about 5 percent) would start to align the copies of similar gene pairs to each other. The choice can be changed with the variable `PRESET`. The option `--secondary=no` keeps for each part of A only its best place in B.
+minimap2 aligns A (the query) to B (the target) with the preset `asm10`, the middle one of the three assembly presets `asm5`, `asm10` and `asm20`, which tolerate increasing divergence. Both assemblies come from the same reads, so the aligned parts differ only by consensus errors, which are small after polishing; the preset `asm5`, which tolerates the least divergence, would cut the alignment at the many small differences of an assembly that is not yet polished, and `asm20`, which tolerates the most, would start to align the copies of similar gene pairs to each other. The choice can be changed with the variable `PRESET`. The option `--secondary=no` keeps for each part of A only its best place in B.
 
 ### Step 2: what counts as a difference
 
@@ -43,7 +43,7 @@ Types, for a junction in the focus assembly F (A or B) with the other assembly O
 
 A break in A is therefore a join in B, and the table lists it as `join_in_B`. Size is the length of the insertion or deletion, of the duplicated segment or of the inverted segment, in bases.
 
-What is not detected: differences below 1,000 bases (the Illumina-based base accuracy of step 08 covers small differences), inversions with an inverted piece shorter than 5,000 bases, regions of A that do not align to B at all (reported as the bases of A that lie in pieces in `alignment_stats.json`), and differences inside repeats that minimap2 places with low confidence.
+What is not detected: differences below 1,000 bases (the Illumina-based base accuracy of step 10 covers small differences), inversions with an inverted piece shorter than 5,000 bases, regions of A that do not align to B at all (reported as the bases of A that lie in pieces in `alignment_stats.json`), and differences inside repeats that minimap2 places with low confidence.
 
 ### Step 3: the reads decide
 
@@ -67,15 +67,20 @@ The summary of the pair A = proc_r3 and B = hw2 shows {{results/07_compare/proc_
 
 ### Check on a case with a known answer
 
-`scripts/07_synthetic_check.py` builds two assemblies of a synthetic genome with eleven planted differences (deletions, insertions of 1,500 to 30,000 bases, a tandem duplication, inversions, a break and a join) and reads drawn from the true genome with 12 percent errors, and checks that the decision for every planted difference is the true one and that no other difference is listed:
+`scripts/07_synthetic_check.py` builds two assemblies of a synthetic genome with eleven planted differences (deletions, insertions of 1,500 to 30,000 bases, a tandem duplication, inversions, a break and a join) and reads drawn from the true genome with 12 percent errors, and checks that the decision for every planted difference is the true one and that no other difference is listed. First the synthetic data are made and the comparison is submitted:
 
 ```bash
-python scripts/07_synthetic_check.py make $WORK/synthetic_07
+python3 scripts/07_synthetic_check.py make $WORK/synthetic_07
 sbatch --export=ALL,A_ASM=synA,B_ASM=synB,FASTA_A=$WORK/synthetic_07/A.fa,FASTA_B=$WORK/synthetic_07/B.fa,READS=$WORK/synthetic_07/reads.fastq,READS_TAG=synthetic,OUT=$WORK/synthetic_07/out jobs/07_compare_adjudicate.sbatch
-python scripts/07_synthetic_check.py check $WORK/synthetic_07/out/disagreements.tsv
 ```
 
-The last command prints one line for every planted difference and ends with status 0 when all are decided correctly. This check shows that the rules above do what they say; it does not show how they behave in the real, repetitive genome, where many differences sit in repeats and will be undecided.
+When that job has ended successfully, the check is run:
+
+```bash
+python3 scripts/07_synthetic_check.py check $WORK/synthetic_07/out/disagreements.tsv
+```
+
+The check prints one line for every planted difference and ends with status 0 when all are decided correctly. This check shows that the rules above do what they say; it does not show how they behave in the real, repetitive genome, where many differences sit in repeats and will be undecided.
 
 ### Resources
 

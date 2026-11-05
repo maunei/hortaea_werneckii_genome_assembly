@@ -1,12 +1,12 @@
-# Step 07: the comparator Hw 2.0, its 22 unexplained sequences and the mitochondrial genome
+# Step 10: the comparator Hw 2.0, its 22 unexplained sequences and the mitochondrial genome
 
-Summary. Hw 2.0 (the published assembly of strain EXF-2000) is the comparator of the whole package, so before it is used we establish exactly what the files that carry it contain (part 7a), what the 22 sequences are that the NCBI (National Center for Biotechnology Information) record leaves out (part 7b), and which contig is the mitochondrial genome, in Hw 2.0 and in every other assembly (part 7c). The three parts have separate scripts and separate result folders under `results/07_comparator/`. Every number quoted below is written to a file by a script; the placeholders in double braces name the file and the key.
+Summary. Hw 2.0 (the published assembly of strain EXF-2000) is the comparator of the whole package, so before it is used we establish exactly what the files that carry it contain (part 10a), what the 22 sequences are that the NCBI (National Center for Biotechnology Information) record leaves out (part 10b), and which contig is the mitochondrial genome, in Hw 2.0 and in every other assembly (part 10c). The three parts have separate scripts and separate result folders under `results/07_comparator/`. Every number quoted below is written to a file by a script.
 
-## 7a. The files that carry Hw 2.0
+## 10a. The files that carry Hw 2.0
 
 ### Idea
 
-Several files claim to hold Hw 2.0: the complete file of the GitHub repository (`Hw2.fasta.gz`), the genome files that were prepared for submission to GenBank (`Hw2.MTedit.fasta` and the files `genome.fasta` of the folders `annotated1` and `fixed1`), and the record GCA_002127715.1 at NCBI. The package uses the first one in every test, so it must be known whether the others are the same sequence. The comparison is done contig by contig: contig names and lengths, then a checksum of the sequence of each contig (MD5, a 128-bit fingerprint that changes if a single base changes). Where two sequences of the same contig differ, they are aligned (minimap2, preset `asm5`, which accepts up to 5 % divergence) and the substitutions and insertions or deletions are counted. Letter case is compared separately, because soft-masked (lower-case) bases do not change the sequence.
+Several files claim to hold Hw 2.0: the complete file of the GitHub repository (`Hw2.fasta.gz`), the genome files that were prepared for submission to GenBank (`Hw2.MTedit.fasta` and the files `genome.fasta` of the folders `annotated1` and `fixed1`), and the record GCA_002127715.1 at NCBI. The package uses the first one in every test, so it must be known whether the others are the same sequence. The comparison is done contig by contig: contig names and lengths, then a checksum of the sequence of each contig (MD5, a 128-bit fingerprint that changes if a single base changes). Where two sequences of the same contig differ, they are aligned (minimap2, preset `asm5`, the assembly preset that tolerates the least divergence) and the substitutions and insertions or deletions are counted. Letter case is compared separately, because soft-masked (lower-case) bases do not change the sequence.
 
 ### What was found
 
@@ -16,7 +16,7 @@ Several files claim to hold Hw 2.0: the complete file of the GitHub repository (
 - `Hw2.MTedit.fasta` carries the same sequences; one contig has another name: the mitochondrial contig `unitig_320` is called `MT`. The sequence of `MT` is identical to the sequence of `unitig_320` (`only_in_one_file.tsv`). The list of sequences that differ (`differing_sequences.tsv`) is therefore empty: no substitution, no insertion or deletion, nothing mitochondrial that differs. The annotation file `MT_genome.gff3` of the repository uses the name `MT`.
 - The file `annotation/GenBank/Hw2.fasta` named in the repository is a soft link to `assemblies/Hw2/Hw2.fasta`, which is not in the repository (the repository stores only the compressed file). The link is broken and nothing could be compared; the status is recorded in `file_summary.tsv`.
 - The NCBI record places `unitig_320` ({{results/07_comparator/genbank_files/summary.json:ncbi_mito_length}} bases, accession {{results/07_comparator/genbank_files/summary.json:ncbi_mito_accession}}) in a separate non-nuclear unit as the mitochondrion.
-- {{results/07_comparator/genbank_files/summary.json:absent_from_ncbi}} sequences of the GitHub file are absent from the NCBI record; they are present in the other genome files of the repository (part 7b examines them).
+- {{results/07_comparator/genbank_files/summary.json:absent_from_ncbi}} sequences of the GitHub file are absent from the NCBI record; they are present in the other genome files of the repository (part 10b examines them).
 
 In plain terms: all the GenBank files of the repository contain the complete GitHub file, only renamed in one contig; the NCBI record contains the same sequence for all of its contigs, but not for the 22 short ones. The package therefore loses nothing by using the GitHub file, and it knows what the NCBI record leaves out.
 
@@ -28,19 +28,19 @@ cd "$HW" && sbatch jobs/07_genbank_files.sbatch      # about 1 minute, 8 GB, 2 c
 
 Output in `results/07_comparator/genbank_files/`: `file_summary.tsv` (one row per file), `contigs_by_file.tsv` (length and checksum of every contig in every file), `differing_sequences.tsv`, `only_in_one_file.tsv`, `case_differences.tsv`, `the22_ids.tsv` (the 22 sequences: name, length, GC content, checksum) and `summary.json`.
 
-## 7b. The 22 sequences
+## 10b. The 22 sequences
 
 ### Idea
 
 Neither the paper nor the NCBI record says why 22 short sequences ({{results/07_comparator/the22/summary.json:min_length}} to {{results/07_comparator/the22/summary.json:max_length}} bases, {{results/07_comparator/the22/summary.json:total_bases}} bases in all) were left out. They are not removed from the statistics in advance. Each is examined from five sides, so that its nature can be named from evidence:
 
-1. **Redundancy.** The sequence is aligned (minimap2, preset `asm20`, up to about 20 % divergence, all alignments kept) to every other contig of Hw 2.0; for each sequence the fraction covered by an alignment, the same at 98 % identity or more (the threshold of the false-duplication criterion), the best partner contig and its identity are reported. A sequence covered over its whole length at 98 % or more is a second copy of sequence that Hw 2.0 already holds.
-2. **Mitochondrial origin.** The sequence is aligned to the NCBI mitochondrion record, and its genes are searched with the mitochondrial proteins of related fungi (see 7c).
+1. **Redundancy.** The sequence is aligned (minimap2, preset `asm20`, the assembly preset that tolerates the most divergence, all alignments kept) to every other contig of Hw 2.0; for each sequence the fraction covered by an alignment, the same at 98 % identity or more (the threshold of the false-duplication criterion), the best partner contig and its identity are reported. A sequence covered over its whole length at 98 % or more is a second copy of sequence that Hw 2.0 already holds.
+2. **Mitochondrial origin.** The sequence is aligned to the NCBI mitochondrion record, and its genes are searched with the mitochondrial proteins of related fungi (see 10c).
 3. **Gene content.** Reviewed fungal proteins of Swiss-Prot are aligned with miniprot (a protein-to-genome aligner that models introns); a protein counts when at least half of it is covered at 35 % amino-acid identity or more. Three ribosomal DNA records of *Hortaea werneckii* (18S, internal transcribed spacers, 28S; accessions in `envs/databases.tsv`) are aligned with BLAST (blastn) to show whether the sequence is ribosomal DNA, and the beta-lactamase protein TEM-1 of *Escherichia coli* (the ampicillin-resistance gene carried by many cloning vectors) is aligned with tblastn as a marker of vector sequence.
 4. **Composition.** GC content (the proportion of G and C bases) of each sequence is given beside the GC content of the nuclear genome ({{results/07_comparator/the22/summary.json:nuclear_gc_length_weighted}}).
 5. **PacBio read depth.** All high-quality subreads are aligned to Hw 2.0 with minimap2 (preset `map-pb`); the mean depth over each sequence is divided by the median depth of 1-kb windows of the contigs that are not among the 22 and not mitochondrial. Two ratios are given: all primary alignments, and reads of mapping quality 20 or more only. A sequence that is a near-identical copy of another one receives few reads of high mapping quality, because the aligner cannot tell the two copies apart and assigns each read to one of them; the two ratios together show this, and a sequence of true high copy number has a high ratio in both.
 
-The last columns give the contaminant screen of the 22 sequences (step 02b, the criterion of the screen of reads applied to contigs): the proportion of each sequence aligned to each contaminant group and its class.
+The last columns give the contaminant screen of the 22 sequences (step 5, the criterion of the screen of reads applied to contigs): the proportion of each sequence aligned to each contaminant group and its class.
 
 ### What was found
 
@@ -64,14 +64,14 @@ The depth in the table is computed from the screened set `hq_clean.fastq` (named
 ### Commands
 
 ```bash
-cd "$HW" && sbatch jobs/07_the22.sbatch      # the 22 sequences in Hw 2.0 (needs the output of 7a and the read set of step 02)
+cd "$HW" && sbatch jobs/07_the22.sbatch      # the 22 sequences in Hw 2.0 (needs the output of 10a and the read set of step 4)
 # the same alignment against any other assembly:
 sbatch --export=ALL,ASM=proc_r3 jobs/07_the22_vs_assembly.sbatch
 ```
 
 The second command aligns the 22 sequences to `$WORK/asm/<ASM>/final.fasta` (or the file named in `FASTA`) and writes, per sequence, the fraction aligned, the fraction aligned at 98 % and 90 % identity, the best contig and its identity (`results/07_comparator/the22/vs_assemblies/the22_vs_<ASM>.tsv`). It answers whether a new assembly contains these sequences, in one piece or divided over several contigs, or does not contain them. Runtime: about 1 to 2 minutes, 16 GB.
 
-## 7c. The mitochondrial genome
+## 10c. The mitochondrial genome
 
 ### Idea
 
@@ -108,10 +108,10 @@ The reference set is fetched once by `scripts/07_fetch_mito_refs.sh` (called by 
 
 ## What is not done and the limits
 
-- The depth of a sequence is the depth of primary alignments of long, noisy reads. Near-identical copies divide their reads among them, so the depth of a copy is below its true value and the sum over the copies is closer to the truth; this is why two ratios are given in 7b.
+- The depth of a sequence is the depth of primary alignments of long, noisy reads. Near-identical copies divide their reads among them, so the depth of a copy is below its true value and the sum over the copies is closer to the truth; this is why two ratios are given in 10b.
 - The mitochondrial genes are searched by protein similarity to related fungi. A divergent gene that falls below the coverage threshold would not be counted; the number of families found is a minimum.
 - Circularity is judged from the overlap of the ends of a contig. A contig without an overlap may still be a circle (the assembler may have trimmed the overlap), and an overlap does not by itself prove circularity; the reads that span the junction would be the proof and are not examined here.
-- The contaminant screen of the 22 sequences uses the screening script of step 02b; the contigs of the other assemblies are screened by `jobs/02_screen_contigs.sbatch`, not by the jobs of this step.
+- The contaminant screen of the 22 sequences uses the screening script of step 5; the contigs of the other assemblies are screened by `jobs/02_screen_contigs.sbatch`, not by the jobs of this step.
 - Programs and versions are in `envs/versions_07.tsv`; databases in `envs/databases.tsv`.
 
 ### Glossary

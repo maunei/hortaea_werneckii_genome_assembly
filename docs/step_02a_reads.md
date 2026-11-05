@@ -1,4 +1,4 @@
-## Step 02a. PacBio reads: conversion, the two read sets and a comparison with the authors' file
+## Step 4. PacBio reads: conversion, the two read sets and a comparison with the authors' file
 
 ### What is made and why
 
@@ -15,7 +15,7 @@ The scraps (parts of the polymerase reads outside the high-quality regions) are 
 
 ### Comparison with the authors' file
 
-The authors deposited the filtered subreads they used as FASTQ (accession SRR5086624, file `Hw_PacBio.filtered_subreads.fastq.bz2`). `scripts/compare_deposited_fastq.py` compares it with the filtered set made here, read by read, by well number and subread coordinates. {{results/02_pacbio_reads/deposited_fastq_comparison.json:holes_in_both|int}} of the {{results/02_pacbio_reads/deposited_fastq_comparison.json:holes_ours|int}} wells of the set made here are in the deposited file, {{results/02_pacbio_reads/deposited_fastq_comparison.json:identical_reads|int}} reads are identical, and {{results/02_pacbio_reads/deposited_fastq_comparison.json:only_ours_same_start_one_contains_other|int}} reads differ only in the end coordinate of the last subread of a well (one base), the sequence of one being contained in the other. The set made here has one extra well with one read. The two sets are therefore the same data for all practical purposes, and the set made here is used because it can be remade from the raw files by anyone.
+The authors deposited the filtered subreads they used as FASTQ (accession SRR5086624, file `Hw_PacBio.filtered_subreads.fastq.bz2`). `scripts/compare_deposited_fastq.py` compares it with the filtered set made here, read by read, by well number and subread coordinates. {{results/02_pacbio_reads/deposited_fastq_comparison.json:holes_in_both|int}} of the {{results/02_pacbio_reads/deposited_fastq_comparison.json:holes_ours|int}} wells of the set made here are in the deposited file, {{results/02_pacbio_reads/deposited_fastq_comparison.json:identical_reads|int}} reads are identical, and {{results/02_pacbio_reads/deposited_fastq_comparison.json:only_ours_same_start_one_contains_other|int}} more reads have a counterpart in the other set with the same well number and the same start, in which the sequence of one is contained in the other (they differ in length at the end). The set made here also has one extra well with one read, and ten further reads (in the run reported here) that these categories do not explain. The two sets are therefore nearly the same data, and the set made here is used because it can be remade from the raw files by anyone.
 
 ### How to run
 

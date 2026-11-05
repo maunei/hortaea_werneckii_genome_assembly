@@ -1,4 +1,4 @@
-## Step 06b: de novo transcripts and their alignment to each assembly
+## Step 9: de novo transcripts and their alignment to each assembly
 
 ### What this step answers
 
@@ -13,13 +13,13 @@ Script: `jobs/06_trinity_denovo.sbatch`. It runs once.
 | Setting | Value | Reason |
 |---|---|---|
 | Reads | the first 25,000,000 read pairs of the HiSeq run SRR5086622, in sequencing order | A practical choice, not an impossibility: with 25 million pairs the run takes about an hour and a half and 123 GB of memory (see below), whereas the whole run (175,019,208 pairs, seven times more) would need several times more memory and time (an extrapolation, not measured), which is possible on a large-memory node but is heavy to repeat. A fixed subset in file order is reproducible and does not depend on any choice. The MiSeq run is used for quality control only. |
-| Reads are not trimmed | as decided in step 03 | Trinity tolerates adapter remnants at the depth used here; the quality-control reports of step 03 show how much adapter there is. |
+| Reads are not trimmed | as decided in step 6 | Trinity tolerates adapter remnants at the depth used here; the quality-control reports of step 6 show how much adapter there is. |
 | Program | Trinity 2.5.1, 16 threads, 130 GB of memory for k-mer counting (the job requests 180 GB, because the program starts several processes at once) | Trinity first counts k-mers (short words of 25 bases) of the reads with Jellyfish, builds contigs from them (Inchworm), groups the contigs into components (Chrysalis) and resolves each component into transcripts with the read pairs (Butterfly). |
 | Working folder | the local disk of the compute node | Trinity writes a very large number of small files, which is slow on shared storage and would use up the file-count quota. Only the transcript file and its gene map are copied back. |
 | `--no_version_check` | set | Without it the program asks a web service for the latest version at start; from a compute node this query can fail (no internet access, or a request limit of the service) and then stops the run. |
 | Output folder name | contains the word `trinity` but does not end with it | The program refuses an output folder whose name lacks the word `trinity` (a safety check, because it may delete the folder). A name that ends with `trinity` makes it write the transcripts beside the folder as `<folder>.Trinity.fasta`. The script accepts both file names. |
 
-Before Trinity starts, the script checks that exactly 25,000,000 pairs were read from each mate file and that the two mates of every pair carry the same read name; either failure stops the job. It also refuses to start unless the marker file written by step 03 exists.
+Before Trinity starts, the script checks that exactly 25,000,000 pairs were read from each mate file and that the two mates of every pair carry the same read name; either failure stops the job. It also refuses to start unless the marker file written by step 6 exists.
 
 Run, from the package folder:
 
@@ -36,7 +36,7 @@ What to expect: the transcript set holds {{results/06_transcripts/trinity_assemb
 
 ### Part 2: aligning the transcripts to one assembly
 
-Script: `jobs/06_transcript_alignment.sbatch` (counting script `scripts/06_transcript_align_stats.py`). It runs once for each assembly, with the name of the assembly given in the variable `ASM`:
+Script: `jobs/06_transcript_alignment.sbatch` (counting script `scripts/06_transcript_align_stats.py`). It runs once for each assembly, with the name of the assembly given in the variable `ASM`.
 
 ```bash
 sbatch --export=ALL,ASM=hw2 jobs/06_transcript_alignment.sbatch
@@ -49,7 +49,7 @@ The assembly is read from `$WORK/asm/<ASM>/final.fasta` (another file can be giv
 
 The transcripts are aligned with minimap2 in its splice mode (`-x splice`). A transcript is the spliced product of a gene, so it aligns to the genome in several blocks (the exons) separated by gaps (the introns). A spliced aligner scores such a long gap as an intron, with a preference for the splice signal GT at the start and AG at the end of the intron, instead of as a very long deletion. The settings are:
 
-- `-G 5000`: the longest intron is 5,000 bases, the same limit that is given to the RNA read aligner STAR in step 06, and long for a fungal intron.
+- `-G 5000`: the longest intron is 5,000 bases, the same limit that is given to the RNA read aligner STAR in step 10, and long for a fungal intron.
 - `-u b`: the splice signal is looked for on both strands, because the RNA-seq libraries are not strand-specific and Trinity gives each transcript an arbitrary orientation.
 - `-c`: write the base-level alignment, from which the identity is computed.
 - `--secondary=no`: report only the best place for each part of a transcript. Alternative places of a part (for example the second copy of a gene pair) are therefore not counted.

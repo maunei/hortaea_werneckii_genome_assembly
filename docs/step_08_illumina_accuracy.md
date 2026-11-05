@@ -1,4 +1,4 @@
-## Step 08. Illumina reads of 2013: genotype check and base accuracy
+## Step 10. Illumina reads of 2013: genotype check and base accuracy
 
 ### What is measured and why
 
@@ -52,7 +52,7 @@ Shared differences of two assemblies, after both have been processed:
 sbatch --export=ALL,ASM_A=proc_r1,ASM_B=hw2 jobs/08_shared_differences.sbatch
 ```
 
-The job refuses to start when the marker file of step 03 (`READY_03`) is not in the read folder.
+The job refuses to start when the marker file of step 6 (`READY_03`) is not in the read folder.
 
 ### Expected output
 

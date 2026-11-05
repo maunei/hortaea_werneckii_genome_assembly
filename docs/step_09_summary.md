@@ -1,4 +1,4 @@
-## Step 09. Summary tables, figures and the assessment of every evaluation
+## Step 11. Summary tables, figures and the assessment of every evaluation
 
 ### How an evaluation is judged
 
@@ -24,7 +24,7 @@ The three polished runs of the procedure (`proc_r1`, `proc_r2`, `proc_r3`) were 
 
 ### How to run
 
-`scripts/submit_all.sh` submits this step as its last job (`jobs/09_summary.sbatch`), which runs the five scripts below and the validation of step 10 in order. By hand, from the workflow folder:
+`scripts/submit_all.sh` submits this step as its last job (`jobs/09_summary.sbatch`), which runs the five scripts below and the validation of a rerun (step 11) in order. By hand, from the workflow folder:
 
 ```bash
 cd $HW

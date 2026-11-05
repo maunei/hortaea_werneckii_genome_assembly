@@ -1,4 +1,4 @@
-## Step 01. Input files and their checksums
+## Step 3. Input files and their checksums
 
 ### What is checked and why
 
