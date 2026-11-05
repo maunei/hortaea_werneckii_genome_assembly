@@ -3319,10 +3319,10 @@ The programs are not part of the workflow. `envs/software.md` lists the ten envi
 
 If you use this workflow or the assembly Hw 2.1, please cite this repository and the paper that produced the sequencing reads. GitHub shows a button "Cite this repository" from the file `CITATION.cff`.
 
-1. Neira, M. (2026). *Hortaea werneckii genome assembly Hw 2.1: a reproducible workflow.* Software, version 1.0.3. https://github.com/maunei/hortaea_werneckii_genome_assembly
+1. Neira, M. (2026). *Hortaea werneckii genome assembly Hw 2.1: a reproducible workflow.* Software, version 1.0.4. https://github.com/maunei/hortaea_werneckii_genome_assembly
 2. Sinha, S. et al. Insight into the recent genome duplication of the halophilic yeast *Hortaea werneckii*: combining an improved genome with gene expression and chromatin structure. *G3* 7, 2015-2022 (2017). https://doi.org/10.1534/g3.117.040691
 
-Versions. The release v1.0 holds the assembly file `Hw2.1.fasta.gz`; the assembly is the same in every version. Version 1.0.3 changes the documentation only (this README, the files in `docs/`, and the overview figure with its script `scripts/09_workflow_figure.py`); the job files and the other scripts are those of version 1.0.2. The steps of this README are numbered 0 to 11, which differs from the numbering of the README of version 1.0.2 and earlier versions. The second complete analysis (section 7) was run with version 1.0.2; version 1.0.3 was not run again from start to end, but its tests and its overview figure were run on the results of that analysis.
+Versions. The release v1.0 holds the assembly file `Hw2.1.fasta.gz`; the assembly is the same in every version. Versions 1.0.3 and 1.0.4 change the documentation (this README, the files in `docs/`, and the overview figure with its script `scripts/09_workflow_figure.py`) and the tests (the test runner puts its temporary folders on the local disk of the node, the time limits of the tests only stop a test that hangs, and the test of the locks of the downloader no longer measures seconds); the job files and the other scripts are those of version 1.0.2. The steps of this README are numbered 0 to 11, which differs from the numbering of the README of version 1.0.2 and earlier versions. The second complete analysis (section 7) was run with version 1.0.2; versions 1.0.3 and 1.0.4 were not run again from start to end, but their tests and their overview figure were run on the results of that analysis.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

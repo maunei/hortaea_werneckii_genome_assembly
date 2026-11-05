@@ -1,7 +1,7 @@
 # Tests of the workflow code
 
 These tests check the scripts of the workflow without running the analysis: they need only Bash, Python 3 (standard library) and, for two of them, the
-Python of the environment `04_probe`. They run in a few seconds and change nothing outside a temporary folder.
+Python of the environment `04_probe`. They run in a few seconds and change nothing outside a temporary folder. When the variable `SLURM_TMPDIR` is set (inside a cluster job), `run_tests.sh` puts that folder on the local disk of the node: on a shared disk the many small files of the tests can be thousands of times slower and exceed the time limits of the tests (a command of a test may take up to 120 seconds; the limit only stops a test that hangs).
 
     bash tests/run_tests.sh            # all tests; prints PASS or FAIL for each
     bash tests/run_tests.sh t03        # the test t03 only (t03_settings.sh also works); fx03 runs the tests of that family; 03 runs both

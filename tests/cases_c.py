@@ -28,7 +28,7 @@ def fx25():
  exe(r/'bin/zcat','exec python3 -S "'+str(mock)+'" "$@"\n')
  calls=W/'decompressors';calls.mkdir();e=renv(r,CALL_DIR=calls)
  ps=[subprocess.Popen(['bash',str(r/'scripts/01_prepare_hw2.sh')],env=e,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True) for _ in range(2)]
- results=[p.communicate(timeout=15)[0] for p in ps];inodes=[f.read_text() for f in calls.iterdir()]
+ results=[p.communicate(timeout=120)[0] for p in ps];inodes=[f.read_text() for f in calls.iterdir()]
  check(len(inodes)==2 and len(set(inodes))==2 and all(p.returncode==0 for p in ps),'concurrent preparations actually ran with distinct temporary output inodes')
  (r/'bin/zcat').unlink()
  write(src,'bad gzip');p=run(['bash',r/'scripts/01_prepare_hw2.sh'],renv(r),r)

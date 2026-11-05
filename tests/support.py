@@ -21,7 +21,7 @@ def env(**kw):
         if k.startswith(('HW_','SLURM_')) or k in ('HW','RESULTS','WORK','ENVS','DBS','INPUT','LOGS_BASE','LEDGER','DRYRUN','CHECK','FORCE','PY','ASM','FASTA','READS','THREADS','R1','R2','MAMBA','OUT','OUTDIR','MAPDIR','OUTNAME','RAW','READS_TAG','RES_OUT','BIG_OUT','PB_READS','RNA_DIR','RNA_RUN','RUN','GROUP','NEEDED','EXPECTED','DEPTH_DIR','PYTHONPATH','PYTHONHOME'):e.pop(k,None)
     e.update(PYTHONDONTWRITEBYTECODE='1',TMPDIR=str(W),MPLCONFIGDIR=str(W/'mpl'))
     e.update({k:str(v) for k,v in kw.items()});return e
-def run(args,e=None,cwd=None,timeout=15):
+def run(args,e=None,cwd=None,timeout=120):
     try:return subprocess.run([str(a) for a in args],env=e or env(),cwd=cwd or W,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=timeout)
     except subprocess.TimeoutExpired as ex:raise RuntimeError('test command exceeded offline timeout: '+str(args)) from ex
 

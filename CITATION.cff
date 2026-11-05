@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use this workflow or the assembly Hw 2.1, please cite it as below and the paper that produced the sequencing reads."
 title: "Hortaea werneckii genome assembly Hw 2.1: a reproducible workflow"
 type: software
-version: "1.0.3"
+version: "1.0.4"
 date-released: "2026-11-05"
 license: MIT
 repository-code: "https://github.com/maunei/hortaea_werneckii_genome_assembly"

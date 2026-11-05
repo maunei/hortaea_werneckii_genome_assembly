@@ -29,7 +29,7 @@ def fx51():
    time.sleep(.01)
   b=run(['bash',r/'setup_and_run_all.sh','run'],e,r);print('second',b.returncode,b.stdout)
   check(b.returncode!=0 and not (r/'calls').exists() and not (r/'cancels').exists(),'second stage run refuses while first actually holds submission lock')
-  write(r/'release','yes');output=a.communicate(timeout=15)[0];check(a.returncode==0 and len((r/'calls').read_text().splitlines())==97,'first submitter finishes its actual mocked submissions')
+  write(r/'release','yes');output=a.communicate(timeout=120)[0];check(a.returncode==0 and len((r/'calls').read_text().splitlines())==97,'first submitter finishes its actual mocked submissions')
   (r/'calls').unlink();p=run(['bash',r/'setup_and_run_all.sh','run'],e,r);check(p.returncode==0 and len((r/'calls').read_text().splitlines())==97,'lock is released when first stage-run process exits')
  finally:
   write(r/'release','yes')
@@ -52,7 +52,7 @@ def fx52():
    if time.monotonic()>end:raise RuntimeError('second fetch made no progress')
    time.sleep(.01)
   check(part.exists(),'second fetch preserves the active first temporary file')
-  write(W/'release','yes');ao=a.communicate(timeout=15)[0];bo=b.communicate(timeout=15)[0];print('first',a.returncode,ao,'second',b.returncode,bo);check(a.returncode==0 and b.returncode==0 and (d/'data').read_text()=='payload\n','both fetches succeed and retain installed input')
+  write(W/'release','yes');ao=a.communicate(timeout=120)[0];bo=b.communicate(timeout=120)[0];print('first',a.returncode,ao,'second',b.returncode,bo);check(a.returncode==0 and b.returncode==0 and (d/'data').read_text()=='payload\n','both fetches succeed and retain installed input')
   p=run(['bash',script],dict(e,ACTOR='B',ATTEMPT=W/'attempt-B',DEST=d/'bad',CURL_FAIL='yes'));check(p.returncode==6 and not (d/'bad').exists(),'download failure remains fatal after locking')
  finally:
   write(W/'release','yes')
