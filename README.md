@@ -42,12 +42,15 @@ What is needed: a computer cluster with the SLURM job scheduler, micromamba or c
 4. **When the analysis has finished** (one message arrives if you asked for messages, saying COMPLETED, or FAILED if a job of the analysis did not finish; `squeue -u $USER` shows nothing), the results are in `results/`: the assembly Hw 2.1 in `results/assembly/`, the verdict on the five evaluations in `results/09_summary/verdict.tsv` and the comparison with the first analysis in `results/10_validation/`.
 
 ```
-git clone https://github.com/maunei/hortaea_werneckii_genome_assembly.git
+git clone \
+    https://github.com/maunei/hortaea_werneckii_genome_assembly.git
 cd hortaea_werneckii_genome_assembly
 # edit settings.yaml
 bash setup_and_run_all.sh all > run.log 2>&1 &
-tail -f run.log        # the messages of the script (Ctrl-C stops tail, not the run)
-squeue -u $USER        # the jobs
+# the messages of the script (Ctrl-C stops tail, not the run)
+tail -f run.log
+# the jobs
+squeue -u $USER
 ```
 
 <details><summary>The stages one by one (to run a part, or to repeat after a problem)</summary>
@@ -980,108 +983,265 @@ Each step below can be run on its own, in the order given. Every code block is a
 
 <details><summary>Printout of DRYRUN=1 bash scripts/submit_all.sh: the commands that submit_all.sh runs, in order</summary>
 
-Every line is a job submission; `<name>` stands for the number of the job of that name, which the dependency (`--dependency=afterok:...`) waits for. The last job is the summary.
+Every line is a job submission; `<name>` stands for the number of the job of that name, which the dependency (`--dependency=afterok:...`) waits for. The last job is the summary, which waits for all the other jobs (its line names them as one group, `<all_other_jobs>`, instead of one by one, 96 jobs).
 
 ```
 bash scripts/01_prepare_hw2.sh
 sbatch  jobs/01_check_inputs.sbatch
-sbatch --dependency=afterok:<check_inputs> --array=0-4 jobs/02_pacbio_reads.sbatch
+sbatch --dependency=afterok:<check_inputs> --array=0-4 \
+    jobs/02_pacbio_reads.sbatch
 sbatch --dependency=afterok:<pacbio> jobs/02_merge_reads.sbatch
 sbatch --dependency=afterok:<merge> jobs/02_compare_deposited.sbatch
 sbatch  jobs/02_screen_db_index.sbatch
-sbatch --dependency=afterok:<merge>:<dbindex> jobs/02_screen_reads.sbatch
-sbatch --dependency=afterok:<check_inputs> --export=ALL,RUN=SRR5086621,GROUP=rna,EXPECTED=3333452 --time=01:00:00 --cpus-per-task=8 jobs/03_convert.sbatch
-sbatch --dependency=afterok:<check_inputs> --export=ALL,RUN=SRR5086622,GROUP=rna,EXPECTED=175019208 --time=08:00:00 --cpus-per-task=16 jobs/03_convert.sbatch
-sbatch --dependency=afterok:<check_inputs> --export=ALL,RUN=SRR866616,GROUP=illumina2013,EXPECTED=37667637 --time=04:00:00 --cpus-per-task=16 jobs/03_convert.sbatch
-sbatch --dependency=afterok:<conv_miseq>:<conv_hiseq>:<conv_ill> jobs/03_qc.sbatch
-sbatch --dependency=afterok:<screen_reads> --export=ALL,RUN=r1,THREADS=16 jobs/04_procedure.sbatch
-sbatch --dependency=afterok:<screen_reads> --export=ALL,RUN=r2,THREADS=12 --cpus-per-task=12 jobs/04_procedure.sbatch
-sbatch --dependency=afterok:<screen_reads> --export=ALL,RUN=r3,THREADS=8 --cpus-per-task=8 jobs/04_procedure.sbatch
-sbatch --dependency=afterok:<screen_reads> jobs/04_control_canu.sbatch
-sbatch --dependency=afterok:<screen_reads> jobs/04_control_flye.sbatch
-sbatch --dependency=afterok:<proc_r1> --export=ALL,RAW=proc_r1_raw,OUTNAME=proc_r1,THREADS=16 --cpus-per-task=16 jobs/05_align_subreads.sbatch
-sbatch --dependency=afterok:<align_r1> --export=ALL,RAW=proc_r1_raw,OUTNAME=proc_r1,THREADS=32 --cpus-per-task=32 jobs/05_polish.sbatch
-sbatch --dependency=afterok:<polish_r1> --export=ALL,OUTNAME=proc_r1 jobs/05_remove_contaminant_contigs.sbatch
-sbatch --dependency=afterok:<proc_r2> --export=ALL,RAW=proc_r2_raw,OUTNAME=proc_r2,THREADS=12 --cpus-per-task=12 jobs/05_align_subreads.sbatch
-sbatch --dependency=afterok:<align_r2> --export=ALL,RAW=proc_r2_raw,OUTNAME=proc_r2,THREADS=24 --cpus-per-task=24 jobs/05_polish.sbatch
-sbatch --dependency=afterok:<polish_r2> --export=ALL,OUTNAME=proc_r2 jobs/05_remove_contaminant_contigs.sbatch
-sbatch --dependency=afterok:<proc_r3> --export=ALL,RAW=proc_r3_raw,OUTNAME=proc_r3,THREADS=8 --cpus-per-task=8 jobs/05_align_subreads.sbatch
-sbatch --dependency=afterok:<align_r3> --export=ALL,RAW=proc_r3_raw,OUTNAME=proc_r3,THREADS=16 --cpus-per-task=16 jobs/05_polish.sbatch
-sbatch --dependency=afterok:<polish_r3> --export=ALL,OUTNAME=proc_r3 jobs/05_remove_contaminant_contigs.sbatch
-sbatch --dependency=afterok:<ctrl_canu> --export=ALL,RAW=ctrl_canu,OUTNAME=ctrl_canu_quiver jobs/05_align_subreads.sbatch
-sbatch --dependency=afterok:<align_ctrl_canu> --export=ALL,RAW=ctrl_canu,OUTNAME=ctrl_canu_quiver jobs/05_polish.sbatch
-sbatch --dependency=afterok:<polish_ctrl_canu> --export=ALL,OUTNAME=ctrl_canu_quiver jobs/05_remove_contaminant_contigs.sbatch
-sbatch --dependency=afterok:<ctrl_flye> --export=ALL,RAW=ctrl_flye,OUTNAME=ctrl_flye_quiver jobs/05_align_subreads.sbatch
-sbatch --dependency=afterok:<align_ctrl_flye> --export=ALL,RAW=ctrl_flye,OUTNAME=ctrl_flye_quiver jobs/05_polish.sbatch
-sbatch --dependency=afterok:<polish_ctrl_flye> --export=ALL,OUTNAME=ctrl_flye_quiver jobs/05_remove_contaminant_contigs.sbatch
-sbatch --dependency=afterok:<conv_miseq>:<conv_hiseq> jobs/06_trinity_denovo.sbatch
-sbatch --dependency=afterok:<check_inputs> jobs/07_genbank_files.sbatch
-sbatch --dependency=afterok:<screen_reads> --export=ALL,ASM=hw2 jobs/07_mito.sbatch
-sbatch --dependency=afterok:<genbank>:<mito_hw2> jobs/07_the22.sbatch
+sbatch --dependency=afterok:<merge>:<dbindex> \
+    jobs/02_screen_reads.sbatch
+sbatch --dependency=afterok:<check_inputs> \
+    --export=ALL,RUN=SRR5086621,GROUP=rna,EXPECTED=3333452 \
+    --time=01:00:00 --cpus-per-task=8 jobs/03_convert.sbatch
+sbatch --dependency=afterok:<check_inputs> \
+    --export=ALL,RUN=SRR5086622,GROUP=rna,EXPECTED=175019208 \
+    --time=08:00:00 --cpus-per-task=16 jobs/03_convert.sbatch
+sbatch --dependency=afterok:<check_inputs> \
+    --export=ALL,RUN=SRR866616,GROUP=illumina2013,EXPECTED=37667637 \
+    --time=04:00:00 --cpus-per-task=16 jobs/03_convert.sbatch
+sbatch --dependency=afterok:<conv_miseq>:<conv_hiseq>:<conv_ill> \
+    jobs/03_qc.sbatch
+sbatch --dependency=afterok:<screen_reads> \
+    --export=ALL,RUN=r1,THREADS=16 jobs/04_procedure.sbatch
+sbatch --dependency=afterok:<screen_reads> \
+    --export=ALL,RUN=r2,THREADS=12 --cpus-per-task=12 \
+    jobs/04_procedure.sbatch
+sbatch --dependency=afterok:<screen_reads> \
+    --export=ALL,RUN=r3,THREADS=8 --cpus-per-task=8 \
+    jobs/04_procedure.sbatch
+sbatch --dependency=afterok:<screen_reads> \
+    jobs/04_control_canu.sbatch
+sbatch --dependency=afterok:<screen_reads> \
+    jobs/04_control_flye.sbatch
+sbatch --dependency=afterok:<proc_r1> \
+    --export=ALL,RAW=proc_r1_raw,OUTNAME=proc_r1,THREADS=16 \
+    --cpus-per-task=16 jobs/05_align_subreads.sbatch
+sbatch --dependency=afterok:<align_r1> \
+    --export=ALL,RAW=proc_r1_raw,OUTNAME=proc_r1,THREADS=32 \
+    --cpus-per-task=32 jobs/05_polish.sbatch
+sbatch --dependency=afterok:<polish_r1> \
+    --export=ALL,OUTNAME=proc_r1 \
+    jobs/05_remove_contaminant_contigs.sbatch
+sbatch --dependency=afterok:<proc_r2> \
+    --export=ALL,RAW=proc_r2_raw,OUTNAME=proc_r2,THREADS=12 \
+    --cpus-per-task=12 jobs/05_align_subreads.sbatch
+sbatch --dependency=afterok:<align_r2> \
+    --export=ALL,RAW=proc_r2_raw,OUTNAME=proc_r2,THREADS=24 \
+    --cpus-per-task=24 jobs/05_polish.sbatch
+sbatch --dependency=afterok:<polish_r2> \
+    --export=ALL,OUTNAME=proc_r2 \
+    jobs/05_remove_contaminant_contigs.sbatch
+sbatch --dependency=afterok:<proc_r3> \
+    --export=ALL,RAW=proc_r3_raw,OUTNAME=proc_r3,THREADS=8 \
+    --cpus-per-task=8 jobs/05_align_subreads.sbatch
+sbatch --dependency=afterok:<align_r3> \
+    --export=ALL,RAW=proc_r3_raw,OUTNAME=proc_r3,THREADS=16 \
+    --cpus-per-task=16 jobs/05_polish.sbatch
+sbatch --dependency=afterok:<polish_r3> \
+    --export=ALL,OUTNAME=proc_r3 \
+    jobs/05_remove_contaminant_contigs.sbatch
+sbatch --dependency=afterok:<ctrl_canu> \
+    --export=ALL,RAW=ctrl_canu,OUTNAME=ctrl_canu_quiver \
+    jobs/05_align_subreads.sbatch
+sbatch --dependency=afterok:<align_ctrl_canu> \
+    --export=ALL,RAW=ctrl_canu,OUTNAME=ctrl_canu_quiver \
+    jobs/05_polish.sbatch
+sbatch --dependency=afterok:<polish_ctrl_canu> \
+    --export=ALL,OUTNAME=ctrl_canu_quiver \
+    jobs/05_remove_contaminant_contigs.sbatch
+sbatch --dependency=afterok:<ctrl_flye> \
+    --export=ALL,RAW=ctrl_flye,OUTNAME=ctrl_flye_quiver \
+    jobs/05_align_subreads.sbatch
+sbatch --dependency=afterok:<align_ctrl_flye> \
+    --export=ALL,RAW=ctrl_flye,OUTNAME=ctrl_flye_quiver \
+    jobs/05_polish.sbatch
+sbatch --dependency=afterok:<polish_ctrl_flye> \
+    --export=ALL,OUTNAME=ctrl_flye_quiver \
+    jobs/05_remove_contaminant_contigs.sbatch
+sbatch --dependency=afterok:<conv_miseq>:<conv_hiseq> \
+    jobs/06_trinity_denovo.sbatch
+sbatch --dependency=afterok:<check_inputs> \
+    jobs/07_genbank_files.sbatch
+sbatch --dependency=afterok:<screen_reads> --export=ALL,ASM=hw2 \
+    jobs/07_mito.sbatch
+sbatch --dependency=afterok:<genbank>:<mito_hw2> \
+    jobs/07_the22.sbatch
 sbatch --dependency=afterok:<the22> jobs/07_depth_unscreened.sbatch
-sbatch --dependency=afterok:<proc_r1>:<conv_hiseq>:<screen_reads> --export=ALL,ASM=proc_r1_raw jobs/06_tests.sbatch
-sbatch --dependency=afterok:<proc_r1>:<trinity> --export=ALL,ASM=proc_r1_raw jobs/06_transcript_alignment.sbatch
-sbatch --dependency=afterok:<proc_r1>:<conv_ill> --export=ALL,ASM=proc_r1_raw,FASTA=$WORK/asm/proc_r1_raw/final.fasta jobs/08_illumina_accuracy.sbatch
-sbatch --dependency=afterok:<proc_r1>:<dbindex> --export=ALL,ASM=proc_r1_raw,FASTA=$WORK/asm/proc_r1_raw/final.fasta jobs/02_screen_contigs.sbatch
-sbatch --dependency=afterok:<remove_r1>:<conv_hiseq>:<screen_reads> --export=ALL,ASM=proc_r1 jobs/06_tests.sbatch
-sbatch --dependency=afterok:<remove_r1>:<trinity> --export=ALL,ASM=proc_r1 jobs/06_transcript_alignment.sbatch
-sbatch --dependency=afterok:<remove_r1>:<conv_ill> --export=ALL,ASM=proc_r1,FASTA=$WORK/asm/proc_r1/final.fasta jobs/08_illumina_accuracy.sbatch
-sbatch --dependency=afterok:<remove_r1>:<dbindex> --export=ALL,ASM=proc_r1,FASTA=$WORK/asm/proc_r1/final.fasta jobs/02_screen_contigs.sbatch
-sbatch --dependency=afterok:<remove_r2>:<conv_hiseq>:<screen_reads> --export=ALL,ASM=proc_r2 jobs/06_tests.sbatch
-sbatch --dependency=afterok:<remove_r2>:<trinity> --export=ALL,ASM=proc_r2 jobs/06_transcript_alignment.sbatch
-sbatch --dependency=afterok:<remove_r2>:<conv_ill> --export=ALL,ASM=proc_r2,FASTA=$WORK/asm/proc_r2/final.fasta jobs/08_illumina_accuracy.sbatch
-sbatch --dependency=afterok:<remove_r2>:<dbindex> --export=ALL,ASM=proc_r2,FASTA=$WORK/asm/proc_r2/final.fasta jobs/02_screen_contigs.sbatch
-sbatch --dependency=afterok:<remove_r3>:<conv_hiseq>:<screen_reads> --export=ALL,ASM=proc_r3 jobs/06_tests.sbatch
-sbatch --dependency=afterok:<remove_r3>:<trinity> --export=ALL,ASM=proc_r3 jobs/06_transcript_alignment.sbatch
-sbatch --dependency=afterok:<remove_r3>:<conv_ill> --export=ALL,ASM=proc_r3,FASTA=$WORK/asm/proc_r3/final.fasta jobs/08_illumina_accuracy.sbatch
-sbatch --dependency=afterok:<remove_r3>:<dbindex> --export=ALL,ASM=proc_r3,FASTA=$WORK/asm/proc_r3/final.fasta jobs/02_screen_contigs.sbatch
-sbatch --dependency=afterok:<ctrl_canu>:<conv_hiseq>:<screen_reads> --export=ALL,ASM=ctrl_canu jobs/06_tests.sbatch
-sbatch --dependency=afterok:<ctrl_canu>:<trinity> --export=ALL,ASM=ctrl_canu jobs/06_transcript_alignment.sbatch
-sbatch --dependency=afterok:<ctrl_canu>:<conv_ill> --export=ALL,ASM=ctrl_canu,FASTA=$WORK/asm/ctrl_canu/final.fasta jobs/08_illumina_accuracy.sbatch
-sbatch --dependency=afterok:<ctrl_canu>:<dbindex> --export=ALL,ASM=ctrl_canu,FASTA=$WORK/asm/ctrl_canu/final.fasta jobs/02_screen_contigs.sbatch
-sbatch --dependency=afterok:<ctrl_flye>:<conv_hiseq>:<screen_reads> --export=ALL,ASM=ctrl_flye jobs/06_tests.sbatch
-sbatch --dependency=afterok:<ctrl_flye>:<trinity> --export=ALL,ASM=ctrl_flye jobs/06_transcript_alignment.sbatch
-sbatch --dependency=afterok:<ctrl_flye>:<conv_ill> --export=ALL,ASM=ctrl_flye,FASTA=$WORK/asm/ctrl_flye/final.fasta jobs/08_illumina_accuracy.sbatch
-sbatch --dependency=afterok:<ctrl_flye>:<dbindex> --export=ALL,ASM=ctrl_flye,FASTA=$WORK/asm/ctrl_flye/final.fasta jobs/02_screen_contigs.sbatch
-sbatch --dependency=afterok:<remove_ctrl_canu>:<conv_hiseq>:<screen_reads> --export=ALL,ASM=ctrl_canu_quiver jobs/06_tests.sbatch
-sbatch --dependency=afterok:<remove_ctrl_canu>:<trinity> --export=ALL,ASM=ctrl_canu_quiver jobs/06_transcript_alignment.sbatch
-sbatch --dependency=afterok:<remove_ctrl_canu>:<conv_ill> --export=ALL,ASM=ctrl_canu_quiver,FASTA=$WORK/asm/ctrl_canu_quiver/final.fasta jobs/08_illumina_accuracy.sbatch
-sbatch --dependency=afterok:<remove_ctrl_canu>:<dbindex> --export=ALL,ASM=ctrl_canu_quiver,FASTA=$WORK/asm/ctrl_canu_quiver/final.fasta jobs/02_screen_contigs.sbatch
-sbatch --dependency=afterok:<remove_ctrl_flye>:<conv_hiseq>:<screen_reads> --export=ALL,ASM=ctrl_flye_quiver jobs/06_tests.sbatch
-sbatch --dependency=afterok:<remove_ctrl_flye>:<trinity> --export=ALL,ASM=ctrl_flye_quiver jobs/06_transcript_alignment.sbatch
-sbatch --dependency=afterok:<remove_ctrl_flye>:<conv_ill> --export=ALL,ASM=ctrl_flye_quiver,FASTA=$WORK/asm/ctrl_flye_quiver/final.fasta jobs/08_illumina_accuracy.sbatch
-sbatch --dependency=afterok:<remove_ctrl_flye>:<dbindex> --export=ALL,ASM=ctrl_flye_quiver,FASTA=$WORK/asm/ctrl_flye_quiver/final.fasta jobs/02_screen_contigs.sbatch
-sbatch --dependency=afterok:<check_inputs>:<conv_hiseq>:<screen_reads> --export=ALL,ASM=hw2 jobs/06_tests.sbatch
-sbatch --dependency=afterok:<check_inputs>:<trinity> --export=ALL,ASM=hw2 jobs/06_transcript_alignment.sbatch
-sbatch --dependency=afterok:<check_inputs>:<conv_ill> --export=ALL,ASM=hw2,FASTA=$WORK/asm/hw2/final.fasta jobs/08_illumina_accuracy.sbatch
-sbatch --dependency=afterok:<check_inputs>:<dbindex> --export=ALL,ASM=hw2,FASTA=$WORK/asm/hw2/final.fasta jobs/02_screen_contigs.sbatch
-sbatch --dependency=afterok:<acc_proc_r1_raw>:<acc_hw2> --export=ALL,ASM_A=proc_r1_raw,ASM_B=hw2 jobs/08_shared_differences.sbatch
-sbatch --dependency=afterok:<acc_proc_r1>:<acc_hw2> --export=ALL,ASM_A=proc_r1,ASM_B=hw2 jobs/08_shared_differences.sbatch
-sbatch --dependency=afterok:<remove_r1> --export=ALL,A_ASM=proc_r1,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
-sbatch --dependency=afterok:<remove_r1> --export=ALL,ASM=proc_r1 jobs/07_mito.sbatch
-sbatch --dependency=afterok:<remove_r1>:<genbank> --export=ALL,ASM=proc_r1 jobs/07_the22_vs_assembly.sbatch
-sbatch --dependency=afterok:<acc_proc_r2>:<acc_hw2> --export=ALL,ASM_A=proc_r2,ASM_B=hw2 jobs/08_shared_differences.sbatch
-sbatch --dependency=afterok:<remove_r2> --export=ALL,A_ASM=proc_r2,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
-sbatch --dependency=afterok:<remove_r2> --export=ALL,ASM=proc_r2 jobs/07_mito.sbatch
-sbatch --dependency=afterok:<remove_r2>:<genbank> --export=ALL,ASM=proc_r2 jobs/07_the22_vs_assembly.sbatch
-sbatch --dependency=afterok:<acc_proc_r3>:<acc_hw2> --export=ALL,ASM_A=proc_r3,ASM_B=hw2 jobs/08_shared_differences.sbatch
-sbatch --dependency=afterok:<remove_r3> --export=ALL,A_ASM=proc_r3,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
-sbatch --dependency=afterok:<remove_r3> --export=ALL,ASM=proc_r3 jobs/07_mito.sbatch
-sbatch --dependency=afterok:<remove_r3>:<genbank> --export=ALL,ASM=proc_r3 jobs/07_the22_vs_assembly.sbatch
-sbatch --dependency=afterok:<acc_ctrl_canu>:<acc_hw2> --export=ALL,ASM_A=ctrl_canu,ASM_B=hw2 jobs/08_shared_differences.sbatch
-sbatch --dependency=afterok:<ctrl_canu> --export=ALL,A_ASM=ctrl_canu,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
-sbatch --dependency=afterok:<ctrl_canu> --export=ALL,ASM=ctrl_canu jobs/07_mito.sbatch
-sbatch --dependency=afterok:<ctrl_canu>:<genbank> --export=ALL,ASM=ctrl_canu jobs/07_the22_vs_assembly.sbatch
-sbatch --dependency=afterok:<acc_ctrl_flye>:<acc_hw2> --export=ALL,ASM_A=ctrl_flye,ASM_B=hw2 jobs/08_shared_differences.sbatch
-sbatch --dependency=afterok:<ctrl_flye> --export=ALL,A_ASM=ctrl_flye,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
-sbatch --dependency=afterok:<ctrl_flye> --export=ALL,ASM=ctrl_flye jobs/07_mito.sbatch
-sbatch --dependency=afterok:<ctrl_flye>:<genbank> --export=ALL,ASM=ctrl_flye jobs/07_the22_vs_assembly.sbatch
-sbatch --dependency=afterok:<acc_ctrl_canu_quiver>:<acc_hw2> --export=ALL,ASM_A=ctrl_canu_quiver,ASM_B=hw2 jobs/08_shared_differences.sbatch
-sbatch --dependency=afterok:<remove_ctrl_canu> --export=ALL,A_ASM=ctrl_canu_quiver,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
-sbatch --dependency=afterok:<acc_ctrl_flye_quiver>:<acc_hw2> --export=ALL,ASM_A=ctrl_flye_quiver,ASM_B=hw2 jobs/08_shared_differences.sbatch
-sbatch --dependency=afterok:<remove_ctrl_flye> --export=ALL,A_ASM=ctrl_flye_quiver,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
-sbatch --dependency=afterany:<acc_ctrl_canu>:<acc_ctrl_canu_quiver>:<acc_ctrl_flye>:<acc_ctrl_flye_quiver>:<acc_hw2>:<acc_proc_r1>:<acc_proc_r1_raw>:<acc_proc_r2>:<acc_proc_r3>:<align_ctrl_canu>:<align_ctrl_flye>:<align_r1>:<align_r2>:<align_r3>:<check_inputs>:<compare_ctrl_canu>:<compare_ctrl_canu_quiver>:<compare_ctrl_flye>:<compare_ctrl_flye_quiver>:<compare_proc_r1>:<compare_proc_r2>:<compare_proc_r3>:<conv_hiseq>:<conv_ill>:<conv_miseq>:<ctrl_canu>:<ctrl_flye>:<dbindex>:<deposited>:<depth_unscreened>:<genbank>:<merge>:<mito_ctrl_canu>:<mito_ctrl_flye>:<mito_hw2>:<mito_proc_r1>:<mito_proc_r2>:<mito_proc_r3>:<pacbio>:<polish_ctrl_canu>:<polish_ctrl_flye>:<polish_r1>:<polish_r2>:<polish_r3>:<proc_r1>:<proc_r2>:<proc_r3>:<qc>:<remove_ctrl_canu>:<remove_ctrl_flye>:<remove_r1>:<remove_r2>:<remove_r3>:<scr_ctrl_canu>:<scr_ctrl_canu_quiver>:<scr_ctrl_flye>:<scr_ctrl_flye_quiver>:<scr_hw2>:<scr_proc_r1>:<scr_proc_r1_raw>:<scr_proc_r2>:<scr_proc_r3>:<screen_reads>:<shared_ctrl_canu>:<shared_ctrl_canu_quiver>:<shared_ctrl_flye>:<shared_ctrl_flye_quiver>:<shared_proc_r1>:<shared_proc_r1_raw>:<shared_proc_r2>:<shared_proc_r3>:<tests_ctrl_canu>:<tests_ctrl_canu_quiver>:<tests_ctrl_flye>:<tests_ctrl_flye_quiver>:<tests_hw2>:<tests_proc_r1>:<tests_proc_r1_raw>:<tests_proc_r2>:<tests_proc_r3>:<the22>:<the22_ctrl_canu>:<the22_ctrl_flye>:<the22_proc_r1>:<the22_proc_r2>:<the22_proc_r3>:<trans_ctrl_canu>:<trans_ctrl_canu_quiver>:<trans_ctrl_flye>:<trans_ctrl_flye_quiver>:<trans_hw2>:<trans_proc_r1>:<trans_proc_r1_raw>:<trans_proc_r2>:<trans_proc_r3>:<trinity> jobs/09_summary.sbatch
-Everything is submitted; the last job (09_summary) runs when all others have ended and writes results/09_summary/ and results/assembly/.
+sbatch --dependency=afterok:<proc_r1>:<conv_hiseq>:<screen_reads> \
+    --export=ALL,ASM=proc_r1_raw jobs/06_tests.sbatch
+sbatch --dependency=afterok:<proc_r1>:<trinity> \
+    --export=ALL,ASM=proc_r1_raw \
+    jobs/06_transcript_alignment.sbatch
+sbatch --dependency=afterok:<proc_r1>:<conv_ill> \
+    --export=ALL,ASM=proc_r1_raw,FASTA=$WORK/asm/proc_r1_raw/final.fasta \
+    jobs/08_illumina_accuracy.sbatch
+sbatch --dependency=afterok:<proc_r1>:<dbindex> \
+    --export=ALL,ASM=proc_r1_raw,FASTA=$WORK/asm/proc_r1_raw/final.fasta \
+    jobs/02_screen_contigs.sbatch
+sbatch \
+    --dependency=afterok:<remove_r1>:<conv_hiseq>:<screen_reads> \
+    --export=ALL,ASM=proc_r1 jobs/06_tests.sbatch
+sbatch --dependency=afterok:<remove_r1>:<trinity> \
+    --export=ALL,ASM=proc_r1 jobs/06_transcript_alignment.sbatch
+sbatch --dependency=afterok:<remove_r1>:<conv_ill> \
+    --export=ALL,ASM=proc_r1,FASTA=$WORK/asm/proc_r1/final.fasta \
+    jobs/08_illumina_accuracy.sbatch
+sbatch --dependency=afterok:<remove_r1>:<dbindex> \
+    --export=ALL,ASM=proc_r1,FASTA=$WORK/asm/proc_r1/final.fasta \
+    jobs/02_screen_contigs.sbatch
+sbatch \
+    --dependency=afterok:<remove_r2>:<conv_hiseq>:<screen_reads> \
+    --export=ALL,ASM=proc_r2 jobs/06_tests.sbatch
+sbatch --dependency=afterok:<remove_r2>:<trinity> \
+    --export=ALL,ASM=proc_r2 jobs/06_transcript_alignment.sbatch
+sbatch --dependency=afterok:<remove_r2>:<conv_ill> \
+    --export=ALL,ASM=proc_r2,FASTA=$WORK/asm/proc_r2/final.fasta \
+    jobs/08_illumina_accuracy.sbatch
+sbatch --dependency=afterok:<remove_r2>:<dbindex> \
+    --export=ALL,ASM=proc_r2,FASTA=$WORK/asm/proc_r2/final.fasta \
+    jobs/02_screen_contigs.sbatch
+sbatch \
+    --dependency=afterok:<remove_r3>:<conv_hiseq>:<screen_reads> \
+    --export=ALL,ASM=proc_r3 jobs/06_tests.sbatch
+sbatch --dependency=afterok:<remove_r3>:<trinity> \
+    --export=ALL,ASM=proc_r3 jobs/06_transcript_alignment.sbatch
+sbatch --dependency=afterok:<remove_r3>:<conv_ill> \
+    --export=ALL,ASM=proc_r3,FASTA=$WORK/asm/proc_r3/final.fasta \
+    jobs/08_illumina_accuracy.sbatch
+sbatch --dependency=afterok:<remove_r3>:<dbindex> \
+    --export=ALL,ASM=proc_r3,FASTA=$WORK/asm/proc_r3/final.fasta \
+    jobs/02_screen_contigs.sbatch
+sbatch \
+    --dependency=afterok:<ctrl_canu>:<conv_hiseq>:<screen_reads> \
+    --export=ALL,ASM=ctrl_canu jobs/06_tests.sbatch
+sbatch --dependency=afterok:<ctrl_canu>:<trinity> \
+    --export=ALL,ASM=ctrl_canu jobs/06_transcript_alignment.sbatch
+sbatch --dependency=afterok:<ctrl_canu>:<conv_ill> \
+    --export=ALL,ASM=ctrl_canu,FASTA=$WORK/asm/ctrl_canu/final.fasta \
+    jobs/08_illumina_accuracy.sbatch
+sbatch --dependency=afterok:<ctrl_canu>:<dbindex> \
+    --export=ALL,ASM=ctrl_canu,FASTA=$WORK/asm/ctrl_canu/final.fasta \
+    jobs/02_screen_contigs.sbatch
+sbatch \
+    --dependency=afterok:<ctrl_flye>:<conv_hiseq>:<screen_reads> \
+    --export=ALL,ASM=ctrl_flye jobs/06_tests.sbatch
+sbatch --dependency=afterok:<ctrl_flye>:<trinity> \
+    --export=ALL,ASM=ctrl_flye jobs/06_transcript_alignment.sbatch
+sbatch --dependency=afterok:<ctrl_flye>:<conv_ill> \
+    --export=ALL,ASM=ctrl_flye,FASTA=$WORK/asm/ctrl_flye/final.fasta \
+    jobs/08_illumina_accuracy.sbatch
+sbatch --dependency=afterok:<ctrl_flye>:<dbindex> \
+    --export=ALL,ASM=ctrl_flye,FASTA=$WORK/asm/ctrl_flye/final.fasta \
+    jobs/02_screen_contigs.sbatch
+sbatch \
+    --dependency=afterok:<remove_ctrl_canu>:<conv_hiseq>:<screen_reads> \
+    --export=ALL,ASM=ctrl_canu_quiver jobs/06_tests.sbatch
+sbatch --dependency=afterok:<remove_ctrl_canu>:<trinity> \
+    --export=ALL,ASM=ctrl_canu_quiver \
+    jobs/06_transcript_alignment.sbatch
+sbatch --dependency=afterok:<remove_ctrl_canu>:<conv_ill> \
+    --export=ALL,ASM=ctrl_canu_quiver,FASTA=$WORK/asm/ctrl_canu_quiver/final.fasta \
+    jobs/08_illumina_accuracy.sbatch
+sbatch --dependency=afterok:<remove_ctrl_canu>:<dbindex> \
+    --export=ALL,ASM=ctrl_canu_quiver,FASTA=$WORK/asm/ctrl_canu_quiver/final.fasta \
+    jobs/02_screen_contigs.sbatch
+sbatch \
+    --dependency=afterok:<remove_ctrl_flye>:<conv_hiseq>:<screen_reads> \
+    --export=ALL,ASM=ctrl_flye_quiver jobs/06_tests.sbatch
+sbatch --dependency=afterok:<remove_ctrl_flye>:<trinity> \
+    --export=ALL,ASM=ctrl_flye_quiver \
+    jobs/06_transcript_alignment.sbatch
+sbatch --dependency=afterok:<remove_ctrl_flye>:<conv_ill> \
+    --export=ALL,ASM=ctrl_flye_quiver,FASTA=$WORK/asm/ctrl_flye_quiver/final.fasta \
+    jobs/08_illumina_accuracy.sbatch
+sbatch --dependency=afterok:<remove_ctrl_flye>:<dbindex> \
+    --export=ALL,ASM=ctrl_flye_quiver,FASTA=$WORK/asm/ctrl_flye_quiver/final.fasta \
+    jobs/02_screen_contigs.sbatch
+sbatch \
+    --dependency=afterok:<check_inputs>:<conv_hiseq>:<screen_reads> \
+    --export=ALL,ASM=hw2 jobs/06_tests.sbatch
+sbatch --dependency=afterok:<check_inputs>:<trinity> \
+    --export=ALL,ASM=hw2 jobs/06_transcript_alignment.sbatch
+sbatch --dependency=afterok:<check_inputs>:<conv_ill> \
+    --export=ALL,ASM=hw2,FASTA=$WORK/asm/hw2/final.fasta \
+    jobs/08_illumina_accuracy.sbatch
+sbatch --dependency=afterok:<check_inputs>:<dbindex> \
+    --export=ALL,ASM=hw2,FASTA=$WORK/asm/hw2/final.fasta \
+    jobs/02_screen_contigs.sbatch
+sbatch --dependency=afterok:<acc_proc_r1_raw>:<acc_hw2> \
+    --export=ALL,ASM_A=proc_r1_raw,ASM_B=hw2 \
+    jobs/08_shared_differences.sbatch
+sbatch --dependency=afterok:<acc_proc_r1>:<acc_hw2> \
+    --export=ALL,ASM_A=proc_r1,ASM_B=hw2 \
+    jobs/08_shared_differences.sbatch
+sbatch --dependency=afterok:<remove_r1> \
+    --export=ALL,A_ASM=proc_r1,B_ASM=hw2 \
+    jobs/07_compare_adjudicate.sbatch
+sbatch --dependency=afterok:<remove_r1> --export=ALL,ASM=proc_r1 \
+    jobs/07_mito.sbatch
+sbatch --dependency=afterok:<remove_r1>:<genbank> \
+    --export=ALL,ASM=proc_r1 jobs/07_the22_vs_assembly.sbatch
+sbatch --dependency=afterok:<acc_proc_r2>:<acc_hw2> \
+    --export=ALL,ASM_A=proc_r2,ASM_B=hw2 \
+    jobs/08_shared_differences.sbatch
+sbatch --dependency=afterok:<remove_r2> \
+    --export=ALL,A_ASM=proc_r2,B_ASM=hw2 \
+    jobs/07_compare_adjudicate.sbatch
+sbatch --dependency=afterok:<remove_r2> --export=ALL,ASM=proc_r2 \
+    jobs/07_mito.sbatch
+sbatch --dependency=afterok:<remove_r2>:<genbank> \
+    --export=ALL,ASM=proc_r2 jobs/07_the22_vs_assembly.sbatch
+sbatch --dependency=afterok:<acc_proc_r3>:<acc_hw2> \
+    --export=ALL,ASM_A=proc_r3,ASM_B=hw2 \
+    jobs/08_shared_differences.sbatch
+sbatch --dependency=afterok:<remove_r3> \
+    --export=ALL,A_ASM=proc_r3,B_ASM=hw2 \
+    jobs/07_compare_adjudicate.sbatch
+sbatch --dependency=afterok:<remove_r3> --export=ALL,ASM=proc_r3 \
+    jobs/07_mito.sbatch
+sbatch --dependency=afterok:<remove_r3>:<genbank> \
+    --export=ALL,ASM=proc_r3 jobs/07_the22_vs_assembly.sbatch
+sbatch --dependency=afterok:<acc_ctrl_canu>:<acc_hw2> \
+    --export=ALL,ASM_A=ctrl_canu,ASM_B=hw2 \
+    jobs/08_shared_differences.sbatch
+sbatch --dependency=afterok:<ctrl_canu> \
+    --export=ALL,A_ASM=ctrl_canu,B_ASM=hw2 \
+    jobs/07_compare_adjudicate.sbatch
+sbatch --dependency=afterok:<ctrl_canu> --export=ALL,ASM=ctrl_canu \
+    jobs/07_mito.sbatch
+sbatch --dependency=afterok:<ctrl_canu>:<genbank> \
+    --export=ALL,ASM=ctrl_canu jobs/07_the22_vs_assembly.sbatch
+sbatch --dependency=afterok:<acc_ctrl_flye>:<acc_hw2> \
+    --export=ALL,ASM_A=ctrl_flye,ASM_B=hw2 \
+    jobs/08_shared_differences.sbatch
+sbatch --dependency=afterok:<ctrl_flye> \
+    --export=ALL,A_ASM=ctrl_flye,B_ASM=hw2 \
+    jobs/07_compare_adjudicate.sbatch
+sbatch --dependency=afterok:<ctrl_flye> --export=ALL,ASM=ctrl_flye \
+    jobs/07_mito.sbatch
+sbatch --dependency=afterok:<ctrl_flye>:<genbank> \
+    --export=ALL,ASM=ctrl_flye jobs/07_the22_vs_assembly.sbatch
+sbatch --dependency=afterok:<acc_ctrl_canu_quiver>:<acc_hw2> \
+    --export=ALL,ASM_A=ctrl_canu_quiver,ASM_B=hw2 \
+    jobs/08_shared_differences.sbatch
+sbatch --dependency=afterok:<remove_ctrl_canu> \
+    --export=ALL,A_ASM=ctrl_canu_quiver,B_ASM=hw2 \
+    jobs/07_compare_adjudicate.sbatch
+sbatch --dependency=afterok:<acc_ctrl_flye_quiver>:<acc_hw2> \
+    --export=ALL,ASM_A=ctrl_flye_quiver,ASM_B=hw2 \
+    jobs/08_shared_differences.sbatch
+sbatch --dependency=afterok:<remove_ctrl_flye> \
+    --export=ALL,A_ASM=ctrl_flye_quiver,B_ASM=hw2 \
+    jobs/07_compare_adjudicate.sbatch
+sbatch --dependency=afterany:<all_other_jobs> jobs/09_summary.sbatch
+Everything is submitted; the last job (09_summary) runs when all \
+    others have ended and writes results/09_summary/ and \
+    results/assembly/.
 ```
 
 </details>
@@ -1093,15 +1253,26 @@ Steps 0 to 3 and the run are done by `setup_and_run_all.sh` (see "Run everything
 **Commands, in the order in which they are run:**
 
 ```
-git clone https://github.com/maunei/hortaea_werneckii_genome_assembly.git    # or copy the folder
+# or copy the folder
+git clone \
+    https://github.com/maunei/hortaea_werneckii_genome_assembly.git
 cd hortaea_werneckii_genome_assembly
-export HW_WORK=/path/to/work          # about 200 GB: reads, alignments, assemblies
-export HW_ENVS=/path/to/environments  # the software environments of step 1
-export HW_DBS=/path/to/databases      # reference databases, about 90 GB
-ACCOUNT=<your scheduler account>      # fill in, for example the account of your group
-ADDRESS=<your e-mail address>         # fill in; job notices go there (to switch them off, delete the two --mail lines of each job file instead)
-sed -i "s/^#SBATCH --account=.*/#SBATCH --account=$ACCOUNT/; s/^#SBATCH --mail-user=.*/#SBATCH --mail-user=$ADDRESS/" jobs/*.sbatch
-source config/config.sh               # run this at the start of every session
+# about 200 GB: reads, alignments, assemblies
+export HW_WORK=/path/to/work
+# the software environments of step 1
+export HW_ENVS=/path/to/environments
+# reference databases, about 90 GB
+export HW_DBS=/path/to/databases
+# fill in, for example the account of your group
+ACCOUNT=<your scheduler account>
+# fill in; job notices go there (to switch them off, delete the two
+# --mail lines of each job file instead)
+ADDRESS=<your e-mail address>
+sed -i -e "s/^#SBATCH --account=.*/#SBATCH --account=$ACCOUNT/" -e \
+    "s/^#SBATCH --mail-user=.*/#SBATCH --mail-user=$ADDRESS/" \
+    jobs/*.sbatch
+# run this at the start of every session
+source config/config.sh
 ```
 
 **Expected output:** no output. `config/config.sh` defines the folders used by every script (`$WORK`, `$INPUT`, `$RESULTS`, ...) and the places of the programs.
@@ -1121,7 +1292,9 @@ The programs are not part of the workflow. They are created from lock files that
 **Commands, in the order in which they are run:**
 
 ```
-sbatch jobs/01_software.sbatch       # about 2 h 15 min; needs micromamba or conda on your path. On a computer without a scheduler:  bash scripts/make_environments.sh
+# about 2 h 15 min; needs micromamba or conda on your path. On a
+# computer without a scheduler:  bash scripts/make_environments.sh
+sbatch jobs/01_software.sbatch
 ```
 
 **Expected output:** ten environments in `$HW_ENVS` and the link that the older PacBio programs need (`libcompat`). The ten environments hold about 304,000 files (15 GB). A computer with a limit on the number of files in the scratch area may need a folder with a larger file allowance for `envs_dir`: the installation takes about 2 h 15 min, and in two tests from empty folders it gave package lists identical to those of the environments used for the reported run. An installation that was stopped can be started again: complete environments are kept, and an incomplete one (fewer packages than its lock file) is removed and made again.
@@ -1156,8 +1329,13 @@ Three reference sets are needed: the BUSCO lineage and the Swiss-Prot fungal pro
 **Commands, in the order in which they are run:**
 
 ```
-F=$(sbatch --parsable jobs/02_fetch_databases.sbatch)                           # BUSCO lineage fungi_odb10, Swiss-Prot fungal proteins and the reference collection of the screen (about 83 GB, about 30 minutes for the collection)
-I=$(sbatch --parsable --dependency=afterok:$F jobs/02_screen_db_index.sbatch)   # four minimap2 indexes; about 10 minutes
+# BUSCO lineage fungi_odb10, Swiss-Prot fungal proteins and the
+# reference collection of the screen (about 83 GB, about 30 minutes
+# for the collection)
+F=$(sbatch --parsable jobs/02_fetch_databases.sbatch)
+# four minimap2 indexes; about 10 minutes
+I=$(sbatch --parsable --dependency=afterok:$F \
+    jobs/02_screen_db_index.sbatch)
 ```
 
 **Expected output:** files in `$HW_DBS` and the source, version and checksum of every reference set recorded in `envs/databases.tsv`.
@@ -1194,11 +1372,17 @@ The input files are downloaded from the archives and checked: the checksums of t
 **Commands, in the order in which they are run:**
 
 ```
-F=                                                                # stays empty when the files are already in input/
-F=$(sbatch --parsable jobs/01_fetch_inputs.sbatch)               # skip this line if the files are already in input/
-CI=$(sbatch --parsable ${F:+--dependency=afterok:$F} jobs/01_check_inputs.sbatch)   # checksums of the files and of the archive records; the files of the NCBI record of Hw 2.0 that step 10 reads
+# stays empty when the files are already in input/
+F=
+# skip this line if the files are already in input/
+F=$(sbatch --parsable jobs/01_fetch_inputs.sbatch)
+# checksums of the files and of the archive records; the files of
+# the NCBI record of Hw 2.0 that step 10 reads
+CI=$(sbatch --parsable ${F:+--dependency=afterok:$F} \
+    jobs/01_check_inputs.sbatch)
 # when the download job has ended:
-bash scripts/01_prepare_hw2.sh                                    # Hw 2.0 as $WORK/asm/hw2/final.fasta
+# Hw 2.0 as $WORK/asm/hw2/final.fasta
+bash scripts/01_prepare_hw2.sh
 ```
 
 **Expected output:** `results/01_inputs/archive_check.tsv` with the status `ok` for every archive file and an empty `results/01_inputs/checksums_failed.txt`.
@@ -1226,14 +1410,17 @@ Tree of the files that are new after the commands of this step (the steps are ru
 
 ```
 results/01_inputs/   (2 files)
-├── archive_check.tsv   - one row for each archive file: checksum published by the archive, checksum found, status
-└── checksums_failed.txt   - empty when every file agrees with input/CHECKSUMS.md5
+├── archive_check.tsv   - one row for each archive file: checksum
+│       published by the archive, checksum found, status
+└── checksums_failed.txt   - empty when every file agrees with
+        input/CHECKSUMS.md5
 
 $HW_WORK/asm/   (1 file, 48M)
 └── hw2/
     └── final.fasta
 
-input/   (outside git: 75G; the repository itself holds CHECKSUMS.md5, manifests/ and hw2/github_commit.txt)
+input/   (outside git: 75G; the repository itself holds
+    CHECKSUMS.md5, manifests/ and hw2/github_commit.txt)
 ├── hw2/   (665 files, 793M)
 │   ├── github_Hortaea_werneckii/   (653 files, 762M)
 │   └── ncbi_GCA_002127715.1/   (11 files, 32M)
@@ -1265,9 +1452,14 @@ The raw `.bax.h5` files are converted to subreads with their quality tracks (one
 **Commands, in the order in which they are run:**
 
 ```
-A=$(sbatch --parsable ${CI:+--dependency=afterok:$CI} jobs/02_pacbio_reads.sbatch)                              # array of five tasks, one per run
-M=$(sbatch --parsable --dependency=afterok:$A jobs/02_merge_reads.sbatch)       # the two read sets
-sbatch --dependency=afterok:$M jobs/02_compare_deposited.sbatch                 # optional comparison with SRR5086624
+# array of five tasks, one per run
+A=$(sbatch --parsable ${CI:+--dependency=afterok:$CI} \
+    jobs/02_pacbio_reads.sbatch)
+# the two read sets
+M=$(sbatch --parsable --dependency=afterok:$A \
+    jobs/02_merge_reads.sbatch)
+# optional comparison with SRR5086624
+sbatch --dependency=afterok:$M jobs/02_compare_deposited.sbatch
 ```
 
 **Expected output:** `results/02_pacbio_reads/merged_seqkit_stats.tsv` (reads and bases of the two sets) and `deposited_fastq_comparison.json`.
@@ -1307,10 +1499,14 @@ Tree of the files that are new after the commands of this step (the steps are ru
 
 ```
 results/02_pacbio_reads/   (12 files)
-├── <run>_bax_metrics.json   (x5)   - well and read metrics of the run
-├── <run>_seqkit_stats.tsv   (x5)   - reads, bases and length statistics of the run
-├── deposited_fastq_comparison.json   - comparison with the file deposited by the authors (SRR5086624)
-└── merged_seqkit_stats.tsv   - statistics of the high-quality and the filtered read set
+├── <run>_bax_metrics.json   (x5)   - well and read metrics of the
+│       run
+├── <run>_seqkit_stats.tsv   (x5)   - reads, bases and length
+│       statistics of the run
+├── deposited_fastq_comparison.json   - comparison with the file
+│       deposited by the authors (SRR5086624)
+└── merged_seqkit_stats.tsv   - statistics of the high-quality and
+        the filtered read set
 
 $HW_WORK/pacbio_bam/   (20 files, 21G)
 └── {SRR5086620, SRR5086623, SRR5086626, SRR5086627, SRR5086628}/
@@ -1336,9 +1532,12 @@ Reads that match contaminant sequence and no fungal sequence are removed whole; 
 **Commands, in the order in which they are run:**
 
 ```
-bash scripts/fetch_screen_test_genomes.sh                  # optional: three small genomes for the self-test
-sbatch --dependency=afterok:$M:$I jobs/02_screen_selftest.sbatch   # optional; it samples the merged reads
-S=$(sbatch --parsable --dependency=afterok:$M:$I jobs/02_screen_reads.sbatch)
+# optional: three small genomes for the self-test
+bash scripts/fetch_screen_test_genomes.sh
+# optional; it samples the merged reads
+sbatch --dependency=afterok:$M:$I jobs/02_screen_selftest.sbatch
+S=$(sbatch --parsable --dependency=afterok:$M:$I \
+    jobs/02_screen_reads.sbatch)
 ```
 
 **Expected output:** `hq_clean.fastq` and `filtered_clean.fastq` in `$WORK/reads/pacbio/` (with the marker `READY_02`) and the tables of `results/02_pacbio_reads/screen/`.
@@ -1436,18 +1635,27 @@ Tree of the files that are new after the commands of this step (the steps are ru
 ```
 results/02_pacbio_reads/   (12 files)
 └── screen/
-    ├── counts_by_set.tsv   - reads kept and excluded by the contaminant screen, for each read set
+    ├── counts_by_set.tsv   - reads kept and excluded by the
+    │       contaminant screen, for each read set
     ├── criterion.txt   - the rule by which a read is excluded
-    ├── filtered_by_organism.tsv   - excluded reads by organism, filtered set
+    ├── filtered_by_organism.tsv   - excluded reads by organism,
+    │       filtered set
     ├── filtered_counts.tsv   - counts of the screen, filtered set
-    ├── filtered_criterion.json   - criterion and thresholds, filtered set
-    ├── filtered_excluded_reads.txt   - names of the excluded reads, filtered set
-    ├── filtered_per_read.tsv.gz   - screen result for every read of the filtered set
-    ├── hq_by_organism.tsv   - excluded reads by organism, high-quality set
+    ├── filtered_criterion.json   - criterion and thresholds,
+    │       filtered set
+    ├── filtered_excluded_reads.txt   - names of the excluded reads,
+    │       filtered set
+    ├── filtered_per_read.tsv.gz   - screen result for every read of
+    │       the filtered set
+    ├── hq_by_organism.tsv   - excluded reads by organism,
+    │       high-quality set
     ├── hq_counts.tsv   - counts of the screen, high-quality set
-    ├── hq_criterion.json   - criterion and thresholds, high-quality set
-    ├── hq_excluded_reads.txt   - names of the excluded reads, high-quality set
-    └── hq_per_read.tsv.gz   - screen result for every read of the high-quality set
+    ├── hq_criterion.json   - criterion and thresholds, high-quality
+    │       set
+    ├── hq_excluded_reads.txt   - names of the excluded reads,
+    │       high-quality set
+    └── hq_per_read.tsv.gz   - screen result for every read of the
+            high-quality set
 
 $HW_WORK/reads/pacbio/   (3 files, 8.7G)
 ├── READY_02
@@ -1486,9 +1694,15 @@ The archive files of the RNA-seq runs and of the Illumina run are converted to F
 **Commands, in the order in which they are run:**
 
 ```
-C1=$(sbatch --parsable ${CI:+--dependency=afterok:$CI} --export=ALL,RUN=SRR5086621,GROUP=rna,EXPECTED=3333452 --time=01:00:00 --cpus-per-task=8 jobs/03_convert.sbatch)
-C2=$(sbatch --parsable ${CI:+--dependency=afterok:$CI} --export=ALL,RUN=SRR5086622,GROUP=rna,EXPECTED=175019208 --time=08:00:00 --cpus-per-task=16 jobs/03_convert.sbatch)
-C3=$(sbatch --parsable ${CI:+--dependency=afterok:$CI} --export=ALL,RUN=SRR866616,GROUP=illumina2013,EXPECTED=37667637 --time=04:00:00 --cpus-per-task=16 jobs/03_convert.sbatch)
+C1=$(sbatch --parsable ${CI:+--dependency=afterok:$CI} \
+    --export=ALL,RUN=SRR5086621,GROUP=rna,EXPECTED=3333452 \
+    --time=01:00:00 --cpus-per-task=8 jobs/03_convert.sbatch)
+C2=$(sbatch --parsable ${CI:+--dependency=afterok:$CI} \
+    --export=ALL,RUN=SRR5086622,GROUP=rna,EXPECTED=175019208 \
+    --time=08:00:00 --cpus-per-task=16 jobs/03_convert.sbatch)
+C3=$(sbatch --parsable ${CI:+--dependency=afterok:$CI} \
+    --export=ALL,RUN=SRR866616,GROUP=illumina2013,EXPECTED=37667637 \
+    --time=04:00:00 --cpus-per-task=16 jobs/03_convert.sbatch)
 sbatch --dependency=afterok:$C1:$C2:$C3 jobs/03_qc.sbatch
 ```
 
@@ -1558,7 +1772,8 @@ results/03_rna_illumina/   (6 files)
 ├── fastp/
 │   └── <run>.json   (x3)   - fastp report of the run
 ├── multiqc_report.html   - MultiQC report of all runs
-├── qc_summary.tsv   - quality-control statistics of the RNA-seq and Illumina runs
+├── qc_summary.tsv   - quality-control statistics of the RNA-seq and
+│       Illumina runs
 └── read_counts.tsv   - read pairs of each run
 
 $HW_WORK/reads/rna/   (7 files, 19G)
@@ -1591,11 +1806,18 @@ Seeds, correction with BLASR and pbdagcon, and the Canu assembly, run three time
 **Commands, in the order in which they are run:**
 
 ```
-P1=$(sbatch --parsable --dependency=afterok:$S --export=ALL,RUN=r1,THREADS=16 jobs/04_procedure.sbatch)
-P2=$(sbatch --parsable --dependency=afterok:$S --export=ALL,RUN=r2,THREADS=12 --cpus-per-task=12 jobs/04_procedure.sbatch)
-P3=$(sbatch --parsable --dependency=afterok:$S --export=ALL,RUN=r3,THREADS=8 --cpus-per-task=8 jobs/04_procedure.sbatch)
-K1=$(sbatch --parsable --dependency=afterok:$S jobs/04_control_canu.sbatch)
-K2=$(sbatch --parsable --dependency=afterok:$S jobs/04_control_flye.sbatch)
+P1=$(sbatch --parsable --dependency=afterok:$S \
+    --export=ALL,RUN=r1,THREADS=16 jobs/04_procedure.sbatch)
+P2=$(sbatch --parsable --dependency=afterok:$S \
+    --export=ALL,RUN=r2,THREADS=12 --cpus-per-task=12 \
+    jobs/04_procedure.sbatch)
+P3=$(sbatch --parsable --dependency=afterok:$S \
+    --export=ALL,RUN=r3,THREADS=8 --cpus-per-task=8 \
+    jobs/04_procedure.sbatch)
+K1=$(sbatch --parsable --dependency=afterok:$S \
+    jobs/04_control_canu.sbatch)
+K2=$(sbatch --parsable --dependency=afterok:$S \
+    jobs/04_control_flye.sbatch)
 ```
 
 **Expected output:** the raw assemblies `$WORK/asm/proc_r1_raw/final.fasta` (and `proc_r2_raw`, `proc_r3_raw`), `$WORK/asm/ctrl_canu/final.fasta` and `$WORK/asm/ctrl_flye/final.fasta`; the statistics of every stage in `results/04_procedure/`.
@@ -1674,14 +1896,24 @@ For each of the three runs and the two controls: alignment of the screened subre
 **Commands, in the order in which they are run:**
 
 ```
-declare -A R      # job that makes the final assembly of each name
-# raw assembly   final name         threads: alignment, Quiver   job of step 7
-for spec in "proc_r1_raw proc_r1 16 32 $P1" "proc_r2_raw proc_r2 12 24 $P2" "proc_r3_raw proc_r3 8 16 $P3" \
-            "ctrl_canu ctrl_canu_quiver 16 32 $K1" "ctrl_flye ctrl_flye_quiver 16 32 $K2"; do
+# job that makes the final assembly of each name
+declare -A R
+# in each quoted group: raw assembly, final name, threads of the
+# alignment, threads of Quiver, job of step 7
+for spec in "proc_r1_raw proc_r1 16 32 $P1" \
+    "proc_r2_raw proc_r2 12 24 $P2" "proc_r3_raw proc_r3 8 16 $P3" \
+    "ctrl_canu ctrl_canu_quiver 16 32 $K1" \
+    "ctrl_flye ctrl_flye_quiver 16 32 $K2"; do
   set -- $spec
-  A=$(sbatch --parsable --dependency=afterok:$5 --export=ALL,RAW=$1,OUTNAME=$2,THREADS=$3 --cpus-per-task=$3 jobs/05_align_subreads.sbatch)
-  Q=$(sbatch --parsable --dependency=afterok:$A --export=ALL,RAW=$1,OUTNAME=$2,THREADS=$4 --cpus-per-task=$4 jobs/05_polish.sbatch)
-  R[$2]=$(sbatch --parsable --dependency=afterok:$Q --export=ALL,OUTNAME=$2 jobs/05_remove_contaminant_contigs.sbatch)
+  A=$(sbatch --parsable --dependency=afterok:$5 \
+      --export=ALL,RAW=$1,OUTNAME=$2,THREADS=$3 --cpus-per-task=$3 \
+      jobs/05_align_subreads.sbatch)
+  Q=$(sbatch --parsable --dependency=afterok:$A \
+      --export=ALL,RAW=$1,OUTNAME=$2,THREADS=$4 --cpus-per-task=$4 \
+      jobs/05_polish.sbatch)
+  R[$2]=$(sbatch --parsable --dependency=afterok:$Q \
+      --export=ALL,OUTNAME=$2 \
+      jobs/05_remove_contaminant_contigs.sbatch)
 done
 ```
 
@@ -1725,19 +1957,25 @@ Tree of the files that are new after the commands of this step (the steps are ru
 ```
 results/02_pacbio_reads/   (25 files)
 └── screen_contigs/
-    └── {ctrl_canu_quiver_polished, ctrl_flye_quiver_polished, proc_r1_polished, proc_r2_polished, proc_r3_polished}/
+    └── {ctrl_canu_quiver_polished, ctrl_flye_quiver_polished,
+            proc_r1_polished, proc_r2_polished, proc_r3_polished}/
         ├── <name>_by_organism.tsv   - excluded contigs by organism
         ├── <name>_counts.tsv   - contigs kept and excluded
-        ├── <name>_criterion.json   - criterion and thresholds of the contig screen
-        ├── <name>_excluded_contigs.txt   - names of the excluded contigs
-        └── <name>_per_contig.tsv.gz   - screen result for every contig
+        ├── <name>_criterion.json   - criterion and thresholds of
+        │       the contig screen
+        ├── <name>_excluded_contigs.txt   - names of the excluded
+        │       contigs
+        └── <name>_per_contig.tsv.gz   - screen result for every
+                contig
 
 results/05_polish/   (25 files)
 └── {ctrl_canu_quiver, ctrl_flye_quiver, proc_r1, proc_r2, proc_r3}/
     ├── assembly_stats.tsv   - contig statistics of the assembly
-    ├── assembly_stats_after_removal.tsv   - contig statistics after the removal of contaminant contigs
+    ├── assembly_stats_after_removal.tsv   - contig statistics after
+    │       the removal of contaminant contigs
     ├── quiver_changes.tsv   - bases changed by Quiver, by type
-    ├── removed_contigs.tsv   - contigs removed by the contaminant screen
+    ├── removed_contigs.tsv   - contigs removed by the contaminant
+    │       screen
     └── time_memory.txt   - time and memory of the stage
 
 $HW_WORK/asm/   (10 files, 489M)
@@ -1758,7 +1996,8 @@ $HW_WORK/polish/   (125 files, 53G)
     └── ref.lock
 
 $HW_WORK/screen_contigs/   (45 files, 134K)
-└── {ctrl_canu_quiver_polished, ctrl_flye_quiver_polished, proc_r1_polished, proc_r2_polished, proc_r3_polished}/
+└── {ctrl_canu_quiver_polished, ctrl_flye_quiver_polished,
+        proc_r1_polished, proc_r2_polished, proc_r3_polished}/
     ├── <name>_bacteria_1.minimap2.log
     ├── <name>_bacteria_1.paf.gz
     ├── <name>_bacteria_2.minimap2.log
@@ -1781,7 +2020,8 @@ The RNA-seq reads are assembled into transcripts once, without any genome; the s
 **Commands, in the order in which they are run:**
 
 ```
-T=$(sbatch --parsable --dependency=afterok:$C1:$C2 jobs/06_trinity_denovo.sbatch)
+T=$(sbatch --parsable --dependency=afterok:$C1:$C2 \
+    jobs/06_trinity_denovo.sbatch)
 ```
 
 **Expected output:** `$WORK/trinity/Trinity.fasta` and `results/06_transcripts/trinity_assembly.json`.
@@ -1812,33 +2052,65 @@ The five evaluations are run on Hw 2.0, on Hw 2.1 (three runs, and run 1 also be
 **Commands, in the order in which they are run:**
 
 ```
-dep() { local d=""; for j in "$@"; do [ -n "$j" ] && d="$d:$j"; done; [ -n "$d" ] && echo "--dependency=afterok$d"; }   # helper: dependency on the given jobs
+# helper: dependency on the given jobs
+dep() { local d=""; for j in "$@"; do [ -n "$j" ] && d="$d:$j"; \
+    done; [ -n "$d" ] && echo "--dependency=afterok$d"; }
 
 # (a) Hw 2.0 only
-G=$(sbatch --parsable $(dep $CI) jobs/07_genbank_files.sbatch)                                     # the files that carry Hw 2.0
-MH=$(sbatch --parsable --export=ALL,ASM=hw2 $(dep $S) jobs/07_mito.sbatch)             # mitochondrial genome of Hw 2.0
-T22=$(sbatch --parsable $(dep $G $MH) jobs/07_the22.sbatch)                             # the 22 sequences that the NCBI record leaves out
-sbatch $(dep $T22) jobs/07_depth_unscreened.sbatch                                      # depth of those 22 with and without the read screen
+# the files that carry Hw 2.0
+G=$(sbatch --parsable $(dep $CI) jobs/07_genbank_files.sbatch)
+# mitochondrial genome of Hw 2.0
+MH=$(sbatch --parsable --export=ALL,ASM=hw2 $(dep $S) \
+    jobs/07_mito.sbatch)
+# the 22 sequences that the NCBI record leaves out
+T22=$(sbatch --parsable $(dep $G $MH) jobs/07_the22.sbatch)
+# depth of those 22 with and without the read screen
+sbatch $(dep $T22) jobs/07_depth_unscreened.sbatch
 
-# (b) every assembly: evaluations 1 to 4, transcripts, evaluation 5 (accuracy), contig screen
-# the job that must have ended before the assembly exists: the procedure or control job for a raw assembly, the removal job for a polished one, the check of the inputs for Hw 2.0
-declare -A END=([hw2]=$CI [proc_r1_raw]=$P1 [proc_r1]=${R[proc_r1]} [proc_r2]=${R[proc_r2]} [proc_r3]=${R[proc_r3]} [ctrl_canu]=$K1 [ctrl_flye]=$K2 [ctrl_canu_quiver]=${R[ctrl_canu_quiver]} [ctrl_flye_quiver]=${R[ctrl_flye_quiver]})
+# (b) every assembly: evaluations 1 to 4, transcripts, evaluation 5
+# (accuracy), contig screen
+# the job that must have ended before the assembly exists: the
+# procedure or control job for a raw assembly, the removal job for a
+# polished one, the check of the inputs for Hw 2.0
+declare -A END=([hw2]=$CI [proc_r1_raw]=$P1 \
+    [proc_r1]=${R[proc_r1]} [proc_r2]=${R[proc_r2]} \
+    [proc_r3]=${R[proc_r3]} [ctrl_canu]=$K1 [ctrl_flye]=$K2 \
+    [ctrl_canu_quiver]=${R[ctrl_canu_quiver]} \
+    [ctrl_flye_quiver]=${R[ctrl_flye_quiver]})
 declare -A ACC
-for ASM in hw2 proc_r1_raw proc_r1 proc_r2 proc_r3 ctrl_canu ctrl_flye ctrl_canu_quiver ctrl_flye_quiver; do
-  sbatch $(dep ${END[$ASM]} $C2 $S) --export=ALL,ASM=$ASM jobs/06_tests.sbatch
-  sbatch $(dep ${END[$ASM]} $T) --export=ALL,ASM=$ASM jobs/06_transcript_alignment.sbatch
-  ACC[$ASM]=$(sbatch --parsable $(dep ${END[$ASM]} $C3) --export=ALL,ASM=$ASM,FASTA=$WORK/asm/$ASM/final.fasta jobs/08_illumina_accuracy.sbatch)
-  sbatch $(dep ${END[$ASM]} $I) --export=ALL,ASM=$ASM,FASTA=$WORK/asm/$ASM/final.fasta jobs/02_screen_contigs.sbatch
+for ASM in hw2 proc_r1_raw proc_r1 proc_r2 proc_r3 ctrl_canu \
+    ctrl_flye ctrl_canu_quiver ctrl_flye_quiver; do
+  sbatch $(dep ${END[$ASM]} $C2 $S) --export=ALL,ASM=$ASM \
+      jobs/06_tests.sbatch
+  sbatch $(dep ${END[$ASM]} $T) --export=ALL,ASM=$ASM \
+      jobs/06_transcript_alignment.sbatch
+  ACC[$ASM]=$(sbatch --parsable $(dep ${END[$ASM]} $C3) \
+      --export=ALL,ASM=$ASM,FASTA=$WORK/asm/$ASM/final.fasta \
+      jobs/08_illumina_accuracy.sbatch)
+  sbatch $(dep ${END[$ASM]} $I) \
+      --export=ALL,ASM=$ASM,FASTA=$WORK/asm/$ASM/final.fasta \
+      jobs/02_screen_contigs.sbatch
 done
 
-# (c) comparison of each assembly with Hw 2.0; mitochondrion and the 22 sequences in the new assemblies
-for ASM in proc_r1_raw proc_r1 proc_r2 proc_r3 ctrl_canu ctrl_flye ctrl_canu_quiver ctrl_flye_quiver; do
-  sbatch $(dep ${ACC[$ASM]} ${ACC[hw2]}) --export=ALL,ASM_A=$ASM,ASM_B=hw2 jobs/08_shared_differences.sbatch
-  [ $ASM = proc_r1_raw ] && continue                      # no pairwise comparison and no side analyses for the raw assembly of run 1
-  sbatch $(dep ${END[$ASM]}) --export=ALL,A_ASM=$ASM,B_ASM=hw2 jobs/07_compare_adjudicate.sbatch
-  case $ASM in *_quiver) continue;; esac                  # the mitochondrion and the 22 sequences are examined in the unpolished controls only
-  sbatch $(dep ${END[$ASM]}) --export=ALL,ASM=$ASM jobs/07_mito.sbatch
-  sbatch $(dep ${END[$ASM]} $G) --export=ALL,ASM=$ASM jobs/07_the22_vs_assembly.sbatch
+# (c) comparison of each assembly with Hw 2.0; mitochondrion and the
+# 22 sequences in the new assemblies
+for ASM in proc_r1_raw proc_r1 proc_r2 proc_r3 ctrl_canu ctrl_flye \
+    ctrl_canu_quiver ctrl_flye_quiver; do
+  sbatch $(dep ${ACC[$ASM]} ${ACC[hw2]}) \
+      --export=ALL,ASM_A=$ASM,ASM_B=hw2 \
+      jobs/08_shared_differences.sbatch
+  # no pairwise comparison and no side analyses for the raw assembly
+  # of run 1
+  [ $ASM = proc_r1_raw ] && continue
+  sbatch $(dep ${END[$ASM]}) --export=ALL,A_ASM=$ASM,B_ASM=hw2 \
+      jobs/07_compare_adjudicate.sbatch
+  # the mitochondrion and the 22 sequences are examined in the
+  # unpolished controls only
+  case $ASM in *_quiver) continue;; esac
+  sbatch $(dep ${END[$ASM]}) --export=ALL,ASM=$ASM \
+      jobs/07_mito.sbatch
+  sbatch $(dep ${END[$ASM]} $G) --export=ALL,ASM=$ASM \
+      jobs/07_the22_vs_assembly.sbatch
 done
 ```
 
@@ -2190,13 +2462,18 @@ The summary of the pair A = proc_r3 and B = hw2 shows 0.8747 of the differences 
 
 ```
 python3 scripts/07_synthetic_check.py make $WORK/synthetic_07
-sbatch --export=ALL,A_ASM=synA,B_ASM=synB,FASTA_A=$WORK/synthetic_07/A.fa,FASTA_B=$WORK/synthetic_07/B.fa,READS=$WORK/synthetic_07/reads.fastq,READS_TAG=synthetic,OUT=$WORK/synthetic_07/out jobs/07_compare_adjudicate.sbatch
+A_ASM=synA B_ASM=synB FASTA_A=$WORK/synthetic_07/A.fa \
+    FASTA_B=$WORK/synthetic_07/B.fa \
+    READS=$WORK/synthetic_07/reads.fastq READS_TAG=synthetic \
+    OUT=$WORK/synthetic_07/out sbatch --export=ALL \
+    jobs/07_compare_adjudicate.sbatch
 ```
 
 When that job has ended successfully, the check is run:
 
 ```
-python3 scripts/07_synthetic_check.py check $WORK/synthetic_07/out/disagreements.tsv
+python3 scripts/07_synthetic_check.py check \
+    $WORK/synthetic_07/out/disagreements.tsv
 ```
 
 The check prints one line for every planted difference and ends with status 0 when all are decided correctly. This check shows that the rules above do what they say; it does not show how they behave in the real, repetitive genome, where many differences sit in repeats and will be undecided.
@@ -2288,18 +2565,24 @@ Tree of the files that are new after the commands of this step (the steps are ru
 ```
 results/02_pacbio_reads/   (45 files)
 └── screen_contigs/
-    └── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
+    └── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver,
+            hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
         ├── <name>_by_organism.tsv   - excluded contigs by organism
         ├── <name>_counts.tsv   - contigs kept and excluded
-        ├── <name>_criterion.json   - criterion and thresholds of the contig screen
-        ├── <name>_excluded_contigs.txt   - names of the excluded contigs
-        └── <name>_per_contig.tsv.gz   - screen result for every contig
+        ├── <name>_criterion.json   - criterion and thresholds of
+        │       the contig screen
+        ├── <name>_excluded_contigs.txt   - names of the excluded
+        │       contigs
+        └── <name>_per_contig.tsv.gz   - screen result for every
+                contig
 
 results/06_tests/   (261 files)
-└── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
+└── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2,
+        proc_r1, proc_r1_raw, proc_r2, proc_r3}/
     ├── busco.json   - BUSCO counts
     ├── busco.tsv   - BUSCO result table
-    ├── busco_full_table.tsv   - BUSCO full table, one row for each BUSCO gene
+    ├── busco_full_table.tsv   - BUSCO full table, one row for each
+    │       BUSCO gene
     ├── busco_short_summary.txt   - BUSCO short summary
     ├── contiguity.json   - contiguity measures, as json
     ├── contiguity.tsv   - N50, L50, NG50, auN and contig counts
@@ -2308,11 +2591,15 @@ results/06_tests/   (261 files)
     ├── depth_1kb_windows.bed.gz   - depth in windows of 1 kb
     ├── depth_mosdepth_summary.txt   - mosdepth summary
     ├── miniprot.json   - protein alignment (miniprot) statistics
-    ├── miniprot_proteins.tsv.gz   - alignment of every Swiss-Prot fungal protein
-    ├── readback.json   - read-back measures (reads aligned, bases not spanned, discordant junctions)
-    ├── readback_discordant_junctions.tsv   - junctions where the two sides of a read land in different places
+    ├── miniprot_proteins.tsv.gz   - alignment of every Swiss-Prot
+    │       fungal protein
+    ├── readback.json   - read-back measures (reads aligned, bases
+    │       not spanned, discordant junctions)
+    ├── readback_discordant_junctions.tsv   - junctions where the
+    │       two sides of a read land in different places
     ├── readback_per_contig.tsv   - read-back for every contig
-    ├── readback_unspanned_gaps.tsv   - places inside contigs that no read crosses
+    ├── readback_unspanned_gaps.tsv   - places inside contigs that
+    │       no read crosses
     ├── redundancy.json   - false duplication measures
     ├── redundancy_classes.tsv   - redundancy classes
     ├── redundancy_histogram.tsv   - histogram of the redundancy
@@ -2321,15 +2608,18 @@ results/06_tests/   (261 files)
     ├── star.tsv   - RNA-seq read alignment (STAR), statistics
     ├── star_Log.final.out   - STAR final log
     ├── star_SJ.out.tab.gz   - splice junctions found by STAR
-    ├── summary.json   - all measures of this assembly (or comparison) in one file
+    ├── summary.json   - all measures of this assembly (or
+    │       comparison) in one file
     ├── summary.tsv   - all measures of this assembly in one table
     ├── telomeres.json   - telomere result, as json
     ├── telomeres.tsv   - telomeric repeats at contig ends
     └── timings.tsv   - time of each test
 
 results/06_transcripts/   (18 files)
-└── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
-    ├── summary.json   - all measures of this assembly (or comparison) in one file
+└── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2,
+        proc_r1, proc_r1_raw, proc_r2, proc_r3}/
+    ├── summary.json   - all measures of this assembly (or
+    │       comparison) in one file
     └── transcripts.tsv.gz   - alignment of every Trinity transcript
 
 results/07_comparator/   (81 files)
@@ -2339,17 +2629,21 @@ results/07_comparator/   (81 files)
 │   ├── differing_sequences.tsv
 │   ├── file_summary.tsv
 │   ├── only_in_one_file.tsv
-│   ├── summary.json   - all measures of this assembly (or comparison) in one file
+│   ├── summary.json   - all measures of this assembly (or
+│   │       comparison) in one file
 │   └── the22_ids.tsv
 ├── mito/
 │   └── {ctrl_canu, ctrl_flye, hw2, proc_r1, proc_r2, proc_r3}/
-│       ├── candidate_contigs.tsv   - candidate mitochondrial contigs
-│       ├── contigs_with_evidence.tsv   - contigs with mitochondrial evidence
+│       ├── candidate_contigs.tsv   - candidate mitochondrial
+│       │       contigs
+│       ├── contigs_with_evidence.tsv   - contigs with mitochondrial
+│       │       evidence
 │       ├── mito_contigs.tsv   - contigs that are mitochondrial
 │       ├── ncbi_mito_alignments.paf
 │       ├── ncbi_mito_vs_assembly.paf
 │       ├── ref_genome_alignments.paf
-│       ├── summary.json   - all measures of this assembly (or comparison) in one file
+│       ├── summary.json   - all measures of this assembly (or
+│       │       comparison) in one file
 │       └── tblastn_hits.tsv
 └── the22/
     ├── contaminant_screen/
@@ -2379,68 +2673,96 @@ results/07_comparator/   (81 files)
     ├── <name>_vs_hw2.tsv
     ├── <name>_vs_ncbi_mito.paf
     ├── depth_unscreened_and_screened_reads.tsv
-    └── summary.json   - all measures of this assembly (or comparison) in one file
+    └── summary.json   - all measures of this assembly (or
+            comparison) in one file
 
 results/07_compare/   (21 files)
-└── {ctrl_canu_quiver_vs_hw2, ctrl_canu_vs_hw2, ctrl_flye_quiver_vs_hw2, ctrl_flye_vs_hw2, proc_r1_vs_hw2, proc_r2_vs_hw2, proc_r3_vs_hw2}/
-    ├── alignment_stats.json   - alignment of the two assemblies, statistics
-    ├── disagreements.tsv   - every place where the two assemblies arrange the sequence differently, with the reads that support each side
-    └── summary.json   - all measures of this assembly (or comparison) in one file
+└── {ctrl_canu_quiver_vs_hw2, ctrl_canu_vs_hw2,
+        ctrl_flye_quiver_vs_hw2, ctrl_flye_vs_hw2, proc_r1_vs_hw2,
+        proc_r2_vs_hw2, proc_r3_vs_hw2}/
+    ├── alignment_stats.json   - alignment of the two assemblies,
+    │       statistics
+    ├── disagreements.tsv   - every place where the two assemblies
+    │       arrange the sequence differently, with the reads that
+    │       support each side
+    └── summary.json   - all measures of this assembly (or
+            comparison) in one file
 
 results/08_illumina_accuracy/   (104 files)
-├── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
+├── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2,
+│       proc_r1, proc_r1_raw, proc_r2, proc_r3}/
 │   ├── depth_limits.json   - depth limits used
-│   ├── differences.tsv   - every difference between the assembly and the Illumina reads
-│   ├── indel_lengths.tsv   - lengths of the insertions and deletions
+│   ├── differences.tsv   - every difference between the assembly
+│   │       and the Illumina reads
+│   ├── indel_lengths.tsv   - lengths of the insertions and
+│   │       deletions
 │   ├── per_contig.tsv   - accuracy of every contig
 │   ├── substitution_types.tsv   - counts of the substitution types
-│   ├── summary.json   - all measures of this assembly (or comparison) in one file
+│   ├── summary.json   - all measures of this assembly (or
+│   │       comparison) in one file
 │   ├── timing.tsv   - time of each analysis
 │   └── windows_10kb.tsv   - differences in windows of 10 kb
 └── shared/
     ├── ctrl_canu_quiver_vs_hw2/
-    │   ├── counts.tsv   - counts of the differences, shared and specific
+    │   ├── counts.tsv   - counts of the differences, shared and
+    │   │       specific
     │   ├── ctrl_canu_quiver_status.tsv
     │   ├── hw2_status.tsv
-    │   └── summary.json   - all measures of this assembly (or comparison) in one file
+    │   └── summary.json   - all measures of this assembly (or
+    │           comparison) in one file
     ├── ctrl_canu_vs_hw2/
-    │   ├── counts.tsv   - counts of the differences, shared and specific
+    │   ├── counts.tsv   - counts of the differences, shared and
+    │   │       specific
     │   ├── ctrl_canu_status.tsv
     │   ├── hw2_status.tsv
-    │   └── summary.json   - all measures of this assembly (or comparison) in one file
+    │   └── summary.json   - all measures of this assembly (or
+    │           comparison) in one file
     ├── ctrl_flye_quiver_vs_hw2/
-    │   ├── counts.tsv   - counts of the differences, shared and specific
+    │   ├── counts.tsv   - counts of the differences, shared and
+    │   │       specific
     │   ├── ctrl_flye_quiver_status.tsv
     │   ├── hw2_status.tsv
-    │   └── summary.json   - all measures of this assembly (or comparison) in one file
+    │   └── summary.json   - all measures of this assembly (or
+    │           comparison) in one file
     ├── ctrl_flye_vs_hw2/
-    │   ├── counts.tsv   - counts of the differences, shared and specific
+    │   ├── counts.tsv   - counts of the differences, shared and
+    │   │       specific
     │   ├── ctrl_flye_status.tsv
     │   ├── hw2_status.tsv
-    │   └── summary.json   - all measures of this assembly (or comparison) in one file
+    │   └── summary.json   - all measures of this assembly (or
+    │           comparison) in one file
     ├── proc_r1_raw_vs_hw2/
-    │   ├── counts.tsv   - counts of the differences, shared and specific
+    │   ├── counts.tsv   - counts of the differences, shared and
+    │   │       specific
     │   ├── hw2_status.tsv
     │   ├── proc_r1_raw_status.tsv
-    │   └── summary.json   - all measures of this assembly (or comparison) in one file
+    │   └── summary.json   - all measures of this assembly (or
+    │           comparison) in one file
     ├── proc_r1_vs_hw2/
-    │   ├── counts.tsv   - counts of the differences, shared and specific
+    │   ├── counts.tsv   - counts of the differences, shared and
+    │   │       specific
     │   ├── hw2_status.tsv
     │   ├── proc_r1_status.tsv
-    │   └── summary.json   - all measures of this assembly (or comparison) in one file
+    │   └── summary.json   - all measures of this assembly (or
+    │           comparison) in one file
     ├── proc_r2_vs_hw2/
-    │   ├── counts.tsv   - counts of the differences, shared and specific
+    │   ├── counts.tsv   - counts of the differences, shared and
+    │   │       specific
     │   ├── hw2_status.tsv
     │   ├── proc_r2_status.tsv
-    │   └── summary.json   - all measures of this assembly (or comparison) in one file
+    │   └── summary.json   - all measures of this assembly (or
+    │           comparison) in one file
     └── proc_r3_vs_hw2/
-        ├── counts.tsv   - counts of the differences, shared and specific
+        ├── counts.tsv   - counts of the differences, shared and
+        │       specific
         ├── hw2_status.tsv
         ├── proc_r3_status.tsv
-        └── summary.json   - all measures of this assembly (or comparison) in one file
+        └── summary.json   - all measures of this assembly (or
+                comparison) in one file
 
 $HW_WORK/screen_contigs/   (81 files, 259K)
-└── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
+└── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2,
+        proc_r1, proc_r1_raw, proc_r2, proc_r3}/
     ├── <name>_bacteria_1.minimap2.log
     ├── <name>_bacteria_1.paf.gz
     ├── <name>_bacteria_2.minimap2.log
@@ -2453,9 +2775,12 @@ $HW_WORK/screen_contigs/   (81 files, 259K)
 
 $HW_WORK/aln/   (64 files, 240M)
 ├── 06_transcripts/
-│   └── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
+│   └── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver,
+│           hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
 ├── 07_compare/
-│   └── {ctrl_canu_quiver_vs_hw2, ctrl_canu_vs_hw2, ctrl_flye_quiver_vs_hw2, ctrl_flye_vs_hw2, proc_r1_vs_hw2, proc_r2_vs_hw2, proc_r3_vs_hw2}/
+│   └── {ctrl_canu_quiver_vs_hw2, ctrl_canu_vs_hw2,
+│           ctrl_flye_quiver_vs_hw2, ctrl_flye_vs_hw2,
+│           proc_r1_vs_hw2, proc_r2_vs_hw2, proc_r3_vs_hw2}/
 └── 07_reads/
     ├── hq_clean_to_ctrl_canu.tsv.gz
     ├── hq_clean_to_ctrl_canu.tsv.gz.lock
@@ -2476,10 +2801,12 @@ $HW_WORK/aln/   (64 files, 240M)
 
 $HW_WORK/map/   (963 files, 38G)
 └── illumina2013/
-    └── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
+    └── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver,
+            hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
 
 $HW_WORK/tests/   (198 files, 11G)
-└── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2, proc_r1, proc_r1_raw, proc_r2, proc_r3}/
+└── {ctrl_canu, ctrl_canu_quiver, ctrl_flye, ctrl_flye_quiver, hw2,
+        proc_r1, proc_r1_raw, proc_r2, proc_r3}/
     ├── steps/
     ├── depth.mosdepth.global.dist.txt
     ├── depth.mosdepth.region.dist.txt
@@ -2496,7 +2823,8 @@ $HW_WORK/tests/   (198 files, 11G)
     └── star_<run>_SJ.out.tab
 
 $HW_WORK/07_comparator/   (228 files, 8.5G)
-├── {ctrl_canu, ctrl_flye, hw2, hw2_unscreened, proc_r1, proc_r2, proc_r3}/
+├── {ctrl_canu, ctrl_flye, hw2, hw2_unscreened, proc_r1, proc_r2,
+│       proc_r3}/
 │   ├── asm.lengths
 │   ├── depth.mosdepth.global.dist.txt
 │   ├── depth.mosdepth.region.dist.txt
@@ -2514,7 +2842,8 @@ $HW_WORK/07_comparator/   (228 files, 8.5G)
 │   ├── reads_used.txt
 │   ├── reads_vs_asm.bam
 │   └── reads_vs_asm.bam.bai
-├── {mito_ctrl_canu, mito_ctrl_flye, mito_hw2, mito_proc_r1, mito_proc_r2, mito_proc_r3}/
+├── {mito_ctrl_canu, mito_ctrl_flye, mito_hw2, mito_proc_r1,
+│       mito_proc_r2, mito_proc_r3}/
 │   ├── db.ndb
 │   ├── db.nhr
 │   ├── db.nin
@@ -2551,7 +2880,8 @@ $HW_WORK/07_comparator/   (228 files, 8.5G)
 │   ├── db22.nto
 │   ├── mdb.log
 │   └── ncbi_mito.fa
-└── {the22_vs_ctrl_canu, the22_vs_ctrl_flye, the22_vs_proc_r1, the22_vs_proc_r2, the22_vs_proc_r3}/
+└── {the22_vs_ctrl_canu, the22_vs_ctrl_flye, the22_vs_proc_r1,
+        the22_vs_proc_r2, the22_vs_proc_r3}/
     └── the22.fa
 ```
 
@@ -2614,7 +2944,9 @@ The usual variation of each kind of value is:
 
 ```
 cd $HW
-python3 scripts/10_validate.py check results     # after steps 7 to 11 have been rerun; give the results folder of the rerun
+# after steps 7 to 11 have been rerun; give the results folder of
+# the rerun
+python3 scripts/10_validate.py check results
 ```
 
 The report `results/10_validation/validation_report.txt` starts with a summary (how many values are within the usual variation, and whether the sequences of the assembly and the numbers of reads are the same), followed by one line per value; `results/10_validation/closeness.tsv` holds the same values as a table. When only some steps have been rerun, the values of the others are "not available".
@@ -2644,7 +2976,8 @@ results/09_summary/   (24 files)
 ├── measures.tsv   - every measure of every assembly
 ├── noise_scale.tsv   - run-to-run variation of each measure
 ├── qc_stats.tsv   - quality-control statistics of the data
-├── replicate_check.tsv   - checksums of the three runs (are they identical?)
+├── replicate_check.tsv   - checksums of the three runs (are they
+│       identical?)
 ├── resources_jobs.tsv   - time and memory of every job
 ├── resources_stages.tsv   - time of each timed stage
 ├── resources_totals.json   - core-hours by group
@@ -2653,12 +2986,15 @@ results/09_summary/   (24 files)
 └── verdict.tsv   - verdict on each evaluation (table)
 
 results/10_validation/   (2 files)
-├── closeness.tsv   - the same values as a table (value, first analysis, difference, usual variation, note)
-└── validation_report.txt   - how close the rerun is to validation/expected.tsv: summary and one line per value
+├── closeness.tsv   - the same values as a table (value, first
+│       analysis, difference, usual variation, note)
+└── validation_report.txt   - how close the rerun is to
+        validation/expected.tsv: summary and one line per value
 
 results/assembly/   (2 files)
 ├── Hw2.1.fasta.gz   - the assembly Hw 2.1
-└── Hw2.1_contigs.tsv   - name, length and origin of each contig of Hw 2.1
+└── Hw2.1_contigs.tsv   - name, length and origin of each contig of
+        Hw 2.1
 ```
 
 </details>
@@ -2815,19 +3151,46 @@ The scripts were reviewed by two AI reviewers (Codex and Antigravity, see the fi
 ## 8. Folder layout
 
 ```
-settings.yaml               the values to fill in: scheduler account, e-mail address, folders (see "Run everything: quick start")
-setup_and_run_all.sh        sets up from settings.yaml and runs everything, stage by stage
-config/                     config.sh (locations, places of the programs), lib.sh (job logging), modules.sh (software modules of the jobs)
-docs/                       one explanatory document per step (shown as collapsible sections in this report); the number at the start of a file name here and in jobs/ and scripts/ is not the step number
-jobs/                       32 scheduler job files (the number at the start of a name is not the step number; the table in the overview gives the step of each)
-scripts/                    programs called by the jobs; submit_all.sh (all jobs), make_environments.sh, 09_summary.py, 10_validate.py
-envs/                       software notes, versions by step, databases, lock files of the environments
-figures/                    the figures of this document (.png and .svg)
-input/                      input files, their checksums and the download lists (PacBio, RNA-seq, Illumina 2013, Hw 2.0)
-results/                    tables, figures and summary files by step; results/assembly/ holds Hw 2.1
-validation/                 expected.tsv: the values of the first analysis with the variation that is usual for each
-tests/                      tests of the scripts that need no cluster run (bash tests/run_tests.sh; see tests/README.md)
-logs/                       logs of every job (scheduler output, program output, time and memory)
+settings.yaml               the values to fill in: scheduler
+                            account, e-mail address, folders (see
+                            "Run everything: quick start")
+setup_and_run_all.sh        sets up from settings.yaml and runs
+                            everything, stage by stage
+config/                     config.sh (locations, places of the
+                            programs), lib.sh (job logging),
+                            modules.sh (software modules of the
+                            jobs)
+docs/                       one explanatory document per step (shown
+                            as collapsible sections in this report);
+                            the number at the start of a file name
+                            here and in jobs/ and scripts/ is not
+                            the step number
+jobs/                       32 scheduler job files (the number at
+                            the start of a name is not the step
+                            number; the table in the overview gives
+                            the step of each)
+scripts/                    programs called by the jobs;
+                            submit_all.sh (all jobs),
+                            make_environments.sh, 09_summary.py,
+                            10_validate.py
+envs/                       software notes, versions by step,
+                            databases, lock files of the
+                            environments
+figures/                    the figures of this document (.png and
+                            .svg)
+input/                      input files, their checksums and the
+                            download lists (PacBio, RNA-seq,
+                            Illumina 2013, Hw 2.0)
+results/                    tables, figures and summary files by
+                            step; results/assembly/ holds Hw 2.1
+validation/                 expected.tsv: the values of the first
+                            analysis with the variation that is
+                            usual for each
+tests/                      tests of the scripts that need no
+                            cluster run (bash tests/run_tests.sh;
+                            see tests/README.md)
+logs/                       logs of every job (scheduler output,
+                            program output, time and memory)
 ```
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

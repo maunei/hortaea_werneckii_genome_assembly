@@ -71,7 +71,7 @@ The summary of the pair A = proc_r3 and B = hw2 shows {{results/07_compare/proc_
 
 ```bash
 python3 scripts/07_synthetic_check.py make $WORK/synthetic_07
-sbatch --export=ALL,A_ASM=synA,B_ASM=synB,FASTA_A=$WORK/synthetic_07/A.fa,FASTA_B=$WORK/synthetic_07/B.fa,READS=$WORK/synthetic_07/reads.fastq,READS_TAG=synthetic,OUT=$WORK/synthetic_07/out jobs/07_compare_adjudicate.sbatch
+A_ASM=synA B_ASM=synB FASTA_A=$WORK/synthetic_07/A.fa FASTA_B=$WORK/synthetic_07/B.fa READS=$WORK/synthetic_07/reads.fastq READS_TAG=synthetic OUT=$WORK/synthetic_07/out sbatch --export=ALL jobs/07_compare_adjudicate.sbatch
 ```
 
 When that job has ended successfully, the check is run:
