@@ -4,7 +4,7 @@ This workflow assembles the genome of the black yeast *Hortaea werneckii* (strai
 
 The workflow includes software installation, downloads of input data, assembly and complete analysis. Repeated complete runs gave the identical assembly Hw 2.1 (same file checksum) and the same verdicts; a few programs used only for control assemblies and tests (for example Trinity and Flye) give slightly different results at each run, and the workflow reports how close they are. This was tested on one computer with one set of program versions; a run on another computer or with other versions of the programs has not been tested.
 
-The workflow was created with AI assistance: claude-science 0.1.67/Sonnet 5.5 (High) and independent code reviews by codex-cli 0.166.0/GPT-6.1-Sol (Medium) and Antigravity CLI 1.4.12 Gemini 4 Argon (Medium).
+The workflow was created with AI assistance: claude-science 0.1.67/Sonnet 5.5 (High) and independent code reviews by codex-cli 0.166.0/GPT-6.1-Sol (Medium) and Antigravity CLI 1.4.12 Gemini 4 Argon (Medium), and run using the high-performance computing resources of the Digital Research Alliance of Canada (alliancecan.ca).
 
 A report of the code review is in section 7 (Validation).
 
